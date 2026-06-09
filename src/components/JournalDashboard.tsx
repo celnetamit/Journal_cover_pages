@@ -42,15 +42,41 @@ const contents = [
   ["Purpose-Driven Startups: A Holistic Leadership Framework for Building Resilient and Scalable Ventures", "Tuhin Mukharjee, Mayank Kumar Dwivedi", "35"],
 ];
 
-const focusItems = [
-  ["Strategic Management Process", "Competence-based, sustainability, Balanced scorecard, Performance measurement, Strategic decision-making, Information systems success, Multidimensional metrics, Case studies, Project management, Customer service management, Project success and strategy."],
-  ["Management decisions", "Decision making, Affect, Emotions, Cognition, Literature review, Health service, Operational strategy, Consumer choice, Organizational efficiency, Behavioural strategy, Feedback, policy, practice and knowledge."],
-  ["Time scales and product development planning", "New product development, Marketing manufacturing integration, Product development process, Portfolio diversification, Consumer-oriented technology, Expert system, Database and product life cycle."],
-  ["Structure of the organization", "Co-authorship, Strategic management, Social network analysis, Organizational structure, Alliance systems, Supply chain management, Leadership and public sector organizations."],
-  ["Activities of the organization", "Corporate entrepreneurship, Middle managers, Entrepreneurial environment, Network, conversation analysis, Technology acceptance, Multinational corporations and marketing."],
-  ["Analysis of Internal and external factors for product development", "Strategic orientation, Innovation speed, Knowledge sharing practices, Fuzzy logic, Product management and organizational competence."],
-  ["SWOT Analysis", "SWOT analysis, Importance-performance analysis, Customer satisfaction surveys, Sustainable energy, Risk, Integrated planning and green manufacturing."],
-  ["Experience curve", "Combined cycle gas turbine, Electricity generation cost, Decision support model, Product diversification, Social entrepreneurship, Performance and technology innovation."],
+const focusList = [
+  "Strategic Management Process",
+  "Management Decisions",
+  "Time Scales and Production Development Planning",
+  "Structure of the Organization",
+  "Activities of the Organization",
+  "Analysis of Internal and External Factors for Product Development",
+  "SWOT Analysis",
+  "Experience Curve",
+  "Corporate Strategy and Portfolio Theory",
+  "Competitor Analysis",
+  "Generic Competitive Strategic Thinking",
+  "Globalization and the Virtual Firm",
+  "Internet and Information Availability",
+  "Sustainability",
+  "Age of Discontinuity-New Technologies, Globalization, Cultural Pluralism and Knowledge Capital",
+];
+
+const objectives = [
+  "Promotion of articles related with Management, Business and Administration domains.",
+  "Publication of genuine articles through proper peer review process.",
+  "Publishing Special Issues on Conferences.",
+  "Preparing online platform for other print Journals.",
+  "Empowering the libraries with online and print Journals in MBA domains.",
+];
+
+const salientFeatures = [
+  "Employs Open Journals System (OJS)-A Journal Management & Publishing System.",
+  "Rapid online submission and publication of papers, soon after their formal acceptance/ finalization.",
+  "Free online access to the abstracts of all articles.",
+  "An effective global web exposure for your Journal.",
+  "A chance to preserve your research/review work, online.",
+  "An initiative to share and empower knowledge worldwide.",
+  "A mode to generate interest in your subject area.",
+  "Facilitates linking with the other authors or professionals.",
 ];
 
 const managementTeam = [
@@ -145,19 +171,6 @@ function PdfHeader({ journal, label }: { journal: Journal; label: string }) {
       </div>
       <span>{label}</span>
     </header>
-  );
-}
-
-function KeyValueGrid({ rows }: { rows: string[][] }) {
-  return (
-    <dl className="kv-grid">
-      {rows.map(([key, value]) => (
-        <div key={key}>
-          <dt>{key}</dt>
-          <dd>{value || "Not available"}</dd>
-        </div>
-      ))}
-    </dl>
   );
 }
 
@@ -381,57 +394,99 @@ function PaymentPage() {
 }
 
 function JournalDetailsPage({ journal }: { journal: Journal }) {
+  const identity = publisherIdentity(journal);
+
   return (
-    <section className="pdf-page focus-page">
-      <PdfHeader journal={journal} label="Journal Details" />
-      <h1>Journal Details, Focus and Scope</h1>
-      <KeyValueGrid
-        rows={[
-          ["Title", journal.name],
-          ["Abbreviation", journal.abbreviation],
-          ["E-ISSN", journal.eIssn],
-          ["Publisher", journal.publisher],
-          ["Started Since", journal.startedSince],
-          ["Issues Per Year", journal.issuesPerYear || "3 Issues"],
-          ["Publication Format", journal.access],
-          ["DOI", journal.doi],
-        ]}
-      />
-      <h2>Focus & Scope</h2>
-      {focusItems.slice(0, 6).map(([title, body]) => (
-        <p key={title}><b>{title}:</b> {body}</p>
-      ))}
+    <section className="pdf-page journal-info-page">
+      <div className="journal-info-head">
+        <PublisherLogo mode={identity.logoMode} side="publisher" />
+        <h1>{titleCaseName(journal.name)}</h1>
+      </div>
+
+      <p>
+        <b>{identity.publisherName}</b> is a bouquet of research publications which disseminates knowledge dealing with
+        domains such as Business, Finance, HRM, Industry, Management and Marketing. We ensure good practice of Management,
+        Business and Administration. We encourage research and thinking, and attempt to contribute to a better perception of
+        management theories, framework, resources, structures, systems, processes and performance of organizations, as its
+        focal point is on research and reflections relevant to academicians and practicing managers.
+      </p>
+
+      <h2>Objectives</h2>
+      <ul>
+        {objectives.map((item) => <li key={item}>{item}</li>)}
+      </ul>
+
+      <h2>Salient Features</h2>
+      <ul>
+        {salientFeatures.map((item) => <li key={item}>{item}</li>)}
+      </ul>
+
+      <p className="journal-focus-intro">
+        <b>{journal.name.toUpperCase()}</b>, is focused towards the rapid publication in the following areas.
+      </p>
+
+      <h2>Focus and Scope</h2>
+      <ul className="focus-list">
+        {focusList.map((item) => <li key={item}>{item}</li>)}
+      </ul>
+
+      <p>
+        Sections covered by this journal are review papers, research papers, interviews, news, companies/institutions
+        write-ups, short popular articles and case studies.
+      </p>
+      <p>
+        All contributions to the journal are rigorously refereed and are selected on the basis of quality and originality of
+        the work. The journal publishes the most significant new research papers or any other original contribution in the
+        form of reviews and reports on new concepts in all areas pertaining to its scope and research being done in the
+        world, thus ensuring its scientific priority and significance.
+      </p>
+      <p>
+        No part of this publication may be reproduced, stored in retrieval or transmitted in any form without written
+        permission to the publisher.
+      </p>
+      <p>
+        To cite any of the material contained in this journal, in English or translation, please use the full English
+        reference at the beginning of each article. To reuse any of the material, please contact {identity.publisherName}.
+        The author(s) is/are solely responsible for the content of the article(s) published in the {identity.publisherName}
+        platform. The published articles are not constituted or deemed to constitute any representation of view of the
+        editors or publisher. The data presented therein are correct or sufficient to support the conclusions reached or
+        that the experiment design or methodology is adequate and the information, opinions, views presented in the articles
+        reflect the views of the authors and contributors of the article and not the opinion of publisher or the editorial
+        board.
+      </p>
       <PageNumber value={3} />
     </section>
   );
 }
 
 function TeamPage({ journal }: { journal: Journal }) {
+  const identity = publisherIdentity(journal);
+
   return (
-    <section className="pdf-page details-page">
-      <PdfHeader journal={journal} label="Team" />
+    <section className="pdf-page management-page">
+      <div className="page-rule" />
       <h1>Publication and Management Team</h1>
-      <div className="team-list">
+      <p className="management-intro">
+        <b>{identity.publisherName}</b> publishes {titleCaseName(journal.name)} under the imprint of {identity.companyName}.
+        The publication and management team coordinates journal production, editorial communication, subscriptions, author
+        support, and digital access for readers and contributors.
+      </p>
+      <div className="management-team-list">
         {managementTeam.map(([role, name, description]) => (
           <article key={role}>
-            <span>{role}</span>
-            <h2>{name}</h2>
+            <h2>{role}</h2>
+            <h3>{name}</h3>
             <p>{description}</p>
           </article>
         ))}
       </div>
-      <h2>Publisher Contact</h2>
-      <KeyValueGrid
-        rows={[
-          ["Publisher", journal.publisher || "MBA Journals"],
-          ["Imprint", journal.imprint],
-          ["Address", journal.address],
-          ["Email", journal.publisherEmail || "info@stmjournals.com"],
-          ["Phone", journal.publisherPhone || "(+91)-120-4781-200"],
-          ["Principal Contact", journal.editorName || "Gaurav Tiwari"],
-          ["Editorial Email", journal.editorEmail || "info@mbajournals.in"],
-        ]}
-      />
+      <div className="management-contact">
+        <p><b>Publisher:</b> {journal.publisher || identity.publisherName}</p>
+        <p><b>Imprint:</b> {journal.imprint || identity.companyName}</p>
+        <p><b>Address:</b> {journal.address || identity.address}</p>
+        <p><b>Email:</b> {journal.publisherEmail || identity.email} | <b>Phone:</b> {journal.publisherPhone || identity.phone}</p>
+        <p><b>Principal Contact:</b> {journal.editorName || "Gaurav Tiwari"} | <b>Editorial Email:</b> {journal.editorEmail || "info@mbajournals.in"}</p>
+      </div>
       <PageNumber value={4} />
     </section>
   );
@@ -483,11 +538,12 @@ function EditorialPage({ journal }: { journal: Journal }) {
   const editors = boardMembers.slice(1, 13);
   return (
     <section className="pdf-page editorial-page">
-      <PdfHeader journal={journal} label="Editorial Board" />
-      <h1>Editorial Board Members</h1>
-      <h2>Editor-in-Chief</h2>
+      <div className="page-rule" />
+      <h1>{titleCaseName(journal.name)}</h1>
+      <h2>Editorial Board Members</h2>
+      <h3>Editor-in-Chief</h3>
       <MemberLine member={chief} />
-      <h2>Editors</h2>
+      <h3>Editor</h3>
       <div className="editor-grid">
         {editors.map((member) => <MemberLine key={member[0]} member={member} />)}
       </div>
@@ -499,26 +555,45 @@ function EditorialPage({ journal }: { journal: Journal }) {
 function DirectorPage({ journal }: { journal: Journal }) {
   return (
     <section className="pdf-page director-page">
-      <PdfHeader journal={journal} label="Director&apos;s Desk" />
+      <div className="page-rule" />
       <h1>From the Director&apos;s Desk</h1>
       <div className="director-intro">
         <div className="portrait">PM</div>
-        <p><b>Dear Readers,</b></p>
+        <div>
+          <p><b>Dear Readers,</b></p>
+          <p>
+            We would like to present, with great pleasure, the ninth volume of a scholarly journal,
+            <b> {titleCaseName(journal.name)}</b>. This journal is part of the management publishing program from MBA Journals
+            and is devoted to the scope of research on management process, from different perspectives. This journal was
+            planned and established to represent the growing needs of business management as an emerging and increasingly
+            vast field, now widely recognized as an integral part of management.
+          </p>
+        </div>
       </div>
       <p>
-        We would like to present, with great pleasure, the ninth volume of a scholarly journal,
-        <b> {titleCaseName(journal.name)}</b>. This journal is part of the management publishing program from MBA Journals and is devoted to research in business management and strategic leadership.
+        This vision is to become a voice of the management community, addressing researchers and practitioners in this area.
       </p>
       <p>
-        The core vision of <b>{journal.name}</b> is to propagate novel awareness and know-how for the profit of mankind ranging from the academic and professional research societies to professionals in leadership, strategic planning, and management studies.
+        The core vision of <b>{journal.name}</b> is to propagate novel awareness and know-how for the profit of mankind
+        ranging from the academic and professional research societies to professionals in a range of topics in Leadership
+        and Strategic Management. MBA Journals acts as a pathfinder for the scientific community to publish their papers
+        excellently and also online. NOLEGEIN Journal of Leadership and Strategic Management focuses on original high-quality
+        research in SWOT Analysis, Experience curve, Sustainability.
       </p>
       <p>
-        Many researchers have contributed to the creation and success of the journal. We are thankful to everybody within this community who supported the idea of creating an innovation platform.
+        Many researchers have contributed to the creation and the success of the Leadership and Strategic Management. We are
+        very thankful to everybody within this community who supported the idea of creating an innovation platform. We are
+        certain that this issue will be followed by many others, reporting new developments in the field of Leadership
+        Management.
       </p>
       <p>
-        This issue would not have been possible without the support of the Editorial Board members, reviewers, authors, and readers who continue to strengthen the research community.
+        This issue would not have been possible without the great support of the Editorial Board members, and we would like
+        to express our sincere thanks to all of them. We would also like to express our gratitude to the editorial staff of
+        MBA Journals, who supported us at every stage of the project. It is our hope that this fine collection of articles
+        will be a valuable resource for Management readers and will stimulate further research into the vibrant area of
+        Leadership Management.
       </p>
-      <div className="signature">Puneet Mehrotra<br /><b>Managing Director</b></div>
+      <div className="signature"><span>Puneet Mehrotra</span><br /><b>Managing Director</b></div>
       <PageNumber value={7} />
     </section>
   );
