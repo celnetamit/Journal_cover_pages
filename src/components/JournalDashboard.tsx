@@ -5,17 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
-  BookOpen,
-  Check,
-  Database,
   Download,
   Eye,
-  FileText,
   Printer,
   QrCode,
-  Search,
   SlidersHorizontal,
-  Users,
 } from "lucide-react";
 import { journalLookupKeys } from "@/lib/formidable";
 import type { DynamicBinderData, EditorialMember } from "@/lib/formidable";
@@ -40,6 +34,7 @@ type BinderDraft = {
   directorRole: string;
   directorParagraphs: string[];
   manuscriptNotice: string;
+  contentRows: ContentRow[];
 };
 
 type ManagementPerson = {
@@ -48,6 +43,14 @@ type ManagementPerson = {
   department: string;
   photo: string;
 };
+
+type ContentRow = {
+  title: string;
+  author: string;
+  page: string;
+};
+
+const draftStorageKey = "journal-cover-page-drafts";
 
 const boardMembers = [
   ["Dr. Tapas Kumar Chatterjee", "Associate Professor-Marketing", "Institute of Management Technology Maharashtra, India", "Editor in Chief"],
@@ -65,12 +68,12 @@ const boardMembers = [
   ["Dr. Nada Jabbour Al Maalouf", "Assistant Professor", "Holy Spirit University of Kaslik Lebanon", "Editor"],
 ];
 
-const contents = [
-  ["Indian Knowledge System and Management in India: An Integrative Perspective", "Bindya S. Soni", "1"],
-  ["AI-Enabled Leadership Development and Strategic Organizational Analysis in Higher Education: Emerging HRM and Organizational Behavior Practices for 2026-2027", "Ameya Mohammed Ali", "7"],
-  ["Impact of Toxic Leadership in the 21st Century on Employees' Intentions to Leave, with Workplace Bullying as a Mediating Factor", "Amaresh Satpathy, Pranad Ranjan Panda, Swapnamayee Sahoo", "16"],
-  ["Standardizing Public Infrastructure Procurement: A Best Practice Trajectory for Nigerian Quantity Surveyors", "Alozie I. Ahmadi", "25"],
-  ["Purpose-Driven Startups: A Holistic Leadership Framework for Building Resilient and Scalable Ventures", "Tuhin Mukharjee, Mayank Kumar Dwivedi", "35"],
+const contents: ContentRow[] = [
+  { title: "Indian Knowledge System and Management in India: An Integrative Perspective", author: "Bindya S. Soni", page: "1" },
+  { title: "AI-Enabled Leadership Development and Strategic Organizational Analysis in Higher Education: Emerging HRM and Organizational Behavior Practices for 2026-2027", author: "Ameya Mohammed Ali", page: "7" },
+  { title: "Impact of Toxic Leadership in the 21st Century on Employees' Intentions to Leave, with Workplace Bullying as a Mediating Factor", author: "Amaresh Satpathy, Pranad Ranjan Panda, Swapnamayee Sahoo", page: "16" },
+  { title: "Standardizing Public Infrastructure Procurement: A Best Practice Trajectory for Nigerian Quantity Surveyors", author: "Alozie I. Ahmadi", page: "25" },
+  { title: "Purpose-Driven Startups: A Holistic Leadership Framework for Building Resilient and Scalable Ventures", author: "Tuhin Mukharjee, Mayank Kumar Dwivedi", page: "35" },
 ];
 
 const focusList = [
@@ -232,7 +235,7 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     journalTitle: details?.name || journal.name,
     eIssn: details?.eIssn || journal.eIssn || "2582-2888",
     about: focus?.about || details?.about || journal.about || "",
-    focusScope: focus?.focusScope?.length ? focus.focusScope : focusList,
+    focusScope: (focus?.focusScope?.length ? focus.focusScope : focusList).slice(0, 5),
     editorialBoard,
     managementHead: {
       name: "Puneet Mehrotra",
@@ -246,6 +249,7 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     directorRole: "Managing Director",
     directorParagraphs: defaultDirectorParagraphs,
     manuscriptNotice: defaultManuscriptNotice,
+    contentRows: contents,
   };
 }
 
@@ -319,6 +323,21 @@ function pageEditorTitle(page: number) {
   ];
 
   return titles[page - 1] || "Page controls";
+}
+
+function loadSavedDrafts() {
+  if (typeof window === "undefined") return {};
+
+  try {
+    return JSON.parse(window.localStorage.getItem(draftStorageKey) || "{}") as Record<string, BinderDraft>;
+  } catch {
+    return {};
+  }
+}
+
+function saveDraftsToStorage(drafts: Record<string, BinderDraft>) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(draftStorageKey, JSON.stringify(drafts));
 }
 
 function DownloadButton({ disabled }: { disabled: boolean }) {
@@ -616,7 +635,7 @@ function PaymentPage() {
 
 function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
-  const scopeItems = draft.focusScope.length ? draft.focusScope : focusList;
+  const scopeItems = (draft.focusScope.length ? draft.focusScope : focusList).slice(0, 5);
   const aboutText = draft.about || journal.about;
 
   return (
@@ -810,7 +829,7 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
     <section className="pdf-page director-page">
       <div className="page-rule" />
       <h1>{draft.directorTitle}</h1>
-      <div className="director-intro">
+      <div className="director-letter">
         <Image
           className="portrait"
           src={logoAssets.director.src}
@@ -819,14 +838,12 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
           height={logoAssets.director.height}
           unoptimized
         />
-        <div>
-          <p><b>Dear Readers,</b></p>
-          <p>{paragraphs[0].replaceAll("{journal}", titleCaseName(journal.name))}</p>
-        </div>
+        <p className="dear-line"><b>Dear Readers,</b></p>
+        <p className="director-first-paragraph">{paragraphs[0].replaceAll("{journal}", titleCaseName(journal.name))}</p>
+        {paragraphs.slice(1).map((paragraph, index) => (
+          <p key={index}>{paragraph.replaceAll("{journal}", titleCaseName(journal.name))}</p>
+        ))}
       </div>
-      {paragraphs.slice(1).map((paragraph, index) => (
-        <p key={index}>{paragraph.replaceAll("{journal}", titleCaseName(journal.name))}</p>
-      ))}
       <div className="signature">
         <Image
           src={logoAssets.signature.src}
@@ -843,17 +860,19 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
   );
 }
 
-function ContentPage({ journal }: { journal: Journal }) {
+function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+  const rows = draft.contentRows.length ? draft.contentRows : contents;
+
   return (
     <section className="pdf-page content-page">
       <PdfHeader journal={journal} label="Contents" />
       <h1>Contents</h1>
       <table className="contents-table">
         <tbody>
-          {contents.map(([title, author, page]) => (
-            <tr key={title}>
-              <td><b>{title}</b><span>{author}</span></td>
-              <td>{page}</td>
+          {rows.map((row, index) => (
+            <tr key={`${row.title}-${index}`}>
+              <td><b>{row.title}</b><span>{row.author}</span></td>
+              <td>{row.page}</td>
             </tr>
           ))}
         </tbody>
@@ -902,7 +921,7 @@ function BinderPage({ page, journal, draft }: { page: number; journal: Journal; 
     case 7:
       return <DirectorPage journal={currentJournal} draft={draft} />;
     case 8:
-      return <ContentPage journal={currentJournal} />;
+      return <ContentPage journal={currentJournal} draft={draft} />;
     default:
       return <CoverPage journal={currentJournal} />;
   }
@@ -923,13 +942,17 @@ function SectionEditor({
   draft,
   dynamicData,
   activePage,
+  saveStatus,
   onChange,
+  onSave,
 }: {
   journal: Journal;
   draft: BinderDraft;
   dynamicData: DynamicBinderData;
   activePage: number;
+  saveStatus: string;
   onChange: (draft: BinderDraft) => void;
+  onSave: () => void;
 }) {
   const apiKeys = journalLookupKeys(journal);
   const hasDetails = apiKeys.some((key) => dynamicData.detailsByKey[key]);
@@ -1019,6 +1042,24 @@ function SectionEditor({
     reader.readAsDataURL(file);
   }
 
+  function updateContentRow(index: number, patch: Partial<ContentRow>) {
+    onChange({
+      ...draft,
+      contentRows: draft.contentRows.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)),
+    });
+  }
+
+  function addContentRow() {
+    onChange({
+      ...draft,
+      contentRows: [...draft.contentRows, { title: "New article title", author: "Author name", page: "" }],
+    });
+  }
+
+  function removeContentRow(index: number) {
+    onChange({ ...draft, contentRows: draft.contentRows.filter((_, rowIndex) => rowIndex !== index) });
+  }
+
   return (
     <section className="section-editor">
       <div className="section-editor-head">
@@ -1036,6 +1077,10 @@ function SectionEditor({
           {dynamicData.status.errors.map((error) => <p key={error}>{error}</p>)}
         </div>
       ) : null}
+      <div className="editor-save-row">
+        <button type="button" onClick={onSave}>Save Page {activePage} Details</button>
+        {saveStatus ? <span>{saveStatus}</span> : null}
+      </div>
       {activePage === 1 ? (
         <>
           <label>
@@ -1080,7 +1125,7 @@ function SectionEditor({
               onChange={(event) =>
                 onChange({
                   ...draft,
-                  focusScope: event.target.value.split("\n").map((item) => item.trim()).filter(Boolean),
+                  focusScope: event.target.value.split("\n").map((item) => item.trim()).filter(Boolean).slice(0, 5),
                 })
               }
             />
@@ -1191,30 +1236,59 @@ function SectionEditor({
         </>
       ) : null}
       {activePage === 8 ? (
-        <div className="editor-note">
-          Page 8 is generated from the table of contents list. Article titles, authors, and page numbers will be editable here when current issue/archive article fetching is wired.
-        </div>
+        <>
+          <div className="editor-note">
+            If current issue or archive data is not available from API, fill these static rows manually. Saved rows are reused for this journal.
+          </div>
+          <div className="editor-repeater">
+            <div className="editor-row-head">
+              <span>Contents / Archive Article Rows ({draft.contentRows.length})</span>
+              <button type="button" onClick={addContentRow}>Add Article</button>
+            </div>
+            {draft.contentRows.map((row, index) => (
+              <article className="content-edit-card" key={`${row.title}-${index}`}>
+                <label>
+                  <span>Article title</span>
+                  <input value={row.title} onChange={(event) => updateContentRow(index, { title: event.target.value })} />
+                </label>
+                <div className="content-edit-grid">
+                  <label>
+                    <span>Author(s)</span>
+                    <input value={row.author} onChange={(event) => updateContentRow(index, { author: event.target.value })} />
+                  </label>
+                  <label>
+                    <span>Page</span>
+                    <input value={row.page} onChange={(event) => updateContentRow(index, { page: event.target.value })} />
+                  </label>
+                  <button type="button" onClick={() => removeContentRow(index)}>Delete</button>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="final-export-actions">
+            <button type="button" className="secondary-action" onClick={onSave}>Save All Details</button>
+            <DownloadButton disabled={false} />
+          </div>
+        </>
       ) : null}
     </section>
   );
 }
 
 export default function JournalDashboard({ journals, defaultJournalId, dynamicData }: Props) {
-  const [query, setQuery] = useState("");
-  const [selectedIds, setSelectedIds] = useState<string[]>([defaultJournalId]);
+  const [selectedId, setSelectedId] = useState(defaultJournalId);
   const [runtimeDynamicData, setRuntimeDynamicData] = useState(dynamicData);
-  const [drafts, setDrafts] = useState<Record<string, BinderDraft>>(() => initialDrafts(journals, dynamicData));
+  const [drafts, setDrafts] = useState<Record<string, BinderDraft>>(() => ({
+    ...initialDrafts(journals, dynamicData),
+    ...loadSavedDrafts(),
+  }));
   const [activePage, setActivePage] = useState(1);
-  const [dashboardMode, setDashboardMode] = useState<"templates" | "database" | "preview">("templates");
-  const selectedJournals = journals.filter((journal) => selectedIds.includes(journal.id));
-  const primaryJournal = selectedJournals[0];
+  const [dashboardMode, setDashboardMode] = useState<"templates" | "preview">("templates");
+  const [saveStatus, setSaveStatus] = useState("");
+  const primaryJournal = journals.find((journal) => journal.id === selectedId) || journals[0];
+  const selectedJournals = primaryJournal ? [primaryJournal] : [];
   const primaryDraft = primaryJournal ? drafts[primaryJournal.id] || draftFromDynamic(primaryJournal, runtimeDynamicData) : null;
-  const filtered = useMemo(() => {
-    const search = query.toLowerCase();
-    return journals
-      .filter((journal) => `${journal.name} ${journal.publisher} ${journal.domain}`.toLowerCase().includes(search))
-      .slice(0, 80);
-  }, [journals, query]);
+  const groupedJournals = useMemo(() => journals.slice(0, 600), [journals]);
 
   useEffect(() => {
     if (!primaryJournal || !runtimeDynamicData.status.enabled) return;
@@ -1236,7 +1310,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
           const merged = mergeDynamicData(current, nextData);
           setDrafts((currentDrafts) => ({
             ...currentDrafts,
-            [primaryJournal.id]: currentDrafts[primaryJournal.id] || draftFromDynamic(primaryJournal, merged),
+            [primaryJournal.id]: loadSavedDrafts()[primaryJournal.id] || currentDrafts[primaryJournal.id] || draftFromDynamic(primaryJournal, merged),
           }));
           return merged;
         });
@@ -1255,9 +1329,9 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     return () => controller.abort();
   }, [primaryJournal, runtimeDynamicData]);
 
-  function toggle(id: string) {
+  function selectJournal(id: string) {
     const journal = journals.find((item) => item.id === id);
-    setSelectedIds([id]);
+    setSelectedId(id);
     setActivePage(1);
     setDashboardMode("templates");
     if (journal) {
@@ -1272,15 +1346,21 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     setDrafts((current) => ({ ...current, [journalId]: draft }));
   }
 
+  function saveCurrentDraft() {
+    if (!primaryJournal || !primaryDraft) return;
+    const nextDrafts = { ...loadSavedDrafts(), ...drafts, [primaryJournal.id]: primaryDraft };
+    saveDraftsToStorage(nextDrafts);
+    setDrafts((current) => ({ ...current, [primaryJournal.id]: primaryDraft }));
+    setSaveStatus(`Saved Page ${activePage} details for ${primaryJournal.abbreviation || primaryJournal.name}`);
+    window.setTimeout(() => setSaveStatus(""), 2500);
+  }
+
   return (
     <main className="app-shell">
       <aside className="dashboard-sidebar">
         <div className="dashboard-menu">
           <button className={dashboardMode === "templates" ? "active" : ""} onClick={() => setDashboardMode("templates")}>
             <SlidersHorizontal size={16} /> Template Layouts
-          </button>
-          <button className={dashboardMode === "database" ? "active" : ""} onClick={() => setDashboardMode("database")}>
-            <Database size={16} /> Journal Database
           </button>
           <button className={dashboardMode === "preview" ? "active" : ""} onClick={() => setDashboardMode("preview")}>
             <Eye size={16} /> Live Preview & Export
@@ -1290,6 +1370,16 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
           <span>Active Journal</span>
           <b>{primaryJournal ? titleCaseName(primaryJournal.name) : "No journal selected"}</b>
           <small>ISSN: {primaryDraft?.eIssn || primaryJournal?.eIssn || "Not set"}</small>
+          <label className="journal-select-label">
+            <span>Select journal</span>
+            <select value={primaryJournal?.id || ""} onChange={(event) => selectJournal(event.target.value)}>
+              {groupedJournals.map((journal) => (
+                <option key={journal.id} value={journal.id}>
+                  {journal.name} ({journal.abbreviation})
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </aside>
 
@@ -1311,36 +1401,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
           </button>
         </div>
 
-        {dashboardMode === "database" ? (
-          <section className="database-panel">
-            <div className="database-head">
-              <div>
-                <p>Journal Database</p>
-                <h1>Select one journal for preview and PDF export</h1>
-              </div>
-              <div className="stats-row">
-                <div><BookOpen size={18} /><b>{journals.length}</b><span>journals loaded</span></div>
-                <div><Check size={18} /><b>{selectedJournals.length}</b><span>selected</span></div>
-                <div><FileText size={18} /><b>{selectedJournals.length * 8}</b><span>A4 PDF pages</span></div>
-                <div><Users size={18} /><b>{primaryDraft?.editorialBoard.length || 13}</b><span>board members</span></div>
-              </div>
-            </div>
-            <label className="search-box">
-              <Search size={18} />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search journals, publisher, or domain" />
-            </label>
-            <div className="journal-list database-list">
-              {filtered.map((journal) => (
-                <button className={selectedIds.includes(journal.id) ? "journal-row selected" : "journal-row"} key={journal.id} onClick={() => toggle(journal.id)}>
-                  <span className="checkmark">{selectedIds.includes(journal.id) ? "✓" : ""}</span>
-                  <span><b>{journal.name}</b><small>{journal.publisher || "Publisher not available"} · {journal.abbreviation}</small></span>
-                </button>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        {dashboardMode !== "database" && primaryJournal && primaryDraft ? (
+        {primaryJournal && primaryDraft ? (
           <div className={dashboardMode === "preview" ? "layout-workbench preview-only" : "layout-workbench"}>
             <section className="live-canvas-panel">
               <span className="live-badge">Realtime Live Canvas</span>
@@ -1358,7 +1419,9 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                 draft={primaryDraft}
                 dynamicData={runtimeDynamicData}
                 activePage={activePage}
+                saveStatus={saveStatus}
                 onChange={(draft) => updateDraft(primaryJournal.id, draft)}
+                onSave={saveCurrentDraft}
               />
             ) : (
               <section className="export-panel">

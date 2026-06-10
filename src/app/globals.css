@@ -95,7 +95,7 @@ button {
   border-radius: 8px;
   display: grid;
   gap: 8px;
-  margin-top: auto;
+  margin-top: 18px;
   padding: 16px;
 }
 
@@ -114,6 +114,31 @@ button {
 .active-journal-card small {
   color: var(--muted);
   font-size: 11px;
+}
+
+.journal-select-label {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.journal-select-label span {
+  color: #4f35f2;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.journal-select-label select {
+  background: #fff;
+  border: 1px solid #cbd8e4;
+  border-radius: 6px;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 700;
+  min-height: 38px;
+  padding: 0 8px;
+  width: 100%;
 }
 
 .workspace-panel {
@@ -335,64 +360,6 @@ button {
   font-size: 11px;
 }
 
-.search-box {
-  align-items: center;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  display: flex;
-  gap: 8px;
-  padding: 0 11px;
-}
-
-.search-box input {
-  border: 0;
-  height: 42px;
-  min-width: 0;
-  outline: 0;
-  width: 100%;
-}
-
-.journal-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 14px;
-  max-height: 34vh;
-  overflow: auto;
-  padding-right: 4px;
-}
-
-.journal-row {
-  align-items: center;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  color: var(--foreground);
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 22px 1fr;
-  padding: 10px;
-  text-align: left;
-}
-
-.journal-row.selected {
-  background: #edf6ff;
-  border-color: var(--blue);
-}
-
-.journal-row b {
-  display: block;
-  font-size: 13px;
-  line-height: 1.25;
-}
-
-.journal-row small {
-  color: var(--muted);
-  display: block;
-  font-size: 11px;
-  margin-top: 3px;
-}
-
 .checkmark {
   align-items: center;
   border: 1px solid var(--line);
@@ -518,6 +485,41 @@ button {
   padding: 16px;
 }
 
+.editor-save-row,
+.final-export-actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+.editor-save-row button,
+.final-export-actions button {
+  border: 0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+.editor-save-row button {
+  background: #0b62a4;
+  color: #fff;
+}
+
+.editor-save-row span {
+  color: #21633c;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.final-export-actions {
+  border-top: 1px solid var(--line);
+  margin-top: 6px;
+  padding-top: 14px;
+}
+
 .editor-row-head {
   align-items: center;
   display: flex;
@@ -578,6 +580,32 @@ button {
   display: grid;
   gap: 10px;
   padding: 12px;
+}
+
+.content-edit-card {
+  border: 1px solid #d9e4ee;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.content-edit-grid {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 70px auto;
+}
+
+.content-edit-grid button {
+  background: #fff1f1;
+  border: 0;
+  border-radius: 4px;
+  color: #e04848;
+  font-size: 11px;
+  font-weight: 800;
+  min-height: 34px;
+  padding: 0 10px;
 }
 
 .management-edit-head > span {
@@ -655,44 +683,6 @@ button {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
-}
-
-.database-panel {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(12, 45, 77, 0.06);
-  margin: 0 auto;
-  max-width: 980px;
-  padding: 22px;
-}
-
-.database-head {
-  display: grid;
-  gap: 18px;
-  grid-template-columns: 1fr 380px;
-}
-
-.database-head p,
-.database-head h1 {
-  margin: 0;
-}
-
-.database-head p {
-  color: var(--blue);
-  font-size: 12px;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.database-head h1 {
-  font-size: 24px;
-  line-height: 1.2;
-  margin-top: 4px;
-}
-
-.database-list {
-  max-height: calc(100vh - 270px);
 }
 
 .pdf-export-source {
@@ -1703,45 +1693,56 @@ button {
 .director-page {
   color: #222;
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 7.9pt;
-  line-height: 1.16;
-  padding: 18mm 28mm;
+  font-size: 8.1pt;
+  line-height: 1.15;
+  padding: 18mm 24mm;
 }
 
 .director-page h1 {
   color: #222;
-  font-size: 17pt;
+  font-size: 18pt;
   font-weight: 800;
-  margin: 0 0 5mm;
+  margin: 0 0 7mm;
   text-align: center;
 }
 
-.director-intro {
-  align-items: start;
-  display: flex;
-  gap: 5mm;
-  justify-content: flex-start;
-  margin: 0 0 2mm;
+.director-letter {
+  margin: 0 auto;
+  max-width: 150mm;
 }
 
 .director-page p {
-  margin: 0 0 1.8mm;
+  margin: 0 0 2.2mm;
   text-align: justify;
 }
 
 .portrait {
   border-radius: 2px;
-  flex: 0 0 auto;
-  height: 34mm;
+  float: left;
+  height: 36mm;
+  margin: 0 5mm 2mm 0;
   object-fit: cover;
   object-position: center 18%;
-  width: 28mm;
+  width: 30mm;
+}
+
+.dear-line {
+  margin-bottom: 1.5mm !important;
+  padding-top: 6mm;
+}
+
+.director-first-paragraph::first-letter {
+  float: left;
+  font-size: 24pt;
+  font-weight: 800;
+  line-height: 0.85;
+  margin: 0.5mm 1mm 0 0;
 }
 
 .signature {
-  bottom: 18mm;
+  bottom: 24mm;
   font-size: 9.5pt;
-  left: 28mm;
+  left: 33mm;
   position: absolute;
 }
 
@@ -1749,7 +1750,7 @@ button {
   display: block;
   height: auto;
   margin-bottom: 1mm;
-  width: 48mm;
+  width: 38mm;
 }
 
 .signature span {
