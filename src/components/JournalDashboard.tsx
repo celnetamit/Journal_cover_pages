@@ -24,6 +24,10 @@ type Props = {
 type BinderDraft = {
   journalTitle: string;
   eIssn: string;
+  issueVolume: string;
+  issueNumber: string;
+  issueMonthRange: string;
+  issueYear: string;
   about: string;
   focusScope: string[];
   editorialBoard: EditorialMember[];
@@ -51,8 +55,10 @@ type ContentRow = {
 };
 
 const draftStorageKey = "journal-cover-page-drafts";
-const issueVolume = "9";
-const issueNumber = "1";
+const defaultIssueVolume = "9";
+const defaultIssueNumber = "1";
+const defaultIssueMonthRange = "January to June";
+const defaultIssueYear = "2026";
 
 const boardMembers = [
   ["Dr. Tapas Kumar Chatterjee", "Associate Professor-Marketing", "Institute of Management Technology Maharashtra, India", "Editor in Chief"],
@@ -236,6 +242,10 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
   return {
     journalTitle: details?.name || journal.name,
     eIssn: details?.eIssn || journal.eIssn || "2582-2888",
+    issueVolume: defaultIssueVolume,
+    issueNumber: defaultIssueNumber,
+    issueMonthRange: defaultIssueMonthRange,
+    issueYear: defaultIssueYear,
     about: focus?.about || details?.about || journal.about || "",
     focusScope: (focus?.focusScope?.length ? focus.focusScope : focusList).slice(0, 5),
     editorialBoard,
@@ -344,7 +354,9 @@ function saveDraftsToStorage(drafts: Record<string, BinderDraft>) {
 
 function pdfFileName(journal: Journal | undefined, draft: BinderDraft | null) {
   const base = journal?.abbreviation || journal?.shortName || draft?.journalTitle || "journal";
-  const slug = `${base}-volume-${issueVolume}-issue-${issueNumber}`
+  const volume = draft?.issueVolume || defaultIssueVolume;
+  const issue = draft?.issueNumber || defaultIssueNumber;
+  const slug = `${base}-volume-${volume}-issue-${issue}`
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
@@ -516,8 +528,12 @@ function ImageLogo({
   );
 }
 
-function CoverPage({ journal }: { journal: Journal }) {
+function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
+  const volume = draft.issueVolume || defaultIssueVolume;
+  const issue = draft.issueNumber || defaultIssueNumber;
+  const monthRange = draft.issueMonthRange || defaultIssueMonthRange;
+  const year = draft.issueYear || defaultIssueYear;
 
   return (
     <section className="pdf-page cover-page" data-page-title="Journal Name with volume issue page">
@@ -525,8 +541,8 @@ function CoverPage({ journal }: { journal: Journal }) {
       <p className="cover-issn">ISSN: {journal.eIssn || "2582-2888"}</p>
       <p className="cover-printer">Printed by : Laxman Printo Graphics, Noida</p>
       <h1>{titleCaseName(journal.name)}</h1>
-      <p className="issue-line">Volume {issueVolume} | Issue {issueNumber}</p>
-      <p className="cover-meta">January to June | 2026</p>
+      <p className="issue-line">Volume {volume} | Issue {issue}</p>
+      <p className="cover-meta">{monthRange} | {year}</p>
       <div className="cover-footer">
         <div className="publisher-logo-row">
           <PublisherLogo mode={identity.logoMode} side="publisher" />
@@ -936,7 +952,7 @@ function BinderPage({ page, journal, draft }: { page: number; journal: Journal; 
 
   switch (page) {
     case 1:
-      return <CoverPage journal={currentJournal} />;
+      return <CoverPage journal={currentJournal} draft={draft} />;
     case 2:
       return <PaymentPage journal={currentJournal} />;
     case 3:
@@ -952,7 +968,7 @@ function BinderPage({ page, journal, draft }: { page: number; journal: Journal; 
     case 8:
       return <ContentPage journal={currentJournal} draft={draft} />;
     default:
-      return <CoverPage journal={currentJournal} />;
+      return <CoverPage journal={currentJournal} draft={draft} />;
   }
 }
 
@@ -1126,6 +1142,36 @@ function SectionEditor({
               onChange={(event) => onChange({ ...draft, eIssn: event.target.value })}
             />
           </label>
+          <div className="cover-meta-editor">
+            <label>
+              <span>Volume</span>
+              <input
+                value={draft.issueVolume || defaultIssueVolume}
+                onChange={(event) => onChange({ ...draft, issueVolume: event.target.value })}
+              />
+            </label>
+            <label>
+              <span>Issue</span>
+              <input
+                value={draft.issueNumber || defaultIssueNumber}
+                onChange={(event) => onChange({ ...draft, issueNumber: event.target.value })}
+              />
+            </label>
+            <label>
+              <span>Month range</span>
+              <input
+                value={draft.issueMonthRange || defaultIssueMonthRange}
+                onChange={(event) => onChange({ ...draft, issueMonthRange: event.target.value })}
+              />
+            </label>
+            <label>
+              <span>Year</span>
+              <input
+                value={draft.issueYear || defaultIssueYear}
+                onChange={(event) => onChange({ ...draft, issueYear: event.target.value })}
+              />
+            </label>
+          </div>
           <div className="editor-note">
             Cover logos, printer line, address, and publisher details are generated from the selected journal and publisher identity.
           </div>
