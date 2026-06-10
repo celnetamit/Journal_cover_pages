@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import {
   BookOpen,
@@ -91,6 +92,39 @@ const subscriptionPlans = [
   "Online: Only $149 (Online Access of Current and Back Issues)",
   "Print + Online: $200 (Two Print Issues and Online Access of Current and Back Issues)",
 ];
+
+const logoAssets = {
+  dhruv: {
+    src: "/brand/dhruv-info-systems.jpg",
+    alt: "Dhruv Info Systems Private Limited",
+    width: 924,
+    height: 363,
+  },
+  journalspub: {
+    src: "/brand/journalspub.jpg",
+    alt: "JournalsPub International Journals Publisher",
+    width: 657,
+    height: 392,
+  },
+  stm: {
+    src: "/brand/stm-journals.jpg",
+    alt: "STM Journals",
+    width: 763,
+    height: 620,
+  },
+  signature: {
+    src: "/brand/puneet-sign.webp",
+    alt: "Puneet Mehrotra signature",
+    width: 2507,
+    height: 1002,
+  },
+  manuscriptQr: {
+    src: "/brand/manuscript-engine-qr.png",
+    alt: "QR code for manuscript engine",
+    width: 1024,
+    height: 1024,
+  },
+};
 
 function initials(name: string) {
   return name
@@ -224,10 +258,7 @@ function PublisherLogo({ mode, side }: { mode: string; side: "publisher" | "comp
   if (side === "company") {
     if (mode === "journalspub") {
       return (
-        <div className="publisher-logo dhruv-logo">
-          <strong>Dhruv</strong>
-          <span>Infosystems</span>
-        </div>
+        <ImageLogo asset={logoAssets.dhruv} className="dhruv-logo" />
       );
     }
 
@@ -241,19 +272,13 @@ function PublisherLogo({ mode, side }: { mode: string; side: "publisher" | "comp
 
   if (mode === "journalspub") {
     return (
-      <div className="publisher-logo journalspub-logo">
-        <strong>Journals</strong>
-        <span>Pub</span>
-      </div>
+      <ImageLogo asset={logoAssets.journalspub} className="journalspub-logo" />
     );
   }
 
   if (mode === "stm") {
     return (
-      <div className="publisher-logo stm-logo">
-        <strong>STM</strong>
-        <span>Journals</span>
-      </div>
+      <ImageLogo asset={logoAssets.stm} className="stm-logo" />
     );
   }
 
@@ -261,6 +286,26 @@ function PublisherLogo({ mode, side }: { mode: string; side: "publisher" | "comp
     <div className="publisher-logo mba-logo">
       <strong>MBA</strong>
       <span>JOURNALS</span>
+    </div>
+  );
+}
+
+function ImageLogo({
+  asset,
+  className,
+}: {
+  asset: { src: string; alt: string; width: number; height: number };
+  className: string;
+}) {
+  return (
+    <div className={`publisher-logo image-logo ${className}`}>
+      <Image
+        src={asset.src}
+        alt={asset.alt}
+        width={asset.width}
+        height={asset.height}
+        unoptimized
+      />
     </div>
   );
 }
@@ -492,19 +537,6 @@ function TeamPage({ journal }: { journal: Journal }) {
   );
 }
 
-function FakeQr({ value }: { value: string }) {
-  const cells = Array.from({ length: 121 }, (_, index) => {
-    const code = value.charCodeAt(index % value.length);
-    return (code + index * 7 + Math.floor(index / 11)) % 3 !== 0;
-  });
-
-  return (
-    <div className="qr-box" aria-label="QR code">
-      {cells.map((filled, index) => <span className={filled ? "filled" : ""} key={index} />)}
-    </div>
-  );
-}
-
 function ManuscriptEnginePage({ journal }: { journal: Journal }) {
   const url = journal.website || "https://journals.stmjournals.com/open-access/nolegein-journal-of-leadership-and-strategic-management/";
   return (
@@ -517,7 +549,14 @@ function ManuscriptEnginePage({ journal }: { journal: Journal }) {
       <div className="engine-panel">
         <div>
           <QrCode size={34} />
-          <FakeQr value={url} />
+          <Image
+            className="qr-image"
+            src={logoAssets.manuscriptQr.src}
+            alt={logoAssets.manuscriptQr.alt}
+            width={logoAssets.manuscriptQr.width}
+            height={logoAssets.manuscriptQr.height}
+            unoptimized
+          />
           <span>Scan to open manuscript page</span>
         </div>
         <ol>
@@ -593,7 +632,16 @@ function DirectorPage({ journal }: { journal: Journal }) {
         will be a valuable resource for Management readers and will stimulate further research into the vibrant area of
         Leadership Management.
       </p>
-      <div className="signature"><span>Puneet Mehrotra</span><br /><b>Managing Director</b></div>
+      <div className="signature">
+        <Image
+          src={logoAssets.signature.src}
+          alt={logoAssets.signature.alt}
+          width={logoAssets.signature.width}
+          height={logoAssets.signature.height}
+          unoptimized
+        />
+        <b>Managing Director</b>
+      </div>
       <PageNumber value={7} />
     </section>
   );

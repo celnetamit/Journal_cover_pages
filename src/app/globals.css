@@ -847,16 +847,21 @@ button {
   padding-bottom: 4mm;
 }
 
-.qr-box {
+.qr-box,
+.qr-image {
   background: #fff;
-  border: 5px solid #fff;
   box-shadow: 0 0 0 1px #111;
-  display: grid;
-  gap: 1px;
-  grid-template-columns: repeat(11, 1fr);
+  display: block;
   height: 42mm;
   margin: 0 auto 4mm;
   width: 42mm;
+}
+
+.qr-box {
+  border: 5px solid #fff;
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(11, 1fr);
 }
 
 .qr-box span {
@@ -941,29 +946,30 @@ button {
   bottom: 23mm;
   display: flex;
   flex-direction: column;
-  gap: 1.8mm;
-  left: 30mm;
+  gap: 1.2mm;
+  left: 24mm;
   position: absolute;
-  right: 30mm;
+  right: 24mm;
 }
 
 .cover-footer b {
   color: #222;
-  font-size: 19pt;
+  font-size: 17pt;
   letter-spacing: 1px;
   line-height: 1.05;
 }
 
 .cover-footer strong {
   color: #222;
-  font-size: 15pt;
+  font-size: 13pt;
   font-weight: 500;
+  line-height: 1.1;
 }
 
 .cover-footer span {
   color: #444;
-  font-size: 10.5pt;
-  line-height: 1.25;
+  font-size: 8.8pt;
+  line-height: 1.15;
 }
 
 .publisher-logo-row {
@@ -972,7 +978,7 @@ button {
   gap: 26mm;
   grid-template-columns: 1fr 1fr;
   justify-items: center;
-  margin-bottom: 5mm;
+  margin-bottom: 3mm;
 }
 
 .publisher-logo {
@@ -982,6 +988,34 @@ button {
   justify-content: center;
   min-height: 23mm;
   min-width: 45mm;
+}
+
+.publisher-logo.image-logo {
+  background: #fff;
+  min-height: 25mm;
+  overflow: hidden;
+}
+
+.publisher-logo.image-logo img {
+  display: block;
+  height: auto;
+  max-height: 32mm;
+  max-width: 100%;
+  object-fit: contain;
+  width: auto;
+}
+
+.publisher-logo.image-logo.dhruv-logo {
+  min-width: 58mm;
+}
+
+.publisher-logo.image-logo.journalspub-logo {
+  min-width: 48mm;
+}
+
+.publisher-logo.image-logo.stm-logo {
+  min-height: 31mm;
+  min-width: 43mm;
 }
 
 .publisher-logo strong,
@@ -1125,12 +1159,15 @@ button {
   position: absolute;
 }
 
-.signature span {
-  display: inline-block;
-  font-family: Georgia, "Times New Roman", serif;
-  font-style: italic;
-  margin-bottom: 2mm;
-  transform: rotate(-6deg);
+.signature img {
+  display: block;
+  height: auto;
+  margin-bottom: 1mm;
+  width: 56mm;
+}
+
+.signature b {
+  display: block;
 }
 
 .editorial-page {
@@ -1228,6 +1265,10 @@ button {
   justify-content: flex-start;
   min-height: 20mm;
   min-width: 44mm;
+}
+
+.journal-info-head .publisher-logo.image-logo img {
+  max-height: 24mm;
 }
 
 .journal-info-head .mba-logo strong {
