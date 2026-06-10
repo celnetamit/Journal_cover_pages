@@ -112,6 +112,18 @@ const logoAssets = {
     width: 763,
     height: 620,
   },
+  mba: {
+    src: "/brand/mba-journals.jpeg",
+    alt: "MBA Journals",
+    width: 248,
+    height: 204,
+  },
+  consortium: {
+    src: "/brand/consortium.jpeg",
+    alt: "Consortium e-Learning Network",
+    width: 325,
+    height: 155,
+  },
   signature: {
     src: "/brand/puneet-sign.webp",
     alt: "Puneet Mehrotra signature",
@@ -123,6 +135,12 @@ const logoAssets = {
     alt: "QR code for manuscript engine",
     width: 1024,
     height: 1024,
+  },
+  director: {
+    src: "/brand/puneet-sir-director.jpg",
+    alt: "Puneet Mehrotra",
+    width: 661,
+    height: 1149,
   },
 };
 
@@ -263,10 +281,7 @@ function PublisherLogo({ mode, side }: { mode: string; side: "publisher" | "comp
     }
 
     return (
-      <div className="publisher-logo consortium-logo">
-        <strong>C</strong>
-        <span>Consortium<br />e-Learning<br />Network</span>
-      </div>
+      <ImageLogo asset={logoAssets.consortium} className="consortium-logo" />
     );
   }
 
@@ -283,10 +298,7 @@ function PublisherLogo({ mode, side }: { mode: string; side: "publisher" | "comp
   }
 
   return (
-    <div className="publisher-logo mba-logo">
-      <strong>MBA</strong>
-      <span>JOURNALS</span>
-    </div>
+    <ImageLogo asset={logoAssets.mba} className="mba-logo" />
   );
 }
 
@@ -597,7 +609,14 @@ function DirectorPage({ journal }: { journal: Journal }) {
       <div className="page-rule" />
       <h1>From the Director&apos;s Desk</h1>
       <div className="director-intro">
-        <div className="portrait">PM</div>
+        <Image
+          className="portrait"
+          src={logoAssets.director.src}
+          alt={logoAssets.director.alt}
+          width={logoAssets.director.width}
+          height={logoAssets.director.height}
+          unoptimized
+        />
         <div>
           <p><b>Dear Readers,</b></p>
           <p>

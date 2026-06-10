@@ -1018,6 +1018,23 @@ button {
   min-width: 43mm;
 }
 
+.publisher-logo.image-logo.mba-logo {
+  align-items: center;
+  flex-direction: row;
+  min-height: 28mm;
+  min-width: 39mm;
+}
+
+.publisher-logo.image-logo.consortium-logo {
+  gap: 0;
+  min-height: 24mm;
+  min-width: 52mm;
+}
+
+.publisher-logo.image-logo.consortium-logo img {
+  max-height: 25mm;
+}
+
 .publisher-logo strong,
 .publisher-logo span {
   color: #333;
@@ -1140,15 +1157,11 @@ button {
 }
 
 .portrait {
-  align-items: center;
-  background: linear-gradient(#bfbfbf, #777);
   border-radius: 2px;
-  color: #222;
-  display: flex;
-  font-weight: 800;
   flex: 0 0 auto;
-  height: 32mm;
-  justify-content: center;
+  height: 34mm;
+  object-fit: cover;
+  object-position: center 18%;
   width: 28mm;
 }
 
