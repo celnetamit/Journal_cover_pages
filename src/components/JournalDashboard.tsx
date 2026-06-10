@@ -1,22 +1,52 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  ArrowLeft,
+  ArrowRight,
   BookOpen,
   Check,
+  Database,
   Download,
+  Eye,
   FileText,
   Printer,
   QrCode,
   Search,
+  SlidersHorizontal,
   Users,
 } from "lucide-react";
+import { journalLookupKeys } from "@/lib/formidable";
+import type { DynamicBinderData, EditorialMember } from "@/lib/formidable";
 import type { Journal } from "@/lib/journals";
 
 type Props = {
   journals: Journal[];
   defaultJournalId: string;
+  dynamicData: DynamicBinderData;
+};
+
+type BinderDraft = {
+  journalTitle: string;
+  eIssn: string;
+  about: string;
+  focusScope: string[];
+  editorialBoard: EditorialMember[];
+  managementHead: ManagementPerson;
+  managementMembers: ManagementPerson[];
+  directorTitle: string;
+  directorName: string;
+  directorRole: string;
+  directorParagraphs: string[];
+  manuscriptNotice: string;
+};
+
+type ManagementPerson = {
+  name: string;
+  role: string;
+  department: string;
+  photo: string;
 };
 
 const boardMembers = [
@@ -80,11 +110,25 @@ const salientFeatures = [
   "Facilitates linking with the other authors or professionals.",
 ];
 
-const managementTeam = [
-  ["Managing Director", "Puneet Mehrotra", "Strategic publishing direction and journal portfolio governance."],
-  ["Publisher Contact", "MBA Journals", "Publication operations, subscriptions, and institutional coordination."],
-  ["Principal Contact", "Gaurav Tiwari", "Editorial communication and manuscript coordination."],
-  ["Editorial Office", "MBA Journals Editorial Desk", "Peer-review tracking, author assistance, and issue scheduling."],
+const managementMembers: ManagementPerson[] = [
+  { name: "Quaisher J. Hossain", role: "Senior Editor", department: "", photo: "" },
+  { name: "Gautam Goswami", role: "Manager", department: "Quality Control", photo: "" },
+  { name: "Rahul Kumar", role: "Marketing Manager", department: "STM Conferences", photo: "" },
+  { name: "Farha Khan", role: "Commissioning Editor", department: "Nursing", photo: "" },
+  { name: "Rishabh Pandey", role: "Assistant Commissioning Editor", department: "Computer Science & Engineering", photo: "" },
+  { name: "Akash Gupta", role: "Commissioning Editor", department: "Medical & Pharmacy", photo: "" },
+  { name: "Subia Abbasi", role: "Associate Editor", department: "Lifescience & Ayurveda", photo: "" },
+  { name: "Neetu Raghav", role: "Commissioning Editor", department: "Architecture", photo: "" },
+  { name: "Mansi Srivastava", role: "Commissioning Editor", department: "Mechanical Engineering", photo: "" },
+  { name: "Susmita Jahan", role: "Commissioning Editor", department: "Civil Engineering", photo: "" },
+  { name: "Chinku Gautam", role: "Associate Editor", department: "Computer Science & Engineering", photo: "" },
+  { name: "Shivani Sonkar", role: "Commissioning Editor", department: "Chemistry", photo: "" },
+  { name: "Anjul Varshney", role: "Commissioning Editor", department: "Mechanical Engineering", photo: "" },
+  { name: "Vanshika Kardam", role: "Associate Editor", department: "Chemical Engineering & Material Science", photo: "" },
+  { name: "Gauri Kaushik", role: "Associate Editor", department: "Electrical and Electronic", photo: "" },
+  { name: "Alisha", role: "Associate Editor", department: "Biotechnology & Multidisciplinary", photo: "" },
+  { name: "Arun Pratap Singh", role: "Associate Editor", department: "Chemistry", photo: "" },
+  { name: "Nandini Sahu", role: "Associate Editor", department: "Agriculture", photo: "" },
 ];
 
 const subscriptionPlans = [
@@ -92,6 +136,16 @@ const subscriptionPlans = [
   "Online: Only $149 (Online Access of Current and Back Issues)",
   "Print + Online: $200 (Two Print Issues and Online Access of Current and Back Issues)",
 ];
+
+const defaultDirectorParagraphs = [
+  "We would like to present, with great pleasure, this volume of a scholarly journal. This journal is part of the management publishing program and is devoted to representing the growing needs of its field with current research, professional perspectives, and useful academic reflection.",
+  "The core vision of this journal is to propagate novel awareness and know-how for the benefit of academicians, researchers, and practitioners. The journal acts as a pathfinder for the scientific community to publish their papers excellently and online.",
+  "This issue would not have been possible without the great support of the Editorial Board members, and we would like to express our sincere thanks to all of them.",
+  "It is our hope that this collection of articles will be a valuable resource for readers and will stimulate further research into this vibrant area.",
+];
+
+const defaultManuscriptNotice =
+  "Manuscript Engine is our specialized platform ensuring a seamless publication flow. Please don't hesitate to reach out to us for any inquiries regarding APID and manuscript submission. You can contact us at info@stmjournals.com.";
 
 const logoAssets = {
   dhruv: {
@@ -162,6 +216,111 @@ function titleCaseName(name: string) {
     );
 }
 
+function findDynamicValue<T>(journal: Journal, map: Record<string, T>) {
+  for (const key of journalLookupKeys(journal)) {
+    const value = map[key];
+    if (value) return value;
+  }
+}
+
+function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): BinderDraft {
+  const details = findDynamicValue(journal, dynamicData.detailsByKey);
+  const focus = findDynamicValue(journal, dynamicData.focusByKey);
+  const editorialBoard = findDynamicValue(journal, dynamicData.editorialByKey) || [];
+
+  return {
+    journalTitle: details?.name || journal.name,
+    eIssn: details?.eIssn || journal.eIssn || "2582-2888",
+    about: focus?.about || details?.about || journal.about || "",
+    focusScope: focus?.focusScope?.length ? focus.focusScope : focusList,
+    editorialBoard,
+    managementHead: {
+      name: "Puneet Mehrotra",
+      role: "Chairman and Director",
+      department: "",
+      photo: logoAssets.director.src,
+    },
+    managementMembers,
+    directorTitle: "From the Director's Desk",
+    directorName: "Puneet Mehrotra",
+    directorRole: "Managing Director",
+    directorParagraphs: defaultDirectorParagraphs,
+    manuscriptNotice: defaultManuscriptNotice,
+  };
+}
+
+function initialDrafts(journals: Journal[], dynamicData: DynamicBinderData) {
+  return Object.fromEntries(journals.map((journal) => [journal.id, draftFromDynamic(journal, dynamicData)]));
+}
+
+function draftJournal(journal: Journal, draft: BinderDraft): Journal {
+  return {
+    ...journal,
+    name: draft.journalTitle || journal.name,
+    eIssn: draft.eIssn || journal.eIssn,
+    about: draft.about || journal.about,
+  };
+}
+
+function editorialText(members: EditorialMember[]) {
+  return members
+    .map((member) =>
+      [member.role, member.name, member.designation, member.affiliation, member.location].filter(Boolean).join(" | "),
+    )
+    .join("\n");
+}
+
+function parseEditorialText(value: string): EditorialMember[] {
+  return value
+    .split("\n")
+    .map((line, index) => {
+      const [role = "Editor", name = "", designation = "", affiliation = "", location = ""] = line
+        .split("|")
+        .map((part) => part.trim());
+
+      return {
+        role,
+        name,
+        designation,
+        department: "",
+        affiliation,
+        location,
+        email: "",
+        photo: "",
+        priority: index + 1,
+      };
+    })
+    .filter((member) => member.name);
+}
+
+function mergeDynamicData(current: DynamicBinderData, next: DynamicBinderData): DynamicBinderData {
+  return {
+    detailsByKey: { ...current.detailsByKey, ...next.detailsByKey },
+    focusByKey: { ...current.focusByKey, ...next.focusByKey },
+    editorialByKey: { ...current.editorialByKey, ...next.editorialByKey },
+    status: {
+      enabled: current.status.enabled || next.status.enabled,
+      fetchedAt: next.status.fetchedAt || current.status.fetchedAt,
+      errors: [...current.status.errors, ...next.status.errors].filter((error, index, list) => list.indexOf(error) === index),
+    },
+  };
+}
+
+function pageEditorTitle(page: number) {
+  const titles = [
+    "Cover page journal metadata",
+    "Subscription and legal information",
+    "Journal details and focus/scope",
+    "Publication management team",
+    "Manuscript engine submission structure",
+    "Editorial board structure",
+    "Director desk letter content",
+    "Table of contents metadata",
+  ];
+
+  return titles[page - 1] || "Page controls";
+}
+
 function DownloadButton({ disabled }: { disabled: boolean }) {
   const [busy, setBusy] = useState(false);
 
@@ -177,10 +336,15 @@ function DownloadButton({ disabled }: { disabled: boolean }) {
     const pdf = new jsPDF("p", "mm", "a4");
 
     for (let index = 0; index < pages.length; index += 1) {
+      const { width, height } = pages[index].getBoundingClientRect();
       const canvas = await html2canvas(pages[index], {
         scale: 2,
         useCORS: true,
         backgroundColor: "#ffffff",
+        width,
+        height,
+        windowWidth: document.documentElement.scrollWidth,
+        windowHeight: document.documentElement.scrollHeight,
       });
       const imgData = canvas.toDataURL("image/png");
       if (index > 0) pdf.addPage();
@@ -450,8 +614,10 @@ function PaymentPage() {
   );
 }
 
-function JournalDetailsPage({ journal }: { journal: Journal }) {
+function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
+  const scopeItems = draft.focusScope.length ? draft.focusScope : focusList;
+  const aboutText = draft.about || journal.about;
 
   return (
     <section className="pdf-page journal-info-page">
@@ -462,10 +628,7 @@ function JournalDetailsPage({ journal }: { journal: Journal }) {
 
       <p>
         <b>{identity.publisherName}</b> is a bouquet of research publications which disseminates knowledge dealing with
-        domains such as Business, Finance, HRM, Industry, Management and Marketing. We ensure good practice of Management,
-        Business and Administration. We encourage research and thinking, and attempt to contribute to a better perception of
-        management theories, framework, resources, structures, systems, processes and performance of organizations, as its
-        focal point is on research and reflections relevant to academicians and practicing managers.
+        domains such as Applied Sciences, Medicine, Engineering, Management and Technology. {aboutText || "We encourage research and thinking, and attempt to contribute to a better perception of academic and professional knowledge across research communities."}
       </p>
 
       <h2>Objectives</h2>
@@ -484,7 +647,7 @@ function JournalDetailsPage({ journal }: { journal: Journal }) {
 
       <h2>Focus and Scope</h2>
       <ul className="focus-list">
-        {focusList.map((item) => <li key={item}>{item}</li>)}
+        {scopeItems.map((item) => <li key={item}>{item}</li>)}
       </ul>
 
       <p>
@@ -516,40 +679,57 @@ function JournalDetailsPage({ journal }: { journal: Journal }) {
   );
 }
 
-function TeamPage({ journal }: { journal: Journal }) {
+function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
 
   return (
     <section className="pdf-page management-page">
       <div className="page-rule" />
       <h1>Publication and Management Team</h1>
-      <p className="management-intro">
-        <b>{identity.publisherName}</b> publishes {titleCaseName(journal.name)} under the imprint of {identity.companyName}.
-        The publication and management team coordinates journal production, editorial communication, subscriptions, author
-        support, and digital access for readers and contributors.
-      </p>
-      <div className="management-team-list">
-        {managementTeam.map(([role, name, description]) => (
-          <article key={role}>
-            <h2>{role}</h2>
-            <h3>{name}</h3>
-            <p>{description}</p>
-          </article>
+      <ManagementProfile person={draft.managementHead} featured />
+      <div className="management-band">Members</div>
+      <div className="management-photo-grid">
+        {draft.managementMembers.map((member, index) => (
+          <ManagementProfile key={`${member.name}-${index}`} person={member} />
         ))}
       </div>
-      <div className="management-contact">
-        <p><b>Publisher:</b> {journal.publisher || identity.publisherName}</p>
-        <p><b>Imprint:</b> {journal.imprint || identity.companyName}</p>
-        <p><b>Address:</b> {journal.address || identity.address}</p>
-        <p><b>Email:</b> {journal.publisherEmail || identity.email} | <b>Phone:</b> {journal.publisherPhone || identity.phone}</p>
-        <p><b>Principal Contact:</b> {journal.editorName || "Gaurav Tiwari"} | <b>Editorial Email:</b> {journal.editorEmail || "info@mbajournals.in"}</p>
+      <div className="management-contact-boxes">
+        <div>
+          <b>For any query related to Dispatch and Online Access, please contact</b>
+          <span>Mr. Asan Kumar</span>
+          <span>Tel.: +91 120 4781225</span>
+          <span>E-mail: asank@celnet.in</span>
+          <strong>Website: {identity.website}</strong>
+        </div>
+        <div>
+          <b>For any query related to Sales and Marketing, please contact</b>
+          <span>Subscription Manager</span>
+          <span>Tel.: +91 120-4781201, +91 9810078958</span>
+          <span>E-mail: subs@journalspub.com</span>
+          <strong>Tel. no.: {identity.phone}</strong>
+        </div>
       </div>
       <PageNumber value={4} />
     </section>
   );
 }
 
-function ManuscriptEnginePage({ journal }: { journal: Journal }) {
+function ManagementProfile({ person, featured = false }: { person: ManagementPerson; featured?: boolean }) {
+  return (
+    <article className={featured ? "management-profile featured" : "management-profile"}>
+      {person.photo ? (
+        <Image src={person.photo} alt={person.name} width={90} height={90} unoptimized />
+      ) : (
+        <span className="management-initials">{initials(person.name || "Member")}</span>
+      )}
+      <b>{person.name || "Team Member"}</b>
+      <span>{person.role}</span>
+      {person.department ? <small>({person.department})</small> : null}
+    </article>
+  );
+}
+
+function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const url = journal.website || "https://journals.stmjournals.com/open-access/nolegein-journal-of-leadership-and-strategic-management/";
   return (
     <section className="pdf-page details-page manuscript-page">
@@ -579,35 +759,57 @@ function ManuscriptEnginePage({ journal }: { journal: Journal }) {
         </ol>
       </div>
       <p className="url-line">{url}</p>
+      <p className="manuscript-notice">{draft.manuscriptNotice}</p>
       <PageNumber value={5} />
     </section>
   );
 }
 
-function EditorialPage({ journal }: { journal: Journal }) {
-  const chief = boardMembers[0];
-  const editors = boardMembers.slice(1, 13);
+function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+  const dynamicMembers = draft.editorialBoard;
+  const chief = dynamicMembers.find((member) => member.role.toLowerCase().includes("chief"));
+  const associateChiefs = dynamicMembers.filter((member) => member.role.toLowerCase().includes("associate"));
+  const editors = dynamicMembers.filter(
+    (member) =>
+      !member.role.toLowerCase().includes("chief") &&
+      !member.role.toLowerCase().includes("associate"),
+  );
+  const fallbackChief = boardMembers[0];
+  const fallbackEditors = boardMembers.slice(1, 13);
+
   return (
     <section className="pdf-page editorial-page">
       <div className="page-rule" />
       <h1>{titleCaseName(journal.name)}</h1>
       <h2>Editorial Board Members</h2>
       <h3>Editor-in-Chief</h3>
-      <MemberLine member={chief} />
+      {chief ? <EditorialMemberLine member={chief} /> : <MemberLine member={fallbackChief} />}
+      {associateChiefs.length > 0 ? (
+        <>
+          <h3>Associate Editor-in-Chief</h3>
+          <div className="editor-grid">
+            {associateChiefs.map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)}
+          </div>
+        </>
+      ) : null}
       <h3>Editor</h3>
       <div className="editor-grid">
-        {editors.map((member) => <MemberLine key={member[0]} member={member} />)}
+        {editors.length > 0
+          ? editors.slice(0, 12).map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)
+          : fallbackEditors.map((member) => <MemberLine key={member[0]} member={member} />)}
       </div>
       <PageNumber value={6} />
     </section>
   );
 }
 
-function DirectorPage({ journal }: { journal: Journal }) {
+function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+  const paragraphs = draft.directorParagraphs.length ? draft.directorParagraphs : defaultDirectorParagraphs;
+
   return (
     <section className="pdf-page director-page">
       <div className="page-rule" />
-      <h1>From the Director&apos;s Desk</h1>
+      <h1>{draft.directorTitle}</h1>
       <div className="director-intro">
         <Image
           className="portrait"
@@ -619,38 +821,12 @@ function DirectorPage({ journal }: { journal: Journal }) {
         />
         <div>
           <p><b>Dear Readers,</b></p>
-          <p>
-            We would like to present, with great pleasure, the ninth volume of a scholarly journal,
-            <b> {titleCaseName(journal.name)}</b>. This journal is part of the management publishing program from MBA Journals
-            and is devoted to the scope of research on management process, from different perspectives. This journal was
-            planned and established to represent the growing needs of business management as an emerging and increasingly
-            vast field, now widely recognized as an integral part of management.
-          </p>
+          <p>{paragraphs[0].replaceAll("{journal}", titleCaseName(journal.name))}</p>
         </div>
       </div>
-      <p>
-        This vision is to become a voice of the management community, addressing researchers and practitioners in this area.
-      </p>
-      <p>
-        The core vision of <b>{journal.name}</b> is to propagate novel awareness and know-how for the profit of mankind
-        ranging from the academic and professional research societies to professionals in a range of topics in Leadership
-        and Strategic Management. MBA Journals acts as a pathfinder for the scientific community to publish their papers
-        excellently and also online. NOLEGEIN Journal of Leadership and Strategic Management focuses on original high-quality
-        research in SWOT Analysis, Experience curve, Sustainability.
-      </p>
-      <p>
-        Many researchers have contributed to the creation and the success of the Leadership and Strategic Management. We are
-        very thankful to everybody within this community who supported the idea of creating an innovation platform. We are
-        certain that this issue will be followed by many others, reporting new developments in the field of Leadership
-        Management.
-      </p>
-      <p>
-        This issue would not have been possible without the great support of the Editorial Board members, and we would like
-        to express our sincere thanks to all of them. We would also like to express our gratitude to the editorial staff of
-        MBA Journals, who supported us at every stage of the project. It is our hope that this fine collection of articles
-        will be a valuable resource for Management readers and will stimulate further research into the vibrant area of
-        Leadership Management.
-      </p>
+      {paragraphs.slice(1).map((paragraph, index) => (
+        <p key={index}>{paragraph.replaceAll("{journal}", titleCaseName(journal.name))}</p>
+      ))}
       <div className="signature">
         <Image
           src={logoAssets.signature.src}
@@ -659,7 +835,8 @@ function DirectorPage({ journal }: { journal: Journal }) {
           height={logoAssets.signature.height}
           unoptimized
         />
-        <b>Managing Director</b>
+        <span>{draft.directorName}</span>
+        <b>{draft.directorRole}</b>
       </div>
       <PageNumber value={7} />
     </section>
@@ -696,25 +873,342 @@ function MemberLine({ member }: { member: string[] }) {
   );
 }
 
-function PageSet({ journal }: { journal: Journal }) {
+function EditorialMemberLine({ member }: { member: EditorialMember }) {
   return (
-    <div className="page-set">
-      <CoverPage journal={journal} />
-      <PaymentPage />
-      <JournalDetailsPage journal={journal} />
-      <TeamPage journal={journal} />
-      <ManuscriptEnginePage journal={journal} />
-      <EditorialPage journal={journal} />
-      <DirectorPage journal={journal} />
-      <ContentPage journal={journal} />
+    <div className="member-line">
+      <b>{member.name}</b>
+      <span>{member.designation || member.department}</span>
+      <small>{[member.affiliation, member.location].filter(Boolean).join(", ")}</small>
     </div>
   );
 }
 
-export default function JournalDashboard({ journals, defaultJournalId }: Props) {
+function BinderPage({ page, journal, draft }: { page: number; journal: Journal; draft: BinderDraft }) {
+  const currentJournal = draftJournal(journal, draft);
+
+  switch (page) {
+    case 1:
+      return <CoverPage journal={currentJournal} />;
+    case 2:
+      return <PaymentPage />;
+    case 3:
+      return <JournalDetailsPage journal={currentJournal} draft={draft} />;
+    case 4:
+      return <TeamPage journal={currentJournal} draft={draft} />;
+    case 5:
+      return <ManuscriptEnginePage journal={currentJournal} draft={draft} />;
+    case 6:
+      return <EditorialPage journal={currentJournal} draft={draft} />;
+    case 7:
+      return <DirectorPage journal={currentJournal} draft={draft} />;
+    case 8:
+      return <ContentPage journal={currentJournal} />;
+    default:
+      return <CoverPage journal={currentJournal} />;
+  }
+}
+
+function PageSet({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+  return (
+    <div className="page-set">
+      {Array.from({ length: 8 }, (_, index) => (
+        <BinderPage key={index + 1} page={index + 1} journal={journal} draft={draft} />
+      ))}
+    </div>
+  );
+}
+
+function SectionEditor({
+  journal,
+  draft,
+  dynamicData,
+  activePage,
+  onChange,
+}: {
+  journal: Journal;
+  draft: BinderDraft;
+  dynamicData: DynamicBinderData;
+  activePage: number;
+  onChange: (draft: BinderDraft) => void;
+}) {
+  const apiKeys = journalLookupKeys(journal);
+  const hasDetails = apiKeys.some((key) => dynamicData.detailsByKey[key]);
+  const hasFocus = apiKeys.some((key) => dynamicData.focusByKey[key]);
+  const hasEditorial = apiKeys.some((key) => dynamicData.editorialByKey[key]);
+
+  function updateEditorial(index: number, patch: Partial<EditorialMember>) {
+    onChange({
+      ...draft,
+      editorialBoard: draft.editorialBoard.map((member, memberIndex) =>
+        memberIndex === index ? { ...member, ...patch } : member,
+      ),
+    });
+  }
+
+  function addEditorial() {
+    onChange({
+      ...draft,
+      editorialBoard: [
+        ...draft.editorialBoard,
+        {
+          role: "Editor",
+          name: "",
+          designation: "",
+          department: "",
+          affiliation: "",
+          location: "",
+          email: "",
+          photo: "",
+          priority: draft.editorialBoard.length + 1,
+        },
+      ],
+    });
+  }
+
+  function removeEditorial(index: number) {
+    onChange({ ...draft, editorialBoard: draft.editorialBoard.filter((_, memberIndex) => memberIndex !== index) });
+  }
+
+  function updateParagraph(index: number, value: string) {
+    onChange({
+      ...draft,
+      directorParagraphs: draft.directorParagraphs.map((paragraph, paragraphIndex) =>
+        paragraphIndex === index ? value : paragraph,
+      ),
+    });
+  }
+
+  function addParagraph() {
+    onChange({ ...draft, directorParagraphs: [...draft.directorParagraphs, ""] });
+  }
+
+  function updateManagementHead(patch: Partial<ManagementPerson>) {
+    onChange({ ...draft, managementHead: { ...draft.managementHead, ...patch } });
+  }
+
+  function updateManagementMember(index: number, patch: Partial<ManagementPerson>) {
+    onChange({
+      ...draft,
+      managementMembers: draft.managementMembers.map((member, memberIndex) =>
+        memberIndex === index ? { ...member, ...patch } : member,
+      ),
+    });
+  }
+
+  function addManagementMember() {
+    onChange({
+      ...draft,
+      managementMembers: [
+        ...draft.managementMembers,
+        { name: "New Member", role: "Associate Editor", department: "", photo: "" },
+      ],
+    });
+  }
+
+  function removeManagementMember(index: number) {
+    onChange({
+      ...draft,
+      managementMembers: draft.managementMembers.filter((_, memberIndex) => memberIndex !== index),
+    });
+  }
+
+  function readPhoto(file: File | undefined, callback: (photo: string) => void) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => callback(String(reader.result || ""));
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <section className="section-editor">
+      <div className="section-editor-head">
+        <span className="editor-kicker">Page {activePage} form controls</span>
+        <b>{pageEditorTitle(activePage)}</b>
+        <span>{dynamicData.status.enabled ? "Formidable API connected" : "Using local fallback"}</span>
+      </div>
+      <div className="api-source-grid">
+        <span className={hasDetails ? "loaded" : ""}>Journal details</span>
+        <span className={hasFocus ? "loaded" : ""}>Focus & scope</span>
+        <span className={hasEditorial ? "loaded" : ""}>Editorial board</span>
+      </div>
+      {dynamicData.status.errors.length > 0 ? (
+        <div className="api-errors">
+          {dynamicData.status.errors.map((error) => <p key={error}>{error}</p>)}
+        </div>
+      ) : null}
+      {activePage === 1 ? (
+        <>
+          <label>
+            <span>Journal title</span>
+            <input
+              value={draft.journalTitle}
+              onChange={(event) => onChange({ ...draft, journalTitle: event.target.value })}
+            />
+          </label>
+          <label>
+            <span>e-ISSN</span>
+            <input
+              value={draft.eIssn}
+              onChange={(event) => onChange({ ...draft, eIssn: event.target.value })}
+            />
+          </label>
+          <div className="editor-note">
+            Cover logos, printer line, address, and publisher details are generated from the selected journal and publisher identity.
+          </div>
+        </>
+      ) : null}
+      {activePage === 2 ? (
+        <div className="editor-note">
+          Subscription, payment, online access policy, advertising, lost issue claims, and legal dispute text are publisher-specific generated blocks. These can be split into editable rich text fields in the next pass.
+        </div>
+      ) : null}
+      {activePage === 3 ? (
+        <>
+          <label>
+            <span>About journal</span>
+            <textarea
+              rows={6}
+              value={draft.about}
+              onChange={(event) => onChange({ ...draft, about: event.target.value })}
+            />
+          </label>
+          <label>
+            <span>Focus and scope</span>
+            <textarea
+              rows={10}
+              value={draft.focusScope.join("\n")}
+              onChange={(event) =>
+                onChange({
+                  ...draft,
+                  focusScope: event.target.value.split("\n").map((item) => item.trim()).filter(Boolean),
+                })
+              }
+            />
+          </label>
+        </>
+      ) : null}
+      {activePage === 4 ? (
+        <div className="editor-repeater">
+          <div className="management-edit-head">
+            <span>Management head</span>
+            <div className="management-edit-row">
+              <input value={draft.managementHead.name} onChange={(event) => updateManagementHead({ name: event.target.value })} />
+              <input value={draft.managementHead.role} onChange={(event) => updateManagementHead({ role: event.target.value })} />
+              <label className="file-field">
+                <span>Photo</span>
+                <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (photo) => updateManagementHead({ photo }))} />
+              </label>
+            </div>
+          </div>
+          <div className="editor-row-head">
+            <span>Publication Management Officers ({draft.managementMembers.length})</span>
+            <button type="button" onClick={addManagementMember}>Add Member</button>
+          </div>
+          {draft.managementMembers.map((member, index) => (
+            <article className="management-edit-card" key={`${member.name}-${index}`}>
+              <div className="management-edit-row">
+                <input value={member.name} placeholder="Name" onChange={(event) => updateManagementMember(index, { name: event.target.value })} />
+                <input value={member.role} placeholder="Role" onChange={(event) => updateManagementMember(index, { role: event.target.value })} />
+                <input value={member.department} placeholder="Department specialty" onChange={(event) => updateManagementMember(index, { department: event.target.value })} />
+                <label className="file-field compact">
+                  <span>Photo</span>
+                  <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (photo) => updateManagementMember(index, { photo }))} />
+                </label>
+                <button type="button" onClick={() => removeManagementMember(index)}>Delete</button>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : null}
+      {activePage === 5 ? (
+        <label>
+          <span>Manuscript submission notification</span>
+          <textarea
+            rows={9}
+            value={draft.manuscriptNotice}
+            onChange={(event) => onChange({ ...draft, manuscriptNotice: event.target.value })}
+          />
+        </label>
+      ) : null}
+      {activePage === 6 ? (
+        <div className="editor-repeater">
+          <div className="editor-row-head">
+            <span>Editorial Board Members</span>
+            <button type="button" onClick={addEditorial}>Add Board Row</button>
+          </div>
+          {draft.editorialBoard.map((member, index) => (
+            <article className="editorial-edit-card" key={`${member.name}-${index}`}>
+              <div className="editorial-edit-actions">
+                <select value={member.role} onChange={(event) => updateEditorial(index, { role: event.target.value })}>
+                  <option>Editor in Chief</option>
+                  <option>Editor</option>
+                  <option>Associate Editor-in-Chief</option>
+                </select>
+                <button type="button" onClick={() => removeEditorial(index)}>Delete Row</button>
+              </div>
+              <input value={member.name} placeholder="Name" onChange={(event) => updateEditorial(index, { name: event.target.value })} />
+              <input value={member.designation} placeholder="Designation" onChange={(event) => updateEditorial(index, { designation: event.target.value })} />
+              <input value={member.affiliation} placeholder="Affiliation" onChange={(event) => updateEditorial(index, { affiliation: event.target.value })} />
+              <input value={member.location} placeholder="Location" onChange={(event) => updateEditorial(index, { location: event.target.value })} />
+            </article>
+          ))}
+          {draft.editorialBoard.length === 0 ? (
+            <textarea
+              rows={8}
+              value={editorialText(draft.editorialBoard)}
+              placeholder="Role | Name | Designation | Affiliation | Location"
+              onChange={(event) => onChange({ ...draft, editorialBoard: parseEditorialText(event.target.value) })}
+            />
+          ) : null}
+        </div>
+      ) : null}
+      {activePage === 7 ? (
+        <>
+          <label>
+            <span>Director desk letter title</span>
+            <input value={draft.directorTitle} onChange={(event) => onChange({ ...draft, directorTitle: event.target.value })} />
+          </label>
+          <div className="two-field-grid">
+            <label>
+              <span>Director name</span>
+              <input value={draft.directorName} onChange={(event) => onChange({ ...draft, directorName: event.target.value })} />
+            </label>
+            <label>
+              <span>Director role label</span>
+              <input value={draft.directorRole} onChange={(event) => onChange({ ...draft, directorRole: event.target.value })} />
+            </label>
+          </div>
+          <div className="editor-row-head">
+            <span>Letter body paragraphs</span>
+            <button type="button" onClick={addParagraph}>Add Paragraph</button>
+          </div>
+          {draft.directorParagraphs.map((paragraph, index) => (
+            <label key={index}>
+              <span>Paragraph {index + 1}</span>
+              <textarea rows={4} value={paragraph} onChange={(event) => updateParagraph(index, event.target.value)} />
+            </label>
+          ))}
+        </>
+      ) : null}
+      {activePage === 8 ? (
+        <div className="editor-note">
+          Page 8 is generated from the table of contents list. Article titles, authors, and page numbers will be editable here when current issue/archive article fetching is wired.
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+export default function JournalDashboard({ journals, defaultJournalId, dynamicData }: Props) {
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([defaultJournalId]);
+  const [runtimeDynamicData, setRuntimeDynamicData] = useState(dynamicData);
+  const [drafts, setDrafts] = useState<Record<string, BinderDraft>>(() => initialDrafts(journals, dynamicData));
+  const [activePage, setActivePage] = useState(1);
+  const [dashboardMode, setDashboardMode] = useState<"templates" | "database" | "preview">("templates");
   const selectedJournals = journals.filter((journal) => selectedIds.includes(journal.id));
+  const primaryJournal = selectedJournals[0];
+  const primaryDraft = primaryJournal ? drafts[primaryJournal.id] || draftFromDynamic(primaryJournal, runtimeDynamicData) : null;
   const filtered = useMemo(() => {
     const search = query.toLowerCase();
     return journals
@@ -722,54 +1216,169 @@ export default function JournalDashboard({ journals, defaultJournalId }: Props) 
       .slice(0, 80);
   }, [journals, query]);
 
+  useEffect(() => {
+    if (!primaryJournal || !runtimeDynamicData.status.enabled) return;
+
+    const keys = journalLookupKeys(primaryJournal);
+    const hasAllSections = keys.some((key) => runtimeDynamicData.detailsByKey[key]) &&
+      keys.some((key) => runtimeDynamicData.focusByKey[key]) &&
+      keys.some((key) => runtimeDynamicData.editorialByKey[key]);
+
+    if (hasAllSections) return;
+
+    const controller = new AbortController();
+    const search = primaryJournal.abbreviation || primaryJournal.name;
+
+    fetch(`/api/binder-data?search=${encodeURIComponent(search)}`, { signal: controller.signal })
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
+      .then((nextData: DynamicBinderData) => {
+        setRuntimeDynamicData((current) => {
+          const merged = mergeDynamicData(current, nextData);
+          setDrafts((currentDrafts) => ({
+            ...currentDrafts,
+            [primaryJournal.id]: currentDrafts[primaryJournal.id] || draftFromDynamic(primaryJournal, merged),
+          }));
+          return merged;
+        });
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") return;
+        setRuntimeDynamicData((current) => ({
+          ...current,
+          status: {
+            ...current.status,
+            errors: [...current.status.errors, `Runtime Formidable fetch failed: ${error instanceof Error ? error.message : String(error)}`],
+          },
+        }));
+      });
+
+    return () => controller.abort();
+  }, [primaryJournal, runtimeDynamicData]);
+
   function toggle(id: string) {
-    setSelectedIds((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
-    );
+    const journal = journals.find((item) => item.id === id);
+    setSelectedIds([id]);
+    setActivePage(1);
+    setDashboardMode("templates");
+    if (journal) {
+      setDrafts((current) => ({
+        ...current,
+        [id]: current[id] || draftFromDynamic(journal, runtimeDynamicData),
+      }));
+    }
+  }
+
+  function updateDraft(journalId: string, draft: BinderDraft) {
+    setDrafts((current) => ({ ...current, [journalId]: draft }));
   }
 
   return (
     <main className="app-shell">
-      <section className="admin-panel">
-        <div className="panel-head">
-          <div>
-            <p>Journal Page Builder</p>
-            <h1>Create initial journal pages from selected journals</h1>
-          </div>
-          <div className="toolbar">
-            <button className="secondary-action" onClick={() => window.print()}>
-              <Printer size={16} /> Print
-            </button>
-            <DownloadButton disabled={selectedJournals.length === 0} />
-          </div>
+      <aside className="dashboard-sidebar">
+        <div className="dashboard-menu">
+          <button className={dashboardMode === "templates" ? "active" : ""} onClick={() => setDashboardMode("templates")}>
+            <SlidersHorizontal size={16} /> Template Layouts
+          </button>
+          <button className={dashboardMode === "database" ? "active" : ""} onClick={() => setDashboardMode("database")}>
+            <Database size={16} /> Journal Database
+          </button>
+          <button className={dashboardMode === "preview" ? "active" : ""} onClick={() => setDashboardMode("preview")}>
+            <Eye size={16} /> Live Preview & Export
+          </button>
         </div>
-        <div className="stats-row">
-          <div><BookOpen size={18} /><b>{journals.length}</b><span>journals loaded</span></div>
-          <div><Check size={18} /><b>{selectedJournals.length}</b><span>selected</span></div>
-          <div><FileText size={18} /><b>{selectedJournals.length * 8}</b><span>A4 PDF pages</span></div>
-          <div><Users size={18} /><b>13</b><span>board members</span></div>
+        <div className="active-journal-card">
+          <span>Active Journal</span>
+          <b>{primaryJournal ? titleCaseName(primaryJournal.name) : "No journal selected"}</b>
+          <small>ISSN: {primaryDraft?.eIssn || primaryJournal?.eIssn || "Not set"}</small>
         </div>
-        <label className="search-box">
-          <Search size={18} />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search journals, publisher, or domain" />
-        </label>
-        <div className="journal-list">
-          {filtered.map((journal) => (
-            <button className={selectedIds.includes(journal.id) ? "journal-row selected" : "journal-row"} key={journal.id} onClick={() => toggle(journal.id)}>
-              <span className="checkmark">{selectedIds.includes(journal.id) ? "✓" : ""}</span>
-              <span><b>{journal.name}</b><small>{journal.publisher || "Publisher not available"} · {journal.abbreviation}</small></span>
-            </button>
-          ))}
-        </div>
-      </section>
+      </aside>
 
-      <section className="preview-panel">
-        <div className="preview-heading">
-          <h2>Live Preview</h2>
-          <p>Eight A4 pages in the same order as the PDF export.</p>
+      <section className="workspace-panel">
+        <div className="workspace-toolbar">
+          <button className="icon-step" onClick={() => setActivePage((page) => Math.max(1, page - 1))}>
+            <ArrowLeft size={16} />
+          </button>
+          <span>Active editor target:</span>
+          <div className="page-stepper">
+            {Array.from({ length: 8 }, (_, index) => index + 1).map((page) => (
+              <button className={activePage === page ? "active" : ""} key={page} onClick={() => setActivePage(page)}>
+                Page {page}
+              </button>
+            ))}
+          </div>
+          <button className="icon-step" onClick={() => setActivePage((page) => Math.min(8, page + 1))}>
+            <ArrowRight size={16} />
+          </button>
         </div>
-        <div id="pdf-book">
-          {selectedJournals.map((journal) => <PageSet key={journal.id} journal={journal} />)}
+
+        {dashboardMode === "database" ? (
+          <section className="database-panel">
+            <div className="database-head">
+              <div>
+                <p>Journal Database</p>
+                <h1>Select one journal for preview and PDF export</h1>
+              </div>
+              <div className="stats-row">
+                <div><BookOpen size={18} /><b>{journals.length}</b><span>journals loaded</span></div>
+                <div><Check size={18} /><b>{selectedJournals.length}</b><span>selected</span></div>
+                <div><FileText size={18} /><b>{selectedJournals.length * 8}</b><span>A4 PDF pages</span></div>
+                <div><Users size={18} /><b>{primaryDraft?.editorialBoard.length || 13}</b><span>board members</span></div>
+              </div>
+            </div>
+            <label className="search-box">
+              <Search size={18} />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search journals, publisher, or domain" />
+            </label>
+            <div className="journal-list database-list">
+              {filtered.map((journal) => (
+                <button className={selectedIds.includes(journal.id) ? "journal-row selected" : "journal-row"} key={journal.id} onClick={() => toggle(journal.id)}>
+                  <span className="checkmark">{selectedIds.includes(journal.id) ? "✓" : ""}</span>
+                  <span><b>{journal.name}</b><small>{journal.publisher || "Publisher not available"} · {journal.abbreviation}</small></span>
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {dashboardMode !== "database" && primaryJournal && primaryDraft ? (
+          <div className={dashboardMode === "preview" ? "layout-workbench preview-only" : "layout-workbench"}>
+            <section className="live-canvas-panel">
+              <span className="live-badge">Realtime Live Canvas</span>
+              <div className="active-page-preview">
+                {dashboardMode === "preview" ? (
+                  <PageSet journal={primaryJournal} draft={primaryDraft} />
+                ) : (
+                  <BinderPage page={activePage} journal={primaryJournal} draft={primaryDraft} />
+                )}
+              </div>
+            </section>
+            {dashboardMode === "templates" ? (
+              <SectionEditor
+                journal={primaryJournal}
+                draft={primaryDraft}
+                dynamicData={runtimeDynamicData}
+                activePage={activePage}
+                onChange={(draft) => updateDraft(primaryJournal.id, draft)}
+              />
+            ) : (
+              <section className="export-panel">
+                <h2>Live Preview & Export</h2>
+                <p>Download exports only the active selected journal as an 8-page A4 PDF.</p>
+                <div className="toolbar">
+                  <button className="secondary-action" onClick={() => window.print()}>
+                    <Printer size={16} /> Print
+                  </button>
+                  <DownloadButton disabled={selectedJournals.length === 0} />
+                </div>
+              </section>
+            )}
+          </div>
+        ) : null}
+
+        <div id="pdf-book" className="pdf-export-source" aria-hidden="true">
+          {selectedJournals.map((journal) => (
+            <PageSet key={journal.id} journal={journal} draft={drafts[journal.id] || draftFromDynamic(journal, runtimeDynamicData)} />
+          ))}
         </div>
       </section>
     </main>
