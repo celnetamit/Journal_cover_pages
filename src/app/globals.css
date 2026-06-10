@@ -129,6 +129,7 @@ button {
   text-transform: uppercase;
 }
 
+.journal-select-label input,
 .journal-select-label select {
   background: #fff;
   border: 1px solid #cbd8e4;
@@ -139,6 +140,11 @@ button {
   min-height: 38px;
   padding: 0 8px;
   width: 100%;
+}
+
+.journal-select-label input::placeholder {
+  color: #8aa0b5;
+  font-weight: 600;
 }
 
 .workspace-panel {

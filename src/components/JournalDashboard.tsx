@@ -51,6 +51,8 @@ type ContentRow = {
 };
 
 const draftStorageKey = "journal-cover-page-drafts";
+const issueVolume = "9";
+const issueNumber = "1";
 
 const boardMembers = [
   ["Dr. Tapas Kumar Chatterjee", "Associate Professor-Marketing", "Institute of Management Technology Maharashtra, India", "Editor in Chief"],
@@ -340,7 +342,17 @@ function saveDraftsToStorage(drafts: Record<string, BinderDraft>) {
   window.localStorage.setItem(draftStorageKey, JSON.stringify(drafts));
 }
 
-function DownloadButton({ disabled }: { disabled: boolean }) {
+function pdfFileName(journal: Journal | undefined, draft: BinderDraft | null) {
+  const base = journal?.abbreviation || journal?.shortName || draft?.journalTitle || "journal";
+  const slug = `${base}-volume-${issueVolume}-issue-${issueNumber}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return `${slug || "journal"}.pdf`;
+}
+
+function DownloadButton({ disabled, filename }: { disabled: boolean; filename: string }) {
   const [busy, setBusy] = useState(false);
 
   async function downloadPdf() {
@@ -370,7 +382,7 @@ function DownloadButton({ disabled }: { disabled: boolean }) {
       pdf.addImage(imgData, "PNG", 0, 0, 210, 297);
     }
 
-    pdf.save("selected-journal-initial-pages.pdf");
+    pdf.save(filename);
     setBusy(false);
   }
 
@@ -417,12 +429,11 @@ function publisherIdentity(journal: Journal) {
   if (haystack.includes("journalspub") || haystack.includes("dhruv")) {
     return {
       publisherName: "JournalsPub",
-      companyName: "Dhruv Infosystems Pvt. Ltd.",
+      companyName: "Dhruv Info Systems Private Limited",
       address:
-        journal.address ||
-        "JournalsPub, An imprint of Dhruv Infosystems Pvt. Ltd. A-118, 2nd Floor, Sector-63, Noida, U.P. India, Pin - 201301",
-      email: journal.publisherEmail || "info@journalspub.com",
-      phone: journal.publisherPhone || "(+91)-0120-4781-200",
+        "Sales Office: A-118, 2nd Floor, Sector-63, Noida, Uttar Pradesh, PIN 201301, India",
+      email: "info@journalspub.com",
+      phone: "0120-4781200; Mobile No.: +91 9810078958",
       website: "www.journalspub.com",
       logoMode: "journalspub",
     };
@@ -514,7 +525,7 @@ function CoverPage({ journal }: { journal: Journal }) {
       <p className="cover-issn">ISSN: {journal.eIssn || "2582-2888"}</p>
       <p className="cover-printer">Printed by : Laxman Printo Graphics, Noida</p>
       <h1>{titleCaseName(journal.name)}</h1>
-      <p className="issue-line">Volume 9 | Issue 1</p>
+      <p className="issue-line">Volume {issueVolume} | Issue {issueNumber}</p>
       <p className="cover-meta">January to June | 2026</p>
       <div className="cover-footer">
         <div className="publisher-logo-row">
@@ -534,64 +545,82 @@ function CoverPage({ journal }: { journal: Journal }) {
   );
 }
 
-function PaymentPage() {
+function PaymentPage({ journal }: { journal: Journal }) {
+  const identity = publisherIdentity(journal);
+  const isJournalsPub = identity.logoMode === "journalspub";
+
   return (
     <section className="pdf-page payment-reference-page">
       <p>
-        MBA Journals (an imprint of Consortium e-Learning Network Pvt. Ltd.) having its marketing office located at Office
-        No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of Journals.
-        The author(s) or editor(s) expressed in the Journal reflect the views of the author(s) and are not the opinion of MBA
-        Journals unless so stated.
+        {isJournalsPub
+          ? "Journals Pub (a division of Dhruv Infosystems Private Ltd.) having its Marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of the Journals. Statements and opinions expressed in the Journal reflect the views of the Author(s) and are not the opinion of Journals Pub unless so stated."
+          : "MBA Journals (an imprint of Consortium e-Learning Network Pvt. Ltd.) having its marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of Journals. The author(s) or editor(s) expressed in the Journal reflect the views of the author(s) and are not the opinion of MBA Journals unless so stated."}
       </p>
 
       <h1>SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, 2026)</h1>
       <p>
         <b>National Subscription</b><br />
-        Online : ₹6500 per Journal (Two Print Issues, Single Issue ₹1800).<br />
-        Print + Online : ₹7900 (Online Access of Current and Back Issues).<br />
-        Print + Online : ₹7315 per Journal (Two Print and Online Access of Current and Back Issues).
+        Print: ₹3500 per Journal (Two Print Issues), Single Issue ₹1800.<br />
+        Online: ₹6500 per Journal (Online Access of Current and Back Issues).<br />
+        Print + Online: ₹7315 per Journal (Two Print and Online Access of Current and Back Issues).
       </p>
+      {isJournalsPub ? (
+        <p>
+          <b>International Subscription</b><br />
+          Print: Only $149 (Two Print Issues).<br />
+          Online: Only $149 (Online Access of Current and Back Issues).<br />
+          Print + Online: $200 (Two Print Issues and Online Access of Current and Back Issues).
+        </p>
+      ) : (
+        <>
+          <p>
+            <b>International Subscription</b>
+          </p>
+          <ul className="checkbox-list">
+            {subscriptionPlans.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+        </>
+      )}
       <p>
-        <b>International Subscription</b>
-      </p>
-      <ul className="checkbox-list">
-        {subscriptionPlans.map((item) => <li key={item}>{item}</li>)}
-      </ul>
-      <p>
-        To purchase print compilation of back issues, please send your query at info@mbajournals.in. Subscription must be
+        To purchase print compilation of back issues, please send your query at {identity.email}. Subscription must be
         prepaid. Rates outside of India include delivery. Prices subject to change without notice.
       </p>
 
       <h2>MODE OF PAYMENT</h2>
-      <p><b>Account Type: HDFC/RTGS/Online Transfer</b></p>
-      <p>
-        Account Number: 03942000001153<br />
-        Account Holder: Consortium e-Learning Network Pvt. Ltd.<br />
-        Bank Name: HDFC<br />
-        Bank Address: HDFC Bank, Sector-62, Noida, U.P., India<br />
-        Bank Location: HDFC0002649, Swift Code: HDFCINBBXXX<br />
-        IFSC Code: HDFC0002649
-      </p>
-      <p>
-        <b>Pay Through Cheque/Demand Draft</b><br />
-        A/C Payee Cheque, Demand Draft, and RTGS (payment to be made in favor of Consortium e-Learning Network Pvt. Ltd.,
-        payable at Delhi/New Delhi).
-      </p>
-      <p>
-        <i>Please Send Demand Draft/Cheque to following address:</i><br />
-        Consortium e-Learning Network Pvt. Ltd.<br />
-        A-118, Level 1, Sector-63, Noida, 201301, U.P., India<br />
-        Tel.: +91 120-4781211, +91 9810078958
-      </p>
+      {isJournalsPub ? (
+        <p>
+          <b>Mode of Payment:</b> At Par Cheque, Demand Draft, and RTGS (payment to be made in favor of
+          Dhruv Infosystems Pvt. Ltd., payable at Delhi/New Delhi).
+        </p>
+      ) : (
+        <>
+          <p><b>Account Type: HDFC/RTGS/Online Transfer</b></p>
+          <p>
+            Account Number: 03942000001153<br />
+            Account Holder: Consortium e-Learning Network Pvt. Ltd.<br />
+            Bank Name: HDFC<br />
+            Bank Address: HDFC Bank, Sector-62, Noida, U.P., India<br />
+            Bank Location: HDFC0002649, Swift Code: HDFCINBBXXX<br />
+            IFSC Code: HDFC0002649
+          </p>
+          <p>
+            <b>Pay Through Cheque/Demand Draft</b><br />
+            A/C Payee Cheque, Demand Draft, and RTGS (payment to be made in favor of Consortium e-Learning Network Pvt. Ltd.,
+            payable at Delhi/New Delhi).
+          </p>
+        </>
+      )}
 
       <h2>ONLINE ACCESS POLICY</h2>
       <p>
-        For grant of Open Access publication, maximum citation and wide publicity to the authors work, MBA Journals also
+        <b>For Authors</b><br />
+        For grant of Open Access publication, maximum citation and wide publicity to the authors work, {identity.publisherName} also
         have Open Access Policy, authors who would like to get their work open access can opt for Optional Open Access
         publication at nominal charges.
       </p>
       <p>
-        India, SAARC and African Countries: ₹1500 or $100 including single hard copy of Author&apos;s Journal.<br />
+        India: ₹1500 includes single hard copy of Author&apos;s Journal.<br />
+        SAARC and African Countries: $100 includes single hard copy of Author&apos;s Journal.<br />
         Other Countries: $200 including single hard copy of Author&apos;s Journal.
       </p>
       <p>
@@ -607,7 +636,7 @@ function PaymentPage() {
 
       <h2>ADVERTISING AND COMMERCIAL REPRINT INQUIRIES</h2>
       <p>
-        MBA Journals with wide circulation and visibility offer an excellent media for showcasing/promotion of your
+        {identity.publisherName} with wide circulation and visibility offer an excellent media for showcasing/promotion of your
         products, services and events namely, Conferences, Symposia/Seminars, etc. These Journals have very high potential
         to deliver the message across the targeted audience regularly with each published issue. The advertisements on bulk
         subscriptions, gift subscriptions or reprint purchases for distribution, etc. are also most welcome.
@@ -619,14 +648,14 @@ function PaymentPage() {
         <li>Claims for print copies lost will be honored only after 45 days of the dispatch date and before publication of the next issue as per the frequency.</li>
         <li>Tracking ID for the speed post will be provided to all our subscribers and the claims for the missing Journals will be entertained only with the proofs that will be verified at both the ends.</li>
         <li>Claims filed due to insufficient information (or no notice) of change of address will not be honored.</li>
-        <li>Change of Address of Dispatch should be intimated to MBA Journals at least two months prior to the dispatch schedule as per the frequency by mentioning subscriber ID and the subscription ID.</li>
+        <li>Change of Address of Dispatch should be intimated to {identity.publisherName} at least two months prior to the dispatch schedule as per the frequency by mentioning subscriber ID and the subscription ID.</li>
         <li>Refund requests will not be entertained.</li>
       </ul>
 
       <h2>LEGAL DISPUTE</h2>
       <p>
         All the legal disputes are subjected to Delhi Jurisdiction only. If you have any questions, please contact the
-        Publication Management Team at info@mbajournals.in; Tel: +91 120-4781200/218219.
+        Publication Management Team at {identity.email}; Tel: {identity.phone}.
       </p>
       <PageNumber value={2} />
     </section>
@@ -909,7 +938,7 @@ function BinderPage({ page, journal, draft }: { page: number; journal: Journal; 
     case 1:
       return <CoverPage journal={currentJournal} />;
     case 2:
-      return <PaymentPage />;
+      return <PaymentPage journal={currentJournal} />;
     case 3:
       return <JournalDetailsPage journal={currentJournal} draft={draft} />;
     case 4:
@@ -1267,7 +1296,7 @@ function SectionEditor({
           </div>
           <div className="final-export-actions">
             <button type="button" className="secondary-action" onClick={onSave}>Save All Details</button>
-            <DownloadButton disabled={false} />
+            <DownloadButton disabled={false} filename={pdfFileName(journal, draft)} />
           </div>
         </>
       ) : null}
@@ -1285,10 +1314,36 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   const [activePage, setActivePage] = useState(1);
   const [dashboardMode, setDashboardMode] = useState<"templates" | "preview">("templates");
   const [saveStatus, setSaveStatus] = useState("");
+  const [journalQuery, setJournalQuery] = useState("");
   const primaryJournal = journals.find((journal) => journal.id === selectedId) || journals[0];
   const selectedJournals = primaryJournal ? [primaryJournal] : [];
   const primaryDraft = primaryJournal ? drafts[primaryJournal.id] || draftFromDynamic(primaryJournal, runtimeDynamicData) : null;
-  const groupedJournals = useMemo(() => journals.slice(0, 600), [journals]);
+  const filteredJournals = useMemo(() => {
+    const query = journalQuery.trim().toLowerCase();
+    const matches = query
+      ? journals.filter((journal) =>
+          [
+            journal.name,
+            journal.abbreviation,
+            journal.shortName,
+            journal.publisher,
+            journal.imprint,
+            journal.domain,
+            journal.eIssn,
+            journal.pIssn,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(query),
+        )
+      : journals;
+    const withSelected = primaryJournal && !matches.some((journal) => journal.id === primaryJournal.id)
+      ? [primaryJournal, ...matches]
+      : matches;
+
+    return withSelected.slice(0, 600);
+  }, [journalQuery, journals, primaryJournal]);
 
   useEffect(() => {
     if (!primaryJournal || !runtimeDynamicData.status.enabled) return;
@@ -1334,6 +1389,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     setSelectedId(id);
     setActivePage(1);
     setDashboardMode("templates");
+    setJournalQuery("");
     if (journal) {
       setDrafts((current) => ({
         ...current,
@@ -1372,8 +1428,13 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
           <small>ISSN: {primaryDraft?.eIssn || primaryJournal?.eIssn || "Not set"}</small>
           <label className="journal-select-label">
             <span>Select journal</span>
+            <input
+              value={journalQuery}
+              onChange={(event) => setJournalQuery(event.target.value)}
+              placeholder="Search journal by name, abbreviation, publisher"
+            />
             <select value={primaryJournal?.id || ""} onChange={(event) => selectJournal(event.target.value)}>
-              {groupedJournals.map((journal) => (
+              {filteredJournals.map((journal) => (
                 <option key={journal.id} value={journal.id}>
                   {journal.name} ({journal.abbreviation})
                 </option>
@@ -1431,7 +1492,10 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                   <button className="secondary-action" onClick={() => window.print()}>
                     <Printer size={16} /> Print
                   </button>
-                  <DownloadButton disabled={selectedJournals.length === 0} />
+                  <DownloadButton
+                    disabled={selectedJournals.length === 0}
+                    filename={pdfFileName(primaryJournal, primaryDraft)}
+                  />
                 </div>
               </section>
             )}
