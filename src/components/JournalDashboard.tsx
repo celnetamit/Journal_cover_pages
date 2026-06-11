@@ -434,6 +434,31 @@ function PdfHeader({ journal, label }: { journal: Journal; label: string }) {
   );
 }
 
+function ContentHeader({ journal }: { journal: Journal }) {
+  return (
+    <header className="content-header">
+      <div className="content-journal-mark">
+        {journal.logo ? (
+          <Image
+            src={journal.logo}
+            alt={`${journal.name} journal image`}
+            width={96}
+            height={128}
+            unoptimized
+          />
+        ) : (
+          <JournalLogo journal={journal} />
+        )}
+      </div>
+      <div>
+        <p>{journal.publisher || "MBA Journals"}</p>
+        <h2>{titleCaseName(journal.name)}</h2>
+      </div>
+      <span>Contents</span>
+    </header>
+  );
+}
+
 function publisherIdentity(journal: Journal) {
   const publisher = journal.publisher || "MBA Journals";
   const imprint = journal.imprint || "MBA Journals, An imprint of Consortium e-Learning Network Pvt. Ltd.";
@@ -963,7 +988,7 @@ function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
 
   return (
     <section className="pdf-page content-page">
-      <PdfHeader journal={journal} label="Contents" />
+      <ContentHeader journal={journal} />
       <h1>Contents</h1>
       <table className="contents-table">
         <tbody>
