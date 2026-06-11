@@ -149,10 +149,11 @@ const subscriptionPlans = [
 ];
 
 const defaultDirectorParagraphs = [
-  "We would like to present, with great pleasure, this volume of a scholarly journal. This journal is part of the management publishing program and is devoted to representing the growing needs of its field with current research, professional perspectives, and useful academic reflection.",
-  "The core vision of this journal is to propagate novel awareness and know-how for the benefit of academicians, researchers, and practitioners. The journal acts as a pathfinder for the scientific community to publish their papers excellently and online.",
-  "This issue would not have been possible without the great support of the Editorial Board members, and we would like to express our sincere thanks to all of them.",
-  "It is our hope that this collection of articles will be a valuable resource for readers and will stimulate further research into this vibrant area.",
+  "We would like to present, with great pleasure, the Twelfth volume of a scholarly International Journal of Industrial Biotechnology and Biomaterials. This journal is part of the Applied Sciences, and is devoted to the scope of present Industrial Biotechnology and Biomaterials issues, from theoretical aspects to application-dependent studies and the validation of emerging technologies. This journal was planned and established to represent the growing needs of Industrial Biotechnology and Biomaterials as an emerging and increasingly vital field, now widely recognized as an integral part of scientific and technical investigations. Its mission is to become a voice of Industrial Biotechnology and Biomaterials, addressing researchers and practitioners in this area.",
+  "The core vision of International Journal of Industrial Biotechnology and Biomaterials in JournalsPub is to propagate novel awareness and know-how for the profit of mankind ranging from the academic and professional research societies to industry practitioners in a range of topics in Industrial Biotechnology and Biomaterials in general. JournalsPub acts as a pathfinder for the scientific community to publish their papers at excellently, well-timed & successfully.",
+  "International Journals of Industrial Biotechnology and Biomaterials focuses on original high-quality research in the realm of Bioenergy, biofuels, bio-refining, Biomass and feed stocks, Bio-plastics, biofilms, Bio-based chemicals and enzymes, Fermentation and cell culture, Biocatalysis, Environmental microbiology, Natural products discovery and biosynthesis, Drug delivery mechanisms, Sustainable materials, etc.",
+  "The Journal is intended as a forum for practitioners and researchers to share the techniques of Industrial Biotechnology and Biomaterials and solutions in the area. Many scientists and researchers have contributed to the creation and success of Industrial Biotechnology and Biomaterials. We are very thankful to everybody within that community who supported the idea of creating an innovative platform. We are certain that this issue will be followed by many others, reporting new developments in the field of Industrial Biotechnology and Biomaterials.",
+  "This issue would not have been possible without the great support of the Editorial Board members, and we would like to express our sincere thanks to all of them. We would also like to express our gratitude to the editorial staff of JournalsPub, who supported us at every stage of the project. It is our hope that this fine collection of articles will be a valuable resource for Industrial Biotechnology and Biomaterials readers and will stimulate further research into the vibrant area of Industrial Biotechnology and Biomaterials.",
 ];
 
 const defaultManuscriptNotice =
@@ -564,6 +565,8 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
 function PaymentPage({ journal }: { journal: Journal }) {
   const identity = publisherIdentity(journal);
   const isJournalsPub = identity.logoMode === "journalspub";
+  const paymentPublisherName = isJournalsPub ? "Journals Pub" : identity.publisherName;
+  const legalPhone = isJournalsPub ? "+91 120-4781200" : identity.phone;
 
   return (
     <section className="pdf-page payment-reference-page">
@@ -573,20 +576,28 @@ function PaymentPage({ journal }: { journal: Journal }) {
           : "MBA Journals (an imprint of Consortium e-Learning Network Pvt. Ltd.) having its marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of Journals. The author(s) or editor(s) expressed in the Journal reflect the views of the author(s) and are not the opinion of MBA Journals unless so stated."}
       </p>
 
-      <h1>SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, 2026)</h1>
-      <p>
-        <b>National Subscription</b><br />
-        Print: ₹3500 per Journal (Two Print Issues), Single Issue ₹1800.<br />
-        Online: ₹6500 per Journal (Online Access of Current and Back Issues).<br />
-        Print + Online: ₹7315 per Journal (Two Print and Online Access of Current and Back Issues).
-      </p>
+      <h1>{isJournalsPub ? "SUBSCRIPTION INFORMATION AND ORDER (JANUARYTO DECEMBER, 2026)" : "SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, 2026)"}</h1>
+      <p><b>National Subscription</b></p>
       {isJournalsPub ? (
+        <ul className="checkbox-list">
+          <li>Print: ₹3500 per Journal (Two Print Issues), Single Issue ₹1800.</li>
+          <li>Online: ₹6500 per Journal (Online Access of Current and Back Issues).</li>
+          <li>Print + Online: ₹7315 per Journal (Two Print and Online Access of Current and Back Issues).</li>
+        </ul>
+      ) : (
         <p>
-          <b>International Subscription</b><br />
-          Print: Only $149 (Two Print Issues).<br />
-          Online: Only $149 (Online Access of Current and Back Issues).<br />
-          Print + Online: $200 (Two Print Issues and Online Access of Current and Back Issues).
+          Print: ₹3500 per Journal (Two Print Issues), Single Issue ₹1800.<br />
+          Online: ₹6500 per Journal (Online Access of Current and Back Issues).<br />
+          Print + Online: ₹7315 per Journal (Two Print and Online Access of Current and Back Issues).
         </p>
+      )}
+      {isJournalsPub ? (
+        <>
+          <p><b>International Subscription</b></p>
+          <ul className="checkbox-list">
+            {subscriptionPlans.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+        </>
       ) : (
         <>
           <p>
@@ -628,35 +639,77 @@ function PaymentPage({ journal }: { journal: Journal }) {
       )}
 
       <h2>ONLINE ACCESS POLICY</h2>
-      <p>
-        <b>For Authors</b><br />
-        For grant of Open Access publication, maximum citation and wide publicity to the authors work, {identity.publisherName} also
-        have Open Access Policy, authors who would like to get their work open access can opt for Optional Open Access
-        publication at nominal charges.
-      </p>
-      <p>
-        India: ₹1500 includes single hard copy of Author&apos;s Journal.<br />
-        SAARC and African Countries: $100 includes single hard copy of Author&apos;s Journal.<br />
-        Other Countries: $200 including single hard copy of Author&apos;s Journal.
-      </p>
+      {isJournalsPub ? (
+        <>
+          <p>
+            <b>For Authors</b><br />
+            In order to provide maximum citation and wide publicity to the authors work, Journals Pub also have Open
+            Access Policy, authors who would like to get their work open access can opt for Optional Open Access
+            publication at nominal cost as follows.
+          </p>
+          <p>
+            India: ₹1500 includes single hard copy of Author&apos;s Journal.<br />
+            SAARC and African Countries: $100 includes single hard copy of Author&apos;s Journal.<br />
+            Other Countries: $200 includes single hard copy of Author&apos;s Journal.
+          </p>
+        </>
+      ) : (
+        <>
+          <p>
+            <b>For Authors</b><br />
+            For grant of Open Access publication, maximum citation and wide publicity to the authors work, {identity.publisherName} also
+            have Open Access Policy, authors who would like to get their work open access can opt for Optional Open Access
+            publication at nominal charges.
+          </p>
+          <p>
+            India: ₹1500 includes single hard copy of Author&apos;s Journal.<br />
+            SAARC and African Countries: $100 includes single hard copy of Author&apos;s Journal.<br />
+            Other Countries: $200 including single hard copy of Author&apos;s Journal.
+          </p>
+        </>
+      )}
       <p>
         <b>For Subscribers</b>
       </p>
-      <ul className="checkbox-list">
-        <li>Online access will be activated within 72 hours of receipt of the payment (working days), subject to receipt of correct information on user details/Static IP address of the subscriber.</li>
-        <li>There will be blocking.</li>
-        <li>If the user request for the same and furnishes valid reasons for blocking.</li>
-        <li>Due to technical issue.</li>
-        <li>Misuse of the access rights as per the access policy.</li>
-      </ul>
+      {isJournalsPub ? (
+        <>
+          <ul className="checkbox-list">
+            <li>Online access will be activated within 72 hours of receipt of the payment (working days), subject to receipt of correct information on user details/Static IP address of the subscriber.</li>
+            <li>The access will be blocked</li>
+          </ul>
+          <ul className="subpoint-list">
+            <li>If the user requests for the same and furnishes valid reasons for blocking.</li>
+            <li>Due to technical issue.</li>
+            <li>Misuse of the access rights as per the access policy.</li>
+          </ul>
+        </>
+      ) : (
+        <ul className="checkbox-list">
+          <li>Online access will be activated within 72 hours of receipt of the payment (working days), subject to receipt of correct information on user details/Static IP address of the subscriber.</li>
+          <li>There will be blocking.</li>
+          <li>If the user request for the same and furnishes valid reasons for blocking.</li>
+          <li>Due to technical issue.</li>
+          <li>Misuse of the access rights as per the access policy.</li>
+        </ul>
+      )}
 
       <h2>ADVERTISING AND COMMERCIAL REPRINT INQUIRIES</h2>
-      <p>
-        {identity.publisherName} with wide circulation and visibility offer an excellent media for showcasing/promotion of your
-        products, services and events namely, Conferences, Symposia/Seminars, etc. These Journals have very high potential
-        to deliver the message across the targeted audience regularly with each published issue. The advertisements on bulk
-        subscriptions, gift subscriptions or reprint purchases for distribution, etc. are also most welcome.
-      </p>
+      {isJournalsPub ? (
+        <p>
+          Journals Pub with wide circulation and visibility offer an excellent media for showcasing/promotion of your
+          products/services and the events namely, Conferences, Symposia/Seminars, etc. These journals have very high
+          potential to deliver the message across the targeted audience regularly with each published issue. The
+          advertisements on bulk subscriptions, gift subscriptions or reprint purchases for distribution, etc. are also
+          most welcome.
+        </p>
+      ) : (
+        <p>
+          {identity.publisherName} with wide circulation and visibility offer an excellent media for showcasing/promotion of your
+          products, services and events namely, Conferences, Symposia/Seminars, etc. These Journals have very high potential
+          to deliver the message across the targeted audience regularly with each published issue. The advertisements on bulk
+          subscriptions, gift subscriptions or reprint purchases for distribution, etc. are also most welcome.
+        </p>
+      )}
 
       <h2>LOST ISSUE CLAIMS</h2>
       <p><i>Please note the following when applying for lost or missing issues:</i></p>
@@ -664,14 +717,14 @@ function PaymentPage({ journal }: { journal: Journal }) {
         <li>Claims for print copies lost will be honored only after 45 days of the dispatch date and before publication of the next issue as per the frequency.</li>
         <li>Tracking ID for the speed post will be provided to all our subscribers and the claims for the missing Journals will be entertained only with the proofs that will be verified at both the ends.</li>
         <li>Claims filed due to insufficient information (or no notice) of change of address will not be honored.</li>
-        <li>Change of Address of Dispatch should be intimated to {identity.publisherName} at least two months prior to the dispatch schedule as per the frequency by mentioning subscriber ID and the subscription ID.</li>
+        <li>Change of Address of Dispatch should be intimated to {paymentPublisherName} at least two months prior to the dispatch schedule as per the frequency by mentioning subscriber ID and the subscription ID.</li>
         <li>Refund requests will not be entertained.</li>
       </ul>
 
-      <h2>LEGAL DISPUTE</h2>
+      <h2>{isJournalsPub ? "LEGAL DISPUTES" : "LEGAL DISPUTE"}</h2>
       <p>
         All the legal disputes are subjected to Delhi Jurisdiction only. If you have any questions, please contact the
-        Publication Management Team at {identity.email}; Tel: {identity.phone}.
+        Publication Management Team at {identity.email}; Tel: {legalPhone}.
       </p>
       <PageNumber value={2} />
     </section>
@@ -1050,6 +1103,10 @@ function SectionEditor({
     onChange({ ...draft, directorParagraphs: [...draft.directorParagraphs, ""] });
   }
 
+  function useDefaultDirectorLetter() {
+    onChange({ ...draft, directorParagraphs: defaultDirectorParagraphs });
+  }
+
   function updateManagementHead(patch: Partial<ManagementPerson>) {
     onChange({ ...draft, managementHead: { ...draft.managementHead, ...patch } });
   }
@@ -1300,7 +1357,10 @@ function SectionEditor({
           </div>
           <div className="editor-row-head">
             <span>Letter body paragraphs</span>
-            <button type="button" onClick={addParagraph}>Add Paragraph</button>
+            <div className="editor-row-actions">
+              <button type="button" onClick={useDefaultDirectorLetter}>Use Default Letter</button>
+              <button type="button" onClick={addParagraph}>Add Paragraph</button>
+            </div>
           </div>
           {draft.directorParagraphs.map((paragraph, index) => (
             <label key={index}>

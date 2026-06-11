@@ -535,6 +535,7 @@ button {
 .editor-row-head {
   align-items: center;
   display: flex;
+  gap: 10px;
   justify-content: space-between;
 }
 
@@ -542,6 +543,13 @@ button {
   color: #111827;
   font-size: 12px;
   font-weight: 900;
+}
+
+.editor-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .editor-row-head button,
@@ -1190,6 +1198,12 @@ button {
   padding: 0;
 }
 
+.payment-reference-page .subpoint-list {
+  list-style: none;
+  margin: -1mm 0 1.6mm 5mm;
+  padding: 0;
+}
+
 .payment-reference-page .checkbox-list li {
   margin: 0 0 0.65mm;
   padding-left: 5mm;
@@ -1204,6 +1218,20 @@ button {
   position: absolute;
   top: 0.2mm;
   width: 2.6mm;
+}
+
+.payment-reference-page .subpoint-list li {
+  margin: 0 0 0.45mm;
+  padding-left: 4mm;
+  position: relative;
+}
+
+.payment-reference-page .subpoint-list li::before {
+  content: "w";
+  font-weight: 700;
+  left: 0;
+  position: absolute;
+  top: 0;
 }
 
 .payment-reference-page .page-number {
@@ -1720,69 +1748,69 @@ button {
 .director-page {
   color: #222;
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 8.1pt;
-  line-height: 1.15;
-  padding: 18mm 24mm;
+  font-size: 6.55pt;
+  line-height: 1.14;
+  padding: 16mm 20mm;
 }
 
 .director-page h1 {
   color: #222;
-  font-size: 18pt;
+  font-size: 16pt;
   font-weight: 800;
-  margin: 0 0 7mm;
+  margin: 0 0 5mm;
   text-align: center;
 }
 
 .director-letter {
   margin: 0 auto;
-  max-width: 150mm;
+  max-width: 164mm;
 }
 
 .director-page p {
-  margin: 0 0 2.2mm;
+  margin: 0 0 1.35mm;
   text-align: justify;
 }
 
 .portrait {
   border-radius: 2px;
   float: left;
-  height: 36mm;
-  margin: 0 5mm 2mm 0;
+  height: 31mm;
+  margin: 0 4mm 1.5mm 0;
   object-fit: cover;
   object-position: center 18%;
-  width: 30mm;
+  width: 25mm;
 }
 
 .dear-line {
-  margin-bottom: 1.5mm !important;
-  padding-top: 6mm;
+  margin-bottom: 1mm !important;
+  padding-top: 4mm;
 }
 
 .director-first-paragraph::first-letter {
   float: left;
-  font-size: 24pt;
+  font-size: 20pt;
   font-weight: 800;
   line-height: 0.85;
   margin: 0.5mm 1mm 0 0;
 }
 
 .signature {
-  bottom: 24mm;
-  font-size: 9.5pt;
-  left: 33mm;
+  bottom: 16mm;
+  font-size: 8.5pt;
+  left: 25mm;
   position: absolute;
 }
 
 .signature img {
   display: block;
   height: auto;
-  margin-bottom: 1mm;
-  width: 38mm;
+  margin-bottom: 0.6mm;
+  width: 32mm;
 }
 
 .signature span {
   display: block;
-  font-size: 8.5pt;
+  font-size: 7.8pt;
   font-weight: 700;
   margin-bottom: 0.5mm;
 }
@@ -1812,21 +1840,26 @@ button {
   color: #222;
   font-size: 12pt;
   font-weight: 800;
-  margin: 0 0 3mm;
+  margin: 0 0 4mm;
 }
 
 .editorial-page h3 {
   color: #222;
   font-size: 11pt;
   font-weight: 800;
-  margin: 4mm 0 2mm;
+  margin: 5mm 0 3mm;
 }
 
 .editor-grid {
   display: grid;
-  gap: 4mm 12mm;
+  gap: 6mm 18mm;
   grid-template-columns: repeat(2, 1fr);
-  margin-top: 4mm;
+  margin-top: 5mm;
+}
+
+.member-line {
+  min-height: 13mm;
+  padding: 1.4mm 2mm;
 }
 
 .member-line b,
@@ -1838,12 +1871,14 @@ button {
 .member-line b {
   color: #222;
   font-size: 8pt;
+  line-height: 1.18;
+  margin-bottom: 0.4mm;
 }
 
 .member-line span,
 .member-line small {
   font-size: 6.7pt;
-  line-height: 1.2;
+  line-height: 1.28;
 }
 
 .focus-page {
