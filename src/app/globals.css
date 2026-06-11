@@ -1724,34 +1724,16 @@ button {
   align-items: center;
   border-bottom: 1px solid #1e3855;
   display: grid;
-  gap: 5mm;
-  grid-template-columns: 22mm 1fr auto;
+  gap: 6mm;
+  grid-template-columns: 1fr auto;
   margin-bottom: 10mm;
   padding-bottom: 5mm;
 }
 
-.content-journal-mark {
-  align-items: center;
-  background: #fff;
-  border: 1px solid #d2dce7;
-  display: flex;
-  height: 22mm;
-  justify-content: center;
-  overflow: hidden;
-  width: 22mm;
-}
-
-.content-journal-mark img {
-  display: block;
-  height: 100%;
-  object-fit: contain;
-  width: 100%;
-}
-
-.content-journal-mark .journal-logo {
-  box-shadow: none;
-  height: 18mm;
-  width: 18mm;
+.content-header > div {
+  min-width: 0;
+  padding-left: 22mm;
+  text-align: center;
 }
 
 .content-header p {
@@ -1767,15 +1749,18 @@ button {
   font-size: 14pt;
   font-weight: 800;
   line-height: 1.18;
-  margin: 0;
+  margin: 0 auto;
+  max-width: 128mm;
 }
 
 .content-header > span {
+  align-self: center;
   border: 1px solid #bac8d5;
   border-radius: 999px;
   color: var(--blue-dark);
   font-size: 8pt;
   font-weight: 700;
+  justify-self: end;
   padding: 2mm 4mm;
 }
 

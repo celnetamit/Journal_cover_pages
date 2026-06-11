@@ -437,19 +437,6 @@ function PdfHeader({ journal, label }: { journal: Journal; label: string }) {
 function ContentHeader({ journal }: { journal: Journal }) {
   return (
     <header className="content-header">
-      <div className="content-journal-mark">
-        {journal.logo ? (
-          <Image
-            src={journal.logo}
-            alt={`${journal.name} journal image`}
-            width={96}
-            height={128}
-            unoptimized
-          />
-        ) : (
-          <JournalLogo journal={journal} />
-        )}
-      </div>
       <div>
         <p>{journal.publisher || "MBA Journals"}</p>
         <h2>{titleCaseName(journal.name)}</h2>
