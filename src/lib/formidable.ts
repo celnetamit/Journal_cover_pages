@@ -1,4 +1,7 @@
+import fs from "node:fs";
+import path from "node:path";
 import type { Journal } from "@/lib/journals";
+import { dynamicKey } from "@/lib/lookup";
 
 export type EditorialMember = {
   role: string;
@@ -66,22 +69,7 @@ const formIds = {
   focusScope: process.env.FORMIDABLE_FOCUS_SCOPE_FORM_ID || "67",
 };
 
-export function dynamicKey(value: string | undefined) {
-  return (value || "")
-    .toLowerCase()
-    .replace(/&amp;/g, "&")
-    .replace(/[^a-z0-9]+/g, "")
-    .trim();
-}
-
-export function journalLookupKeys(journal: Journal) {
-  return [
-    dynamicKey(journal.abbreviation),
-    dynamicKey(journal.shortName),
-    dynamicKey(journal.name),
-    dynamicKey(journal.id),
-  ].filter(Boolean);
-}
+const localFocusScopeCsvPath = path.join(process.cwd(), "focus-and-scope_formidable_entries.csv");
 
 export function emptyDynamicBinderData(errors: string[] = []): DynamicBinderData {
   return {
@@ -105,7 +93,11 @@ export async function getDynamicBinderDataForSearch(search = ""): Promise<Dynami
   const password = process.env.WORDPRESS_APPLICATION_PASSWORD;
 
   if (!baseUrl || !username || !password) {
-    return emptyDynamicBinderData(["WordPress API env values are not configured."]);
+    const localFocus = loadLocalFocusScopeData();
+    return {
+      ...emptyDynamicBinderData(["WordPress API env values are not configured."]),
+      focusByKey: localFocus,
+    };
   }
 
   const client = new FormidableClient(baseUrl, username, password);
@@ -128,7 +120,10 @@ export async function getDynamicBinderDataForSearch(search = ""): Promise<Dynami
 
   return {
     detailsByKey: details ? normalizeDetails(details.fields, details.entries) : {},
-    focusByKey: focus ? normalizeFocusScope(focus.fields, focus.entries) : {},
+    focusByKey: {
+      ...loadLocalFocusScopeData(),
+      ...(focus ? normalizeFocusScope(focus.fields, focus.entries) : {}),
+    },
     editorialByKey: editorial ? normalizeEditorial(editorial.fields, editorial.entries) : {},
     status: {
       enabled: true,
@@ -136,6 +131,16 @@ export async function getDynamicBinderDataForSearch(search = ""): Promise<Dynami
       errors,
     },
   };
+}
+
+function loadLocalFocusScopeData() {
+  if (!fs.existsSync(localFocusScopeCsvPath)) return {};
+
+  try {
+    return normalizeLocalFocusScopeCsv(fs.readFileSync(localFocusScopeCsvPath, "utf8"));
+  } catch {
+    return {};
+  }
 }
 
 class FormidableClient {
@@ -264,6 +269,82 @@ function normalizeFocusScope(fields: FieldMap, entries: EntryMap) {
   return byKey;
 }
 
+function normalizeLocalFocusScopeCsv(input: string) {
+  const byKey: Record<string, DynamicFocusScope> = {};
+  const [headers = [], ...rows] = parseCsv(input);
+  const headerIndex = new Map(headers.map((header, index) => [header.trim(), index]));
+  const pick = (row: string[], key: string) => cleanText(row[headerIndex.get(key) ?? -1]);
+
+  for (const row of rows) {
+    const abbreviation = pick(row, "Abbreviation") || pick(row, "Abberiviation");
+    const focus: DynamicFocusScope = {
+      abbreviation,
+      about: pick(row, "About"),
+      focusScope: listFromRichText(pick(row, "Focus & Scope")),
+      keywords: pick(row, "Keywords")
+        .split(",")
+        .map((item) => cleanText(item))
+        .filter(Boolean),
+      binderText: pick(row, "In Binder"),
+    };
+
+    addAliases(byKey, focus, [
+      focus.abbreviation,
+      pick(row, "ID"),
+      pick(row, "Key"),
+    ]);
+  }
+
+  return byKey;
+}
+
+function parseCsv(input: string) {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let value = "";
+  let quoted = false;
+
+  for (let index = 0; index < input.length; index += 1) {
+    const char = input[index];
+    const next = input[index + 1];
+
+    if (char === "\"" && quoted && next === "\"") {
+      value += "\"";
+      index += 1;
+      continue;
+    }
+
+    if (char === "\"") {
+      quoted = !quoted;
+      continue;
+    }
+
+    if (char === "," && !quoted) {
+      row.push(value);
+      value = "";
+      continue;
+    }
+
+    if ((char === "\n" || char === "\r") && !quoted) {
+      if (char === "\r" && next === "\n") index += 1;
+      row.push(value);
+      rows.push(row);
+      row = [];
+      value = "";
+      continue;
+    }
+
+    value += char;
+  }
+
+  if (value || row.length) {
+    row.push(value);
+    rows.push(row);
+  }
+
+  return rows;
+}
+
 function normalizeEditorial(fields: FieldMap, entries: EntryMap) {
   const grouped: Record<string, EditorialMember[]> = {};
 
@@ -326,6 +407,8 @@ function listFromRichText(value: string) {
 function cleanText(value: unknown) {
   return String(value ?? "")
     .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "\n")
+    .replace(/<\/li>/gi, "\n")
     .replace(/<\/p>/gi, "\n")
     .replace(/<[^>]+>/g, "")
     .replace(/&amp;/g, "&")

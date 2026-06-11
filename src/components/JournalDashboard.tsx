@@ -11,7 +11,7 @@ import {
   QrCode,
   SlidersHorizontal,
 } from "lucide-react";
-import { journalLookupKeys } from "@/lib/formidable";
+import { dynamicKey, journalLookupKeys } from "@/lib/lookup";
 import type { DynamicBinderData, EditorialMember } from "@/lib/formidable";
 import type { Journal } from "@/lib/journals";
 
@@ -30,6 +30,7 @@ type BinderDraft = {
   issueYear: string;
   about: string;
   focusScope: string[];
+  focusNotes: string[];
   editorialBoard: EditorialMember[];
   managementHead: ManagementPerson;
   managementMembers: ManagementPerson[];
@@ -204,6 +205,13 @@ const lawDirectorParagraphs = [
   "I hope you will enjoy reading this issue and we welcome your feedback on any aspect of the Journal.",
 ];
 
+const defaultFocusNotes = [
+  "Sections covered by this journal are review papers, research papers, interviews, news, companies/institutions write-ups, short popular articles and case studies.",
+  "All contributions to the journal are rigorously refereed and are selected on the basis of quality and originality of the work. The journal publishes the most significant new research papers or any other original contribution in the form of reviews and reports on new concepts in all areas pertaining to its scope and research being done in the world, thus ensuring its scientific priority and significance.",
+  "No part of this publication may be reproduced, stored in retrieval or transmitted in any form without written permission to the publisher.",
+  "To cite any of the material contained in this journal, in English or translation, please use the full English reference at the beginning of each article. To reuse any of the material, please contact STM Journals. The author(s) is/are solely responsible for the content of the article(s) published in the STM Journalsplatform. The published articles are not constituted or deemed to constitute any representation of view of the editors or publisher. The data presented therein are correct or sufficient to support the conclusions reached or that the experiment design or methodology is adequate and the information, opinions, views presented in the articles reflect the views of the authors and contributors of the article and not the opinion of publisher or the editorial board.",
+];
+
 const defaultManuscriptNotice =
   "Manuscript Engine is our specialized platform ensuring a seamless publication flow. Please don't hesitate to reach out to us for any inquiries regarding APID and manuscript submission. You can contact us at info@stmjournals.com.";
 
@@ -306,7 +314,8 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     issueMonthRange: defaultIssueMonthRange,
     issueYear: defaultIssueYear,
     about: focus?.about || details?.about || journal.about || "",
-    focusScope: (focus?.focusScope?.length ? focus.focusScope : focusList).slice(0, 5),
+    focusScope: focus?.focusScope?.length ? focus.focusScope : focusList,
+    focusNotes: defaultFocusNotes,
     editorialBoard,
     managementHead: {
       name: "Puneet Mehrotra",
@@ -331,15 +340,32 @@ function hasGenericManagementMembers(draft: BinderDraft) {
     );
 }
 
-function normalizeDraftForJournal(journal: Journal, draft: BinderDraft) {
-  if (!isLawJournal(journal) || !hasGenericManagementMembers(draft)) return draft;
+function hasDefaultFocusScope(draft: BinderDraft) {
+  const current = dynamicKey(draft.focusScope.join(" "));
+  return !current ||
+    current === dynamicKey(focusList.join(" ")) ||
+    current === dynamicKey(focusList.slice(0, 5).join(" "));
+}
+
+function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicData?: DynamicBinderData) {
+  const focus = dynamicData ? findDynamicValue(journal, dynamicData.focusByKey) : undefined;
+  const withFocus = focus && hasDefaultFocusScope(draft)
+    ? {
+        ...draft,
+        about: focus.about || draft.about,
+        focusScope: focus.focusScope.length ? focus.focusScope : draft.focusScope,
+      }
+    : draft;
+  const withFocusNotes = withFocus.focusNotes?.length ? withFocus : { ...withFocus, focusNotes: defaultFocusNotes };
+
+  if (!isLawJournal(journal) || !hasGenericManagementMembers(withFocusNotes)) return withFocusNotes;
 
   return {
-    ...draft,
+    ...withFocusNotes,
     managementMembers: lawManagementMembers,
-    directorTitle: draft.directorTitle === "From the Director's Desk" ? "Director's Desk" : draft.directorTitle,
-    directorRole: draft.directorRole === "Managing Director" ? "Chairman & Director, Law Journals" : draft.directorRole,
-    directorParagraphs: draft.directorParagraphs === defaultDirectorParagraphs ? lawDirectorParagraphs : draft.directorParagraphs,
+    directorTitle: withFocusNotes.directorTitle === "From the Director's Desk" ? "Director's Desk" : withFocusNotes.directorTitle,
+    directorRole: withFocusNotes.directorRole === "Managing Director" ? "Chairman & Director, Law Journals" : withFocusNotes.directorRole,
+    directorParagraphs: withFocusNotes.directorParagraphs === defaultDirectorParagraphs ? lawDirectorParagraphs : withFocusNotes.directorParagraphs,
   };
 }
 
@@ -349,7 +375,7 @@ function initialDrafts(journals: Journal[], dynamicData: DynamicBinderData) {
   return Object.fromEntries(
     journals.map((journal) => [
       journal.id,
-      normalizeDraftForJournal(journal, savedDrafts[journal.id] || draftFromDynamic(journal, dynamicData)),
+      normalizeDraftForJournal(journal, savedDrafts[journal.id] || draftFromDynamic(journal, dynamicData), dynamicData),
     ]),
   );
 }
@@ -876,7 +902,8 @@ function PaymentPage({ journal }: { journal: Journal }) {
 function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
   const isLaw = identity.logoMode === "law";
-  const scopeItems = (draft.focusScope.length ? draft.focusScope : focusList).slice(0, 5);
+  const scopeItems = (draft.focusScope.length ? draft.focusScope : focusList).slice(0, 12);
+  const focusNotes = draft.focusNotes?.length ? draft.focusNotes : defaultFocusNotes;
   const aboutText = draft.about || journal.about;
 
   return (
@@ -917,31 +944,7 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
         {scopeItems.map((item) => <li key={item}>{item}</li>)}
       </ul>
 
-      <p>
-        Sections covered by this journal are review papers, research papers, interviews, news, companies/institutions
-        write-ups, short popular articles and case studies.
-      </p>
-      <p>
-        All contributions to the journal are rigorously refereed and are selected on the basis of quality and originality of
-        the work. The journal publishes the most significant new research papers or any other original contribution in the
-        form of reviews and reports on new concepts in all areas pertaining to its scope and research being done in the
-        world, thus ensuring its scientific priority and significance.
-      </p>
-      <p>
-        No part of this publication may be reproduced, stored in retrieval or transmitted in any form without written
-        permission to the publisher.
-      </p>
-      <p>
-        To cite any of the material contained in this journal, in English or translation, please use the full English
-        reference at the beginning of each article. To reuse any of the material, please contact {identity.publisherName}
-        {isLaw ? " at lawjournals@celnet.in, info@stmjournals.com" : ""}.
-        The author(s) is/are solely responsible for the content of the article(s) published in the {identity.publisherName}
-        platform. The published articles are not constituted or deemed to constitute any representation of view of the
-        editors or publisher. The data presented therein are correct or sufficient to support the conclusions reached or
-        that the experiment design or methodology is adequate and the information, opinions, views presented in the articles
-        reflect the views of the authors and contributors of the article and not the opinion of publisher or the editorial
-        board.
-      </p>
+      {focusNotes.map((note, index) => <p key={index}>{note}</p>)}
       <PageNumber value={3} />
     </section>
   );
@@ -1216,6 +1219,7 @@ function SectionEditor({
   const hasDetails = apiKeys.some((key) => dynamicData.detailsByKey[key]);
   const hasFocus = apiKeys.some((key) => dynamicData.focusByKey[key]);
   const hasEditorial = apiKeys.some((key) => dynamicData.editorialByKey[key]);
+  const focusNotes = draft.focusNotes?.length ? draft.focusNotes : defaultFocusNotes;
 
   function updateEditorial(index: number, patch: Partial<EditorialMember>) {
     onChange({
@@ -1256,6 +1260,13 @@ function SectionEditor({
       directorParagraphs: draft.directorParagraphs.map((paragraph, paragraphIndex) =>
         paragraphIndex === index ? value : paragraph,
       ),
+    });
+  }
+
+  function updateFocusNote(index: number, value: string) {
+    onChange({
+      ...draft,
+      focusNotes: focusNotes.map((note, noteIndex) => (noteIndex === index ? value : note)),
     });
   }
 
@@ -1421,11 +1432,20 @@ function SectionEditor({
               onChange={(event) =>
                 onChange({
                   ...draft,
-                  focusScope: event.target.value.split("\n").map((item) => item.trim()).filter(Boolean).slice(0, 5),
+                  focusScope: event.target.value.split("\n").map((item) => item.trim()).filter(Boolean),
                 })
               }
             />
           </label>
+          <div className="editor-row-head">
+            <span>Additional focus and scope text</span>
+          </div>
+          {focusNotes.map((note, index) => (
+            <label key={index}>
+              <span>Note paragraph {index + 1}</span>
+              <textarea rows={index === 3 ? 7 : 4} value={note} onChange={(event) => updateFocusNote(index, event.target.value)} />
+            </label>
+          ))}
         </>
       ) : null}
       {activePage === 4 ? (
@@ -1638,6 +1658,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
             [primaryJournal.id]: normalizeDraftForJournal(
               primaryJournal,
               loadSavedDrafts()[primaryJournal.id] || currentDrafts[primaryJournal.id] || draftFromDynamic(primaryJournal, merged),
+              merged,
             ),
           }));
           return merged;
@@ -1666,7 +1687,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     if (journal) {
       setDrafts((current) => ({
         ...current,
-        [id]: normalizeDraftForJournal(journal, current[id] || draftFromDynamic(journal, runtimeDynamicData)),
+        [id]: normalizeDraftForJournal(journal, current[id] || draftFromDynamic(journal, runtimeDynamicData), runtimeDynamicData),
       }));
     }
   }
