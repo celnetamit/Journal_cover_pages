@@ -121,6 +121,40 @@ const salientFeatures = [
   "Facilitates linking with the other authors or professionals.",
 ];
 
+const lawObjectives = [
+  "Promotion of research works in the field of Law and legality.",
+  "To publish articles that inspire thought and insight of the major issues related to Law.",
+  "Empowering the libraries with online and print Journals in legal domain.",
+  "Publication of original research, review, short articles and case studies through peer review process.",
+  "To reach readers worldwide who are interested in legal research and legal issues through the Open Access system.",
+];
+
+const lawSalientFeatures = [
+  "A bouquet of 15 Journals sharing all aspects of legal knowledge.",
+  "Employs Open Journals System (OJS)-A Journal Management & Publishing System.",
+  "Worldwide circulation and visibility.",
+  "Presents an opportunity for unbiased reflection on particular legal developments and issues.",
+  "Rapid online submission and publication of papers, soon after their formal acceptance/finalization.",
+];
+
+const lawJournalNames = [
+  "National Journal of Criminal Law",
+  "Journal of Family and Adoption Law",
+  "Journal of Banking and Insurance Law",
+  "National Journal of Real Estate Law",
+  "National Journal of Environmental Law",
+  "National Journal of Cyber Security Law",
+  "Indian Journal of Health & Medical Law",
+  "Journal of Human Rights Law and Practice",
+  "Journal of Intellectual Property Rights Law",
+  "Journal of Capital Market and Securities Law",
+  "Journal of Constitutional Law & Jurisprudence",
+  "Journal of Taxation and Regulatory Framework",
+  "National Journal of Labour and Industrial Law",
+  "Journal of Law of Torts and Consumer Protection Law",
+  "Journal of Corporate Governance and International Business Law",
+];
+
 const managementMembers: ManagementPerson[] = [
   { name: "Quaisher J. Hossain", role: "Senior Editor", department: "", photo: "" },
   { name: "Gautam Goswami", role: "Manager", department: "Quality Control", photo: "" },
@@ -142,6 +176,13 @@ const managementMembers: ManagementPerson[] = [
   { name: "Nandini Sahu", role: "Associate Editor", department: "Agriculture", photo: "" },
 ];
 
+const lawManagementMembers: ManagementPerson[] = [
+  { name: "Dr. Archana Mehrotra", role: "Group Managing Editor and Managing Director", department: "CELNET, Delhi, India", photo: "" },
+  { name: "Quaisher J. Hossain", role: "Senior Editor", department: "", photo: "" },
+  { name: "Gagan Kumar", role: "Associate Editor", department: "Law Journals | cle@celnet.in", photo: "" },
+  { name: "Gautam Goswami", role: "Manager", department: "Quality Control", photo: "" },
+];
+
 const subscriptionPlans = [
   "Print: Only $44 (Two Print Issues)",
   "Online: Only $149 (Online Access of Current and Back Issues)",
@@ -154,6 +195,13 @@ const defaultDirectorParagraphs = [
   "International Journals of Industrial Biotechnology and Biomaterials focuses on original high-quality research in the realm of Bioenergy, biofuels, bio-refining, Biomass and feed stocks, Bio-plastics, biofilms, Bio-based chemicals and enzymes, Fermentation and cell culture, Biocatalysis, Environmental microbiology, Natural products discovery and biosynthesis, Drug delivery mechanisms, Sustainable materials, etc.",
   "The Journal is intended as a forum for practitioners and researchers to share the techniques of Industrial Biotechnology and Biomaterials and solutions in the area. Many scientists and researchers have contributed to the creation and success of Industrial Biotechnology and Biomaterials. We are very thankful to everybody within that community who supported the idea of creating an innovative platform. We are certain that this issue will be followed by many others, reporting new developments in the field of Industrial Biotechnology and Biomaterials.",
   "This issue would not have been possible without the great support of the Editorial Board members, and we would like to express our sincere thanks to all of them. We would also like to express our gratitude to the editorial staff of JournalsPub, who supported us at every stage of the project. It is our hope that this fine collection of articles will be a valuable resource for Industrial Biotechnology and Biomaterials readers and will stimulate further research into the vibrant area of Industrial Biotechnology and Biomaterials.",
+];
+
+const lawDirectorParagraphs = [
+  "It is my privilege to present the print version of the {journal}. The intention of this journal is to create an atmosphere that stimulates vision and research in the area of law and legal studies.",
+  "Law Journals aims to provide an academic medium and an important reference for the advancement and dissemination of research results that support high-level learning, teaching, and research in legal domains.",
+  "Lastly, I would like to express my sincere gratitude to our Editorial/Review Board, authors and publication team for their continued support, invaluable contributions and suggestions in the form of authoring writeups, reviewing, and providing constructive comments for the advancement of the journals.",
+  "I hope you will enjoy reading this issue and we welcome your feedback on any aspect of the Journal.",
 ];
 
 const defaultManuscriptNotice =
@@ -189,6 +237,12 @@ const logoAssets = {
     alt: "Consortium e-Learning Network",
     width: 325,
     height: 155,
+  },
+  law: {
+    src: "/brand/law-journals.jpeg",
+    alt: "Law Journals",
+    width: 244,
+    height: 148,
   },
   signature: {
     src: "/brand/puneet-sign.webp",
@@ -235,6 +289,10 @@ function findDynamicValue<T>(journal: Journal, map: Record<string, T>) {
   }
 }
 
+function isLawJournal(journal: Journal) {
+  return `${journal.publisher} ${journal.imprint} ${journal.domain}`.toLowerCase().includes("law");
+}
+
 function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): BinderDraft {
   const details = findDynamicValue(journal, dynamicData.detailsByKey);
   const focus = findDynamicValue(journal, dynamicData.focusByKey);
@@ -256,18 +314,44 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
       department: "",
       photo: logoAssets.director.src,
     },
-    managementMembers,
-    directorTitle: "From the Director's Desk",
+    managementMembers: isLawJournal(journal) ? lawManagementMembers : managementMembers,
+    directorTitle: isLawJournal(journal) ? "Director's Desk" : "From the Director's Desk",
     directorName: "Puneet Mehrotra",
-    directorRole: "Managing Director",
-    directorParagraphs: defaultDirectorParagraphs,
+    directorRole: isLawJournal(journal) ? "Chairman & Director, Law Journals" : "Managing Director",
+    directorParagraphs: isLawJournal(journal) ? lawDirectorParagraphs : defaultDirectorParagraphs,
     manuscriptNotice: defaultManuscriptNotice,
     contentRows: contents,
   };
 }
 
+function hasGenericManagementMembers(draft: BinderDraft) {
+  return draft.managementMembers.length > 8 ||
+    draft.managementMembers.some((member) =>
+      ["STM Conferences", "Nursing", "Computer Science & Engineering", "Medical & Pharmacy"].includes(member.department),
+    );
+}
+
+function normalizeDraftForJournal(journal: Journal, draft: BinderDraft) {
+  if (!isLawJournal(journal) || !hasGenericManagementMembers(draft)) return draft;
+
+  return {
+    ...draft,
+    managementMembers: lawManagementMembers,
+    directorTitle: draft.directorTitle === "From the Director's Desk" ? "Director's Desk" : draft.directorTitle,
+    directorRole: draft.directorRole === "Managing Director" ? "Chairman & Director, Law Journals" : draft.directorRole,
+    directorParagraphs: draft.directorParagraphs === defaultDirectorParagraphs ? lawDirectorParagraphs : draft.directorParagraphs,
+  };
+}
+
 function initialDrafts(journals: Journal[], dynamicData: DynamicBinderData) {
-  return Object.fromEntries(journals.map((journal) => [journal.id, draftFromDynamic(journal, dynamicData)]));
+  const savedDrafts = loadSavedDrafts();
+
+  return Object.fromEntries(
+    journals.map((journal) => [
+      journal.id,
+      normalizeDraftForJournal(journal, savedDrafts[journal.id] || draftFromDynamic(journal, dynamicData)),
+    ]),
+  );
 }
 
 function draftJournal(journal: Journal, draft: BinderDraft): Journal {
@@ -478,6 +562,20 @@ function publisherIdentity(journal: Journal) {
     };
   }
 
+  if (haystack.includes("law journals")) {
+    return {
+      publisherName: "Law Journals",
+      companyName: "Consortium e-Learning Network Pvt. Ltd.",
+      address:
+        journal.address ||
+        "Law Journals, An imprint of Consortium e-Learning Network Pvt. Ltd. A-118, 1st Floor, Sector-63, Noida, U.P. India, Pin - 201301",
+      email: journal.publisherEmail || "info@stmjournals.com",
+      phone: journal.publisherPhone || "+91 120-4781211",
+      website: "www.lawjournals.stmjournals.com",
+      logoMode: "law",
+    };
+  }
+
   return {
     publisherName: "MBA Journals",
     companyName: "Consortium e-Learning Network Pvt. Ltd.",
@@ -513,6 +611,12 @@ function PublisherLogo({ mode, side }: { mode: string; side: "publisher" | "comp
   if (mode === "stm") {
     return (
       <ImageLogo asset={logoAssets.stm} className="stm-logo" />
+    );
+  }
+
+  if (mode === "law") {
+    return (
+      <ImageLogo asset={logoAssets.law} className="law-logo" />
     );
   }
 
@@ -577,13 +681,16 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
 function PaymentPage({ journal }: { journal: Journal }) {
   const identity = publisherIdentity(journal);
   const isJournalsPub = identity.logoMode === "journalspub";
+  const isLaw = identity.logoMode === "law";
   const paymentPublisherName = isJournalsPub ? "Journals Pub" : identity.publisherName;
-  const legalPhone = isJournalsPub ? "+91 120-4781200" : identity.phone;
+  const legalPhone = isJournalsPub ? "+91 120-4781200" : isLaw ? "+91 120-4781211" : identity.phone;
 
   return (
     <section className="pdf-page payment-reference-page">
       <p>
-        {isJournalsPub
+        {isLaw
+          ? "Law Journals (a division of Consortium e-Learning Network Private Ltd.) is the Publisher of Journal. Statements and opinions expressed in the Journal reflect the views of the author(s) and are not the opinion of Law Journals unless so stated."
+          : isJournalsPub
           ? "Journals Pub (a division of Dhruv Infosystems Private Ltd.) having its Marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of the Journals. Statements and opinions expressed in the Journal reflect the views of the Author(s) and are not the opinion of Journals Pub unless so stated."
           : "MBA Journals (an imprint of Consortium e-Learning Network Pvt. Ltd.) having its marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of Journals. The author(s) or editor(s) expressed in the Journal reflect the views of the author(s) and are not the opinion of MBA Journals unless so stated."}
       </p>
@@ -631,6 +738,29 @@ function PaymentPage({ journal }: { journal: Journal }) {
           <b>Mode of Payment:</b> At Par Cheque, Demand Draft, and RTGS (payment to be made in favor of
           Dhruv Infosystems Pvt. Ltd., payable at Delhi/New Delhi).
         </p>
+      ) : isLaw ? (
+        <>
+          <p><b>Pay Through NEFT/RTGS/Online Transfer</b></p>
+          <p>
+            Account Number: 03942000001153<br />
+            Account Name: Consortium e-Learning Network Pvt. Ltd.<br />
+            Bank Name: HDFC<br />
+            Bank Location: HDFC Bank, Sector-62, Noida, U.P., India<br />
+            IFSC Code: HDFC0002649, Swift Code: HDFCINBBXXX
+          </p>
+          <p>
+            <b>Pay Through Cheque/Demand Draft</b><br />
+            At Par Cheque, Demand Draft, and RTGS (payment to be made in favor of Consortium e-Learning Network Pvt. Ltd.,
+            payable at Delhi/New Delhi).
+          </p>
+          <p>
+            <b>Please Send Demand Draft/Cheque to following address:</b><br />
+            Subscription Department, Law Journals,<br />
+            Consortium e-Learning Network Pvt. Ltd.<br />
+            A-118, Level 1, Sector-63, Noida, 201 301, U.P., India<br />
+            Tel.: 120 4781211, +91 9810078958
+          </p>
+        </>
       ) : (
         <>
           <p><b>Account Type: HDFC/RTGS/Online Transfer</b></p>
@@ -651,11 +781,11 @@ function PaymentPage({ journal }: { journal: Journal }) {
       )}
 
       <h2>ONLINE ACCESS POLICY</h2>
-      {isJournalsPub ? (
+      {isJournalsPub || isLaw ? (
         <>
           <p>
             <b>For Authors</b><br />
-            In order to provide maximum citation and wide publicity to the authors work, Journals Pub also have Open
+            In order to provide maximum citation and wide publicity to the authors work, {isLaw ? "Law Journals" : "Journals Pub"} also have Open
             Access Policy, authors who would like to get their work open access can opt for Optional Open Access
             publication at nominal cost as follows.
           </p>
@@ -683,7 +813,7 @@ function PaymentPage({ journal }: { journal: Journal }) {
       <p>
         <b>For Subscribers</b>
       </p>
-      {isJournalsPub ? (
+      {isJournalsPub || isLaw ? (
         <>
           <ul className="checkbox-list">
             <li>Online access will be activated within 72 hours of receipt of the payment (working days), subject to receipt of correct information on user details/Static IP address of the subscriber.</li>
@@ -706,9 +836,9 @@ function PaymentPage({ journal }: { journal: Journal }) {
       )}
 
       <h2>ADVERTISING AND COMMERCIAL REPRINT INQUIRIES</h2>
-      {isJournalsPub ? (
+      {isJournalsPub || isLaw ? (
         <p>
-          Journals Pub with wide circulation and visibility offer an excellent media for showcasing/promotion of your
+          {isLaw ? "Law Journals" : "Journals Pub"} with wide circulation and visibility offer an excellent media for showcasing/promotion of your
           products/services and the events namely, Conferences, Symposia/Seminars, etc. These journals have very high
           potential to deliver the message across the targeted audience regularly with each published issue. The
           advertisements on bulk subscriptions, gift subscriptions or reprint purchases for distribution, etc. are also
@@ -733,7 +863,7 @@ function PaymentPage({ journal }: { journal: Journal }) {
         <li>Refund requests will not be entertained.</li>
       </ul>
 
-      <h2>{isJournalsPub ? "LEGAL DISPUTES" : "LEGAL DISPUTE"}</h2>
+      <h2>{isJournalsPub || isLaw ? "LEGAL DISPUTES" : "LEGAL DISPUTE"}</h2>
       <p>
         All the legal disputes are subjected to Delhi Jurisdiction only. If you have any questions, please contact the
         Publication Management Team at {identity.email}; Tel: {legalPhone}.
@@ -745,6 +875,7 @@ function PaymentPage({ journal }: { journal: Journal }) {
 
 function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
+  const isLaw = identity.logoMode === "law";
   const scopeItems = (draft.focusScope.length ? draft.focusScope : focusList).slice(0, 5);
   const aboutText = draft.about || journal.about;
 
@@ -755,19 +886,26 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
         <h1>{titleCaseName(journal.name)}</h1>
       </div>
 
-      <p>
-        <b>{identity.publisherName}</b> is a bouquet of research publications which disseminates knowledge dealing with
-        domains such as Applied Sciences, Medicine, Engineering, Management and Technology. {aboutText || "We encourage research and thinking, and attempt to contribute to a better perception of academic and professional knowledge across research communities."}
-      </p>
+      {isLaw ? (
+        <p>
+          <b>Law Journals</b>, an imprint of Consortium E-learning Network Private Ltd. is prepared under the support
+          and guidance by our esteemed editorial board members from renowned institutions. {aboutText || "The journal supports legal research, review articles, case studies, and current thought in the legal domain."}
+        </p>
+      ) : (
+        <p>
+          <b>{identity.publisherName}</b> is a bouquet of research publications which disseminates knowledge dealing with
+          domains such as Applied Sciences, Medicine, Engineering, Management and Technology. {aboutText || "We encourage research and thinking, and attempt to contribute to a better perception of academic and professional knowledge across research communities."}
+        </p>
+      )}
 
       <h2>Objectives</h2>
       <ul>
-        {objectives.map((item) => <li key={item}>{item}</li>)}
+        {(isLaw ? lawObjectives : objectives).map((item) => <li key={item}>{item}</li>)}
       </ul>
 
       <h2>Salient Features</h2>
       <ul>
-        {salientFeatures.map((item) => <li key={item}>{item}</li>)}
+        {(isLaw ? lawSalientFeatures : salientFeatures).map((item) => <li key={item}>{item}</li>)}
       </ul>
 
       <p className="journal-focus-intro">
@@ -795,7 +933,8 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
       </p>
       <p>
         To cite any of the material contained in this journal, in English or translation, please use the full English
-        reference at the beginning of each article. To reuse any of the material, please contact {identity.publisherName}.
+        reference at the beginning of each article. To reuse any of the material, please contact {identity.publisherName}
+        {isLaw ? " at lawjournals@celnet.in, info@stmjournals.com" : ""}.
         The author(s) is/are solely responsible for the content of the article(s) published in the {identity.publisherName}
         platform. The published articles are not constituted or deemed to constitute any representation of view of the
         editors or publisher. The data presented therein are correct or sufficient to support the conclusions reached or
@@ -810,6 +949,7 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
 
 function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
+  const isLaw = identity.logoMode === "law";
 
   return (
     <section className="pdf-page management-page">
@@ -819,9 +959,17 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
       <div className="management-band">Members</div>
       <div className="management-photo-grid">
         {draft.managementMembers.map((member, index) => (
-          <ManagementProfile key={`${member.name}-${index}`} person={member} />
+          <ManagementProfile key={index} person={member} />
         ))}
       </div>
+      {isLaw ? (
+        <section className="law-journal-roster">
+          <h2>Law Journals</h2>
+          <div>
+            {lawJournalNames.map((name) => <span key={name}>{name}</span>)}
+          </div>
+        </section>
+      ) : null}
       <div className="management-contact-boxes">
         <div>
           <b>For any query related to Dispatch and Online Access, please contact</b>
@@ -833,8 +981,8 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
         <div>
           <b>For any query related to Sales and Marketing, please contact</b>
           <span>Subscription Manager</span>
-          <span>Tel.: +91 120-4781201, +91 9810078958</span>
-          <span>E-mail: subs@journalspub.com</span>
+          <span>Tel.: {isLaw ? "+91 120-4781211" : "+91 120-4781201"}, +91 9810078958</span>
+          <span>E-mail: {isLaw ? "subscriptions@stmjournals.com" : "subs@journalspub.com"}</span>
           <strong>Tel. no.: {identity.phone}</strong>
         </div>
       </div>
@@ -1116,7 +1264,7 @@ function SectionEditor({
   }
 
   function useDefaultDirectorLetter() {
-    onChange({ ...draft, directorParagraphs: defaultDirectorParagraphs });
+    onChange({ ...draft, directorParagraphs: isLawJournal(journal) ? lawDirectorParagraphs : defaultDirectorParagraphs });
   }
 
   function updateManagementHead(patch: Partial<ManagementPerson>) {
@@ -1140,6 +1288,10 @@ function SectionEditor({
         { name: "New Member", role: "Associate Editor", department: "", photo: "" },
       ],
     });
+  }
+
+  function useLawManagementTeam() {
+    onChange({ ...draft, managementMembers: lawManagementMembers });
   }
 
   function removeManagementMember(index: number) {
@@ -1215,28 +1367,28 @@ function SectionEditor({
             <label>
               <span>Volume</span>
               <input
-                value={draft.issueVolume || defaultIssueVolume}
+                value={draft.issueVolume}
                 onChange={(event) => onChange({ ...draft, issueVolume: event.target.value })}
               />
             </label>
             <label>
               <span>Issue</span>
               <input
-                value={draft.issueNumber || defaultIssueNumber}
+                value={draft.issueNumber}
                 onChange={(event) => onChange({ ...draft, issueNumber: event.target.value })}
               />
             </label>
             <label>
               <span>Month range</span>
               <input
-                value={draft.issueMonthRange || defaultIssueMonthRange}
+                value={draft.issueMonthRange}
                 onChange={(event) => onChange({ ...draft, issueMonthRange: event.target.value })}
               />
             </label>
             <label>
               <span>Year</span>
               <input
-                value={draft.issueYear || defaultIssueYear}
+                value={draft.issueYear}
                 onChange={(event) => onChange({ ...draft, issueYear: event.target.value })}
               />
             </label>
@@ -1291,10 +1443,13 @@ function SectionEditor({
           </div>
           <div className="editor-row-head">
             <span>Publication Management Officers ({draft.managementMembers.length})</span>
-            <button type="button" onClick={addManagementMember}>Add Member</button>
+            <div className="editor-row-actions">
+              {isLawJournal(journal) ? <button type="button" onClick={useLawManagementTeam}>Use Law Team</button> : null}
+              <button type="button" onClick={addManagementMember}>Add Member</button>
+            </div>
           </div>
           {draft.managementMembers.map((member, index) => (
-            <article className="management-edit-card" key={`${member.name}-${index}`}>
+            <article className="management-edit-card" key={index}>
               <div className="management-edit-row">
                 <input value={member.name} placeholder="Name" onChange={(event) => updateManagementMember(index, { name: event.target.value })} />
                 <input value={member.role} placeholder="Role" onChange={(event) => updateManagementMember(index, { role: event.target.value })} />
@@ -1326,7 +1481,7 @@ function SectionEditor({
             <button type="button" onClick={addEditorial}>Add Board Row</button>
           </div>
           {draft.editorialBoard.map((member, index) => (
-            <article className="editorial-edit-card" key={`${member.name}-${index}`}>
+            <article className="editorial-edit-card" key={index}>
               <div className="editorial-edit-actions">
                 <select value={member.role} onChange={(event) => updateEditorial(index, { role: event.target.value })}>
                   <option>Editor in Chief</option>
@@ -1393,7 +1548,7 @@ function SectionEditor({
               <button type="button" onClick={addContentRow}>Add Article</button>
             </div>
             {draft.contentRows.map((row, index) => (
-              <article className="content-edit-card" key={`${row.title}-${index}`}>
+              <article className="content-edit-card" key={index}>
                 <label>
                   <span>Article title</span>
                   <input value={row.title} onChange={(event) => updateContentRow(index, { title: event.target.value })} />
@@ -1425,10 +1580,7 @@ function SectionEditor({
 export default function JournalDashboard({ journals, defaultJournalId, dynamicData }: Props) {
   const [selectedId, setSelectedId] = useState(defaultJournalId);
   const [runtimeDynamicData, setRuntimeDynamicData] = useState(dynamicData);
-  const [drafts, setDrafts] = useState<Record<string, BinderDraft>>(() => ({
-    ...initialDrafts(journals, dynamicData),
-    ...loadSavedDrafts(),
-  }));
+  const [drafts, setDrafts] = useState<Record<string, BinderDraft>>(() => initialDrafts(journals, dynamicData));
   const [activePage, setActivePage] = useState(1);
   const [dashboardMode, setDashboardMode] = useState<"templates" | "preview">("templates");
   const [saveStatus, setSaveStatus] = useState("");
@@ -1483,7 +1635,10 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
           const merged = mergeDynamicData(current, nextData);
           setDrafts((currentDrafts) => ({
             ...currentDrafts,
-            [primaryJournal.id]: loadSavedDrafts()[primaryJournal.id] || currentDrafts[primaryJournal.id] || draftFromDynamic(primaryJournal, merged),
+            [primaryJournal.id]: normalizeDraftForJournal(
+              primaryJournal,
+              loadSavedDrafts()[primaryJournal.id] || currentDrafts[primaryJournal.id] || draftFromDynamic(primaryJournal, merged),
+            ),
           }));
           return merged;
         });
@@ -1511,7 +1666,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     if (journal) {
       setDrafts((current) => ({
         ...current,
-        [id]: current[id] || draftFromDynamic(journal, runtimeDynamicData),
+        [id]: normalizeDraftForJournal(journal, current[id] || draftFromDynamic(journal, runtimeDynamicData)),
       }));
     }
   }
