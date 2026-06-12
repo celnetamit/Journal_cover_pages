@@ -1086,6 +1086,8 @@ button {
 }
 
 .front-cover-dynamic-layer {
+  --front-cover-header-bottom: 30%;
+  --front-cover-inset-x: 3.2%;
   color: #fff;
   font-family: Arial, Helvetica, sans-serif;
   inset: 0;
@@ -1106,38 +1108,38 @@ button {
 .front-cover-abbreviation {
   display: flex;
   flex-direction: column;
-  left: 2.7%;
-  min-height: 11.2%;
-  padding: 2mm 2mm 1.8mm 0;
-  top: 4.5%;
-  width: 34.5%;
+  left: var(--front-cover-inset-x);
+  min-height: 10%;
+  padding: 0;
+  top: 5.4%;
+  width: 36%;
 }
 
 .front-cover-abbreviation b {
   color: #fff200;
-  font-size: 29pt;
+  font-size: 28pt;
   font-weight: 800;
   letter-spacing: 0;
-  line-height: 0.82;
-  margin-bottom: 2.1mm;
+  line-height: 0.86;
+  margin-bottom: 1.2mm;
 }
 
 .front-cover-abbreviation span {
   color: #fff;
   font-size: 8.8pt;
   font-weight: 400;
-  line-height: 1.05;
+  line-height: 1.08;
 }
 
 .front-cover-issn {
   font-size: 8.4pt;
   font-weight: 400;
   line-height: 1.1;
-  padding: 0.8mm 0 0.8mm 4mm;
-  right: 3.4%;
+  padding: 0;
+  right: var(--front-cover-inset-x);
   text-align: right;
-  top: 4.9%;
-  width: 27%;
+  top: 5.2%;
+  width: 32%;
 }
 
 .front-cover-issue {
@@ -1146,54 +1148,54 @@ button {
   flex-direction: column;
   font-size: 12.6pt;
   font-weight: 400;
-  gap: 0.9mm;
+  gap: 1.2mm;
   line-height: 1.08;
-  padding: 0.8mm 0 1mm 6mm;
-  right: 3.4%;
+  padding: 0;
+  right: var(--front-cover-inset-x);
   text-align: right;
-  top: 8.9%;
-  width: 42%;
+  top: 9.8%;
+  width: 41%;
 }
 
 .front-cover-title {
   color: #fff;
-  font-size: 26.5pt;
+  font-size: 24.8pt;
   font-weight: 800;
-  left: 2.7%;
-  line-height: 1.17;
+  left: var(--front-cover-inset-x);
+  line-height: 1.14;
   margin: 0;
-  min-height: 10.8%;
-  padding: 1.5mm 3mm 2.1mm 0;
-  right: 2.9%;
+  min-height: 10.5%;
+  padding: 0;
+  right: var(--front-cover-inset-x);
   text-wrap: balance;
-  top: 17.1%;
+  top: 17.2%;
 }
 
 .front-cover-title.balanced {
-  font-size: 23.8pt;
+  font-size: 22.4pt;
   line-height: 1.14;
 }
 
 .front-cover-title.compact {
-  font-size: 21pt;
+  font-size: 20.5pt;
   line-height: 1.12;
 }
 
 .front-cover-month {
-  font-size: 9.6pt;
+  font-size: 8.9pt;
   font-weight: 700;
   line-height: 1.1;
-  padding: 0.7mm 0 0.8mm 5mm;
-  right: 3.1%;
+  padding: 0;
+  right: var(--front-cover-inset-x);
   text-align: right;
-  top: 24.7%;
-  width: 28%;
+  top: 25.5%;
+  width: 20%;
 }
 
 .front-cover-dynamic-layer::before {
   background: #1d3165;
   content: "";
-  height: 28.25%;
+  height: var(--front-cover-header-bottom);
   left: 0;
   position: absolute;
   right: 0;
