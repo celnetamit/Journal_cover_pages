@@ -23,11 +23,15 @@ type Props = {
 
 type BinderDraft = {
   journalTitle: string;
+  journalAbbreviation: string;
   eIssn: string;
   sjif: string;
   icv: string;
   coverImage: string;
+  backCoverImage: string;
   journalLogoImage: string;
+  footerRightLogoImage: string;
+  journalWebsite: string;
   issueVolume: string;
   issueNumber: string;
   issueMonthRange: string;
@@ -306,8 +310,31 @@ function isLawJournal(journal: Journal) {
   return `${journal.publisher} ${journal.imprint} ${journal.domain}`.toLowerCase().includes("law");
 }
 
+function defaultBackCoverImage() {
+  return "/brand/stm-digital-library-back.png";
+}
+
+function defaultCoverWebsite(journal: Journal) {
+  return publisherIdentity(journal).website;
+}
+
+function normalizeCoverWebsite(value: string | undefined, journal: Journal) {
+  const cleaned = (value || "")
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/$/g, "")
+    .trim();
+
+  if (!cleaned || cleaned.includes("/")) return defaultCoverWebsite(journal);
+  return cleaned;
+}
+
 function defaultCoverImage(journal: Journal) {
   if ((journal.abbreviation || "").toLowerCase() === "joadms") return "/brand/joadms-pdf-front.png";
+  const identity = publisherIdentity(journal);
+  if (identity.logoMode === "mba") return "/brand/mba-journals.jpeg";
+  if (identity.logoMode === "law") return "/brand/law-journals.jpeg";
+  if (identity.logoMode === "journalspub") return "/brand/journalspub.jpg";
+  if (identity.logoMode === "stm") return "/brand/stm-journals.jpg";
   return journal.logo;
 }
 
@@ -318,11 +345,15 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
 
   return {
     journalTitle: details?.name || journal.name,
+    journalAbbreviation: details?.abbreviation || journal.abbreviation || journal.shortName,
     eIssn: details?.eIssn || journal.eIssn || "2582-2888",
     sjif: journal.impactFactor || "6.017",
     icv: journal.icv.replace(/^ICV\s*:\s*/i, "") || "62.07",
     coverImage: defaultCoverImage(journal),
-    journalLogoImage: journal.logo,
+    backCoverImage: defaultBackCoverImage(),
+    journalLogoImage: journal.journalLogo || "",
+    footerRightLogoImage: journal.journalLogo || "",
+    journalWebsite: defaultCoverWebsite(journal),
     issueVolume: defaultIssueVolume,
     issueNumber: defaultIssueNumber,
     issueMonthRange: defaultIssueMonthRange,
@@ -367,7 +398,11 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
     sjif: draft.sjif ?? journal.impactFactor ?? "",
     icv: draft.icv ?? journal.icv.replace(/^ICV\s*:\s*/i, "") ?? "",
     coverImage: draft.coverImage && draft.coverImage !== journal.logo ? draft.coverImage : defaultCoverImage(journal),
-    journalLogoImage: draft.journalLogoImage ?? journal.logo ?? "",
+    backCoverImage: draft.backCoverImage || defaultBackCoverImage(),
+    journalLogoImage: draft.journalLogoImage ?? journal.journalLogo ?? "",
+    footerRightLogoImage: draft.footerRightLogoImage ?? draft.journalLogoImage ?? journal.journalLogo ?? "",
+    journalAbbreviation: draft.journalAbbreviation || journal.abbreviation || journal.shortName,
+    journalWebsite: normalizeCoverWebsite(draft.journalWebsite, journal),
   };
   const focus = dynamicData ? findDynamicValue(journal, dynamicData.focusByKey) : undefined;
   const withFocus = focus && hasDefaultFocusScope(draft)
@@ -405,10 +440,13 @@ function draftJournal(journal: Journal, draft: BinderDraft): Journal {
   return {
     ...journal,
     name: draft.journalTitle || journal.name,
+    abbreviation: draft.journalAbbreviation || journal.abbreviation,
+    website: draft.journalWebsite || journal.website,
     eIssn: draft.eIssn || journal.eIssn,
     impactFactor: draft.sjif || journal.impactFactor,
     icv: draft.icv || journal.icv,
-    logo: draft.journalLogoImage || journal.logo,
+    logo: draft.journalLogoImage || journal.journalLogo || journal.logo,
+    journalLogo: draft.journalLogoImage || journal.journalLogo,
     about: draft.about || journal.about,
   };
 }
@@ -553,7 +591,12 @@ function DownloadButton({ disabled, filename }: { disabled: boolean; filename: s
 function JournalLogo({ journal }: { journal: Journal }) {
   return (
     <div className="journal-logo">
-      <span>{initials(journal.abbreviation || journal.name)}</span>
+      {journal.logo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={journal.logo} alt={`${journal.name} logo`} crossOrigin="anonymous" />
+      ) : (
+        <span>{initials(journal.abbreviation || journal.name)}</span>
+      )}
     </div>
   );
 }
@@ -713,31 +756,80 @@ function CoverBitmap({ src, alt, className }: { src: string; alt: string; classN
     );
   }
 
+  // eslint-disable-next-line @next/next/no-img-element
   return <img className={className} src={src} alt={alt} crossOrigin="anonymous" />;
-}
-
-function coverAbbreviation(journal: Journal) {
-  const abbreviation = journal.abbreviation || journal.shortName || "";
-  if (abbreviation.toLowerCase() === "joadms") return "JoADMS";
-  return abbreviation.toUpperCase();
 }
 
 function cleanIcv(value: string) {
   return value.replace(/^ICV\s*:\s*/i, "").trim();
 }
 
-function DigitalLibraryBackCover() {
+function frontCoverTitleClass(title: string) {
+  const length = title.trim().length;
+  if (length > 74) return "front-cover-title compact";
+  if (length > 54) return "front-cover-title balanced";
+  return "front-cover-title";
+}
+
+function usableJournalLogo(draft: BinderDraft, journal: Journal) {
+  const logo = draft.footerRightLogoImage || journal.journalLogo;
+  const cover = draft.coverImage || defaultCoverImage(journal);
+  if (!logo || logo === cover || logo === defaultCoverImage(journal)) return "";
+  return logo;
+}
+
+function FrontCoverJournalMark({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+  const logo = usableJournalLogo(draft, journal);
+
+  if (logo) {
+    return <CoverBitmap src={logo} alt={`${journal.name} logo`} className="front-cover-journal-logo" />;
+  }
+
+  return null;
+}
+
+function DigitalLibraryBackCover({ draft }: { draft: BinderDraft }) {
   return (
     <article className="digital-library-cover">
-      <CoverBitmap src="/brand/stm-digital-library-back.png" alt="STM Digital Library back cover" className="cover-panel-image" />
+      <CoverBitmap src={draft.backCoverImage || defaultBackCoverImage()} alt="Digital Library back cover" className="cover-panel-image" />
     </article>
   );
 }
 
 function JournalFrontCover({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+  const identity = publisherIdentity(journal);
+  const volume = draft.issueVolume || defaultIssueVolume;
+  const issue = draft.issueNumber || defaultIssueNumber;
+  const monthRange = draft.issueMonthRange || defaultIssueMonthRange;
+  const year = draft.issueYear || defaultIssueYear;
+  const abbreviation = draft.journalAbbreviation || journal.abbreviation || journal.shortName || "JOADMS";
+  const website = normalizeCoverWebsite(draft.journalWebsite, journal);
+
   return (
     <article className="journal-front-cover">
       <CoverBitmap src={draft.coverImage || defaultCoverImage(journal)} alt={journal.name} className="cover-panel-image" />
+      <div className="front-cover-dynamic-layer">
+        <div className="front-cover-abbreviation">
+          <b>{abbreviation.toUpperCase()}</b>
+          <span>SJIF: {journal.impactFactor || "Not set"}</span>
+          <span>ICV: {cleanIcv(journal.icv) || "Not set"}</span>
+        </div>
+        <span className="front-cover-issn">ISSN: {journal.eIssn || "Not set"}</span>
+        <div className="front-cover-issue">
+          <span>Volume {volume}&nbsp; No. {issue}&nbsp; {year}</span>
+          <span>{website.replace(/^https?:\/\//i, "")}</span>
+        </div>
+        <h1 className={frontCoverTitleClass(journal.name)}>{titleCaseName(journal.name)}</h1>
+        <span className="front-cover-month">{monthRange.replace("-", "–")}</span>
+        <div className="front-cover-footer">
+          {identity.logoMode === "stm" ? (
+            <span className="front-cover-footer-spacer" aria-hidden="true" />
+          ) : (
+            <PublisherLogo mode={identity.logoMode} side="publisher" />
+          )}
+          <FrontCoverJournalMark journal={journal} draft={draft} />
+        </div>
+      </div>
     </article>
   );
 }
@@ -745,7 +837,7 @@ function JournalFrontCover({ journal, draft }: { journal: Journal; draft: Binder
 function CoverSpreadPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   return (
     <section className="pdf-page cover-spread-page" data-page-title="Digital library back and journal front cover">
-      <DigitalLibraryBackCover />
+      <DigitalLibraryBackCover draft={draft} />
       <JournalFrontCover journal={journal} draft={draft} />
     </section>
   );
@@ -1021,7 +1113,7 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
 
       <h2>Focus and Scope</h2>
       <ul className="focus-list">
-        {scopeItems.map((item) => <li key={item}>{item}</li>)}
+        {scopeItems.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
       </ul>
 
       {focusNotes.map((note, index) => <p key={index}>{note}</p>)}
@@ -1401,6 +1493,24 @@ function SectionEditor({
     reader.readAsDataURL(file);
   }
 
+  function useDynamicPageOneData() {
+    const dynamicDraft = normalizeDraftForJournal(journal, draftFromDynamic(journal, dynamicData), dynamicData);
+
+    onChange({
+      ...draft,
+      journalTitle: dynamicDraft.journalTitle,
+      journalAbbreviation: dynamicDraft.journalAbbreviation,
+      eIssn: dynamicDraft.eIssn,
+      sjif: dynamicDraft.sjif,
+      icv: cleanIcv(dynamicDraft.icv),
+      coverImage: dynamicDraft.coverImage,
+      backCoverImage: dynamicDraft.backCoverImage,
+      journalLogoImage: dynamicDraft.journalLogoImage,
+      footerRightLogoImage: dynamicDraft.footerRightLogoImage,
+      journalWebsite: dynamicDraft.journalWebsite,
+    });
+  }
+
   function updateContentRow(index: number, patch: Partial<ContentRow>) {
     onChange({
       ...draft,
@@ -1442,6 +1552,10 @@ function SectionEditor({
       </div>
       {activePage === 1 ? (
         <>
+          <div className="editor-row-head">
+            <span>First page dynamic data</span>
+            <button type="button" onClick={useDynamicPageOneData}>Refresh From Form Data</button>
+          </div>
           <label>
             <span>Journal title</span>
             <input
@@ -1449,6 +1563,22 @@ function SectionEditor({
               onChange={(event) => onChange({ ...draft, journalTitle: event.target.value })}
             />
           </label>
+          <div className="two-field-grid">
+            <label>
+              <span>Cover abbreviation</span>
+              <input
+                value={draft.journalAbbreviation || ""}
+                onChange={(event) => onChange({ ...draft, journalAbbreviation: event.target.value })}
+              />
+            </label>
+            <label>
+              <span>Website</span>
+              <input
+                value={draft.journalWebsite || ""}
+                onChange={(event) => onChange({ ...draft, journalWebsite: event.target.value })}
+              />
+            </label>
+          </div>
           <label>
             <span>e-ISSN</span>
             <input
@@ -1503,14 +1633,36 @@ function SectionEditor({
             </label>
           </div>
           <label className="file-field">
-            <span>Upload cover image</span>
+            <span>Upload front cover image</span>
             <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (coverImage) => onChange({ ...draft, coverImage }))} />
           </label>
           <label>
-            <span>Static cover image URL</span>
+            <span>Static front cover image URL</span>
             <input
               value={draft.coverImage}
               onChange={(event) => onChange({ ...draft, coverImage: event.target.value })}
+            />
+          </label>
+          <label className="file-field">
+            <span>Upload back cover image</span>
+            <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (backCoverImage) => onChange({ ...draft, backCoverImage }))} />
+          </label>
+          <label>
+            <span>Static back cover image URL</span>
+            <input
+              value={draft.backCoverImage || ""}
+              onChange={(event) => onChange({ ...draft, backCoverImage: event.target.value })}
+            />
+          </label>
+          <label className="file-field">
+            <span>Upload bottom right footer logo</span>
+            <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (footerRightLogoImage) => onChange({ ...draft, footerRightLogoImage }))} />
+          </label>
+          <label>
+            <span>Static bottom right footer logo URL</span>
+            <input
+              value={draft.footerRightLogoImage || ""}
+              onChange={(event) => onChange({ ...draft, footerRightLogoImage: event.target.value })}
             />
           </label>
           <label className="file-field">
@@ -1525,7 +1677,7 @@ function SectionEditor({
             />
           </label>
           <div className="editor-note">
-            Front cover metadata and logo/image defaults come from journals_list.csv. If the CSV has no journal logo or cover image, upload one here and save the page.
+            Front cover metadata and logo/image defaults come from journals_list.csv. Use the bottom right footer logo fields to replace the cover logo in the lower-right corner, then save the page.
           </div>
         </>
       ) : null}

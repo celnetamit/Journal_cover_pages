@@ -10,6 +10,7 @@ export type Journal = {
   website: string;
   indexingLogo: string;
   logo: string;
+  journalLogo: string;
   about: string;
   eIssn: string;
   pIssn: string;
@@ -106,6 +107,7 @@ export function getJournals(): Journal[] {
       shortName: pick(row, "Short Name"),
       website: pick(row, "Journal Website/URL"),
       indexingLogo: pick(row, "Indexing Logo Img"),
+      journalLogo: pick(row, "Journal Logo URL"),
       logo: pick(row, "Journal Image URL") || pick(row, "Journal Image/Logo"),
       about: pick(row, "About Journal"),
       eIssn: pick(row, "e-ISSN"),
