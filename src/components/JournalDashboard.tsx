@@ -24,6 +24,10 @@ type Props = {
 type BinderDraft = {
   journalTitle: string;
   eIssn: string;
+  sjif: string;
+  icv: string;
+  coverImage: string;
+  journalLogoImage: string;
   issueVolume: string;
   issueNumber: string;
   issueMonthRange: string;
@@ -56,10 +60,11 @@ type ContentRow = {
 };
 
 const draftStorageKey = "journal-cover-page-drafts";
-const defaultIssueVolume = "9";
+const defaultIssueVolume = "13";
 const defaultIssueNumber = "1";
-const defaultIssueMonthRange = "January to June";
+const defaultIssueMonthRange = "January-April";
 const defaultIssueYear = "2026";
+const totalPages = 9;
 
 const boardMembers = [
   ["Dr. Tapas Kumar Chatterjee", "Associate Professor-Marketing", "Institute of Management Technology Maharashtra, India", "Editor in Chief"],
@@ -301,6 +306,11 @@ function isLawJournal(journal: Journal) {
   return `${journal.publisher} ${journal.imprint} ${journal.domain}`.toLowerCase().includes("law");
 }
 
+function defaultCoverImage(journal: Journal) {
+  if ((journal.abbreviation || "").toLowerCase() === "joadms") return "/brand/joadms-pdf-front.png";
+  return journal.logo;
+}
+
 function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): BinderDraft {
   const details = findDynamicValue(journal, dynamicData.detailsByKey);
   const focus = findDynamicValue(journal, dynamicData.focusByKey);
@@ -309,6 +319,10 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
   return {
     journalTitle: details?.name || journal.name,
     eIssn: details?.eIssn || journal.eIssn || "2582-2888",
+    sjif: journal.impactFactor || "6.017",
+    icv: journal.icv.replace(/^ICV\s*:\s*/i, "") || "62.07",
+    coverImage: defaultCoverImage(journal),
+    journalLogoImage: journal.logo,
     issueVolume: defaultIssueVolume,
     issueNumber: defaultIssueNumber,
     issueMonthRange: defaultIssueMonthRange,
@@ -348,14 +362,21 @@ function hasDefaultFocusScope(draft: BinderDraft) {
 }
 
 function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicData?: DynamicBinderData) {
+  const hydratedDraft = {
+    ...draft,
+    sjif: draft.sjif ?? journal.impactFactor ?? "",
+    icv: draft.icv ?? journal.icv.replace(/^ICV\s*:\s*/i, "") ?? "",
+    coverImage: draft.coverImage && draft.coverImage !== journal.logo ? draft.coverImage : defaultCoverImage(journal),
+    journalLogoImage: draft.journalLogoImage ?? journal.logo ?? "",
+  };
   const focus = dynamicData ? findDynamicValue(journal, dynamicData.focusByKey) : undefined;
   const withFocus = focus && hasDefaultFocusScope(draft)
     ? {
-        ...draft,
-        about: focus.about || draft.about,
-        focusScope: focus.focusScope.length ? focus.focusScope : draft.focusScope,
+        ...hydratedDraft,
+        about: focus.about || hydratedDraft.about,
+        focusScope: focus.focusScope.length ? focus.focusScope : hydratedDraft.focusScope,
       }
-    : draft;
+    : hydratedDraft;
   const withFocusNotes = withFocus.focusNotes?.length ? withFocus : { ...withFocus, focusNotes: defaultFocusNotes };
 
   if (!isLawJournal(journal) || !hasGenericManagementMembers(withFocusNotes)) return withFocusNotes;
@@ -385,6 +406,9 @@ function draftJournal(journal: Journal, draft: BinderDraft): Journal {
     ...journal,
     name: draft.journalTitle || journal.name,
     eIssn: draft.eIssn || journal.eIssn,
+    impactFactor: draft.sjif || journal.impactFactor,
+    icv: draft.icv || journal.icv,
+    logo: draft.journalLogoImage || journal.logo,
     about: draft.about || journal.about,
   };
 }
@@ -435,7 +459,8 @@ function mergeDynamicData(current: DynamicBinderData, next: DynamicBinderData): 
 
 function pageEditorTitle(page: number) {
   const titles = [
-    "Cover page journal metadata",
+    "Cover spread journal metadata",
+    "Publisher title page metadata",
     "Subscription and legal information",
     "Journal details and focus/scope",
     "Publication management team",
@@ -487,9 +512,17 @@ function DownloadButton({ disabled, filename }: { disabled: boolean; filename: s
       import("jspdf"),
     ]);
     const pages = Array.from(source.querySelectorAll<HTMLElement>(".pdf-page"));
-    const pdf = new jsPDF("p", "mm", "a4");
+    const firstLandscape = pages[0]?.classList.contains("cover-spread-page");
+    const pdf = new jsPDF({
+      orientation: firstLandscape ? "landscape" : "portrait",
+      unit: "mm",
+      format: "a4",
+    });
 
     for (let index = 0; index < pages.length; index += 1) {
+      const landscape = pages[index].classList.contains("cover-spread-page");
+      const pageWidth = landscape ? 297 : 210;
+      const pageHeight = landscape ? 210 : 297;
       const { width, height } = pages[index].getBoundingClientRect();
       const canvas = await html2canvas(pages[index], {
         scale: 2,
@@ -501,8 +534,8 @@ function DownloadButton({ disabled, filename }: { disabled: boolean; filename: s
         windowHeight: document.documentElement.scrollHeight,
       });
       const imgData = canvas.toDataURL("image/png");
-      if (index > 0) pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, 0, 210, 297);
+      if (index > 0) pdf.addPage("a4", landscape ? "landscape" : "portrait");
+      pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight);
     }
 
     pdf.save(filename);
@@ -671,6 +704,53 @@ function ImageLogo({
   );
 }
 
+function CoverBitmap({ src, alt, className }: { src: string; alt: string; className: string }) {
+  if (!src) {
+    return (
+      <div className={`${className} image-placeholder`}>
+        <span>{alt}</span>
+      </div>
+    );
+  }
+
+  return <img className={className} src={src} alt={alt} crossOrigin="anonymous" />;
+}
+
+function coverAbbreviation(journal: Journal) {
+  const abbreviation = journal.abbreviation || journal.shortName || "";
+  if (abbreviation.toLowerCase() === "joadms") return "JoADMS";
+  return abbreviation.toUpperCase();
+}
+
+function cleanIcv(value: string) {
+  return value.replace(/^ICV\s*:\s*/i, "").trim();
+}
+
+function DigitalLibraryBackCover() {
+  return (
+    <article className="digital-library-cover">
+      <CoverBitmap src="/brand/stm-digital-library-back.png" alt="STM Digital Library back cover" className="cover-panel-image" />
+    </article>
+  );
+}
+
+function JournalFrontCover({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+  return (
+    <article className="journal-front-cover">
+      <CoverBitmap src={draft.coverImage || defaultCoverImage(journal)} alt={journal.name} className="cover-panel-image" />
+    </article>
+  );
+}
+
+function CoverSpreadPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+  return (
+    <section className="pdf-page cover-spread-page" data-page-title="Digital library back and journal front cover">
+      <DigitalLibraryBackCover />
+      <JournalFrontCover journal={journal} draft={draft} />
+    </section>
+  );
+}
+
 function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
   const volume = draft.issueVolume || defaultIssueVolume;
@@ -699,7 +779,7 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
         <span>Regd. Office: Office No. 4, First Floor, CSC Pocket-E Market, Mayur Vihar, Phase-I, New Delhi-110091</span>
         <span>Website: www.celnet.in; CIN No.: U80302DL2005PTC138759</span>
       </div>
-      <PageNumber value={1} />
+      <PageNumber value={2} />
     </section>
   );
 }
@@ -894,7 +974,7 @@ function PaymentPage({ journal }: { journal: Journal }) {
         All the legal disputes are subjected to Delhi Jurisdiction only. If you have any questions, please contact the
         Publication Management Team at {identity.email}; Tel: {legalPhone}.
       </p>
-      <PageNumber value={2} />
+      <PageNumber value={3} />
     </section>
   );
 }
@@ -945,7 +1025,7 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
       </ul>
 
       {focusNotes.map((note, index) => <p key={index}>{note}</p>)}
-      <PageNumber value={3} />
+      <PageNumber value={4} />
     </section>
   );
 }
@@ -989,7 +1069,7 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
           <strong>Tel. no.: {identity.phone}</strong>
         </div>
       </div>
-      <PageNumber value={4} />
+      <PageNumber value={5} />
     </section>
   );
 }
@@ -1040,7 +1120,7 @@ function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: Bin
       </div>
       <p className="url-line">{url}</p>
       <p className="manuscript-notice">{draft.manuscriptNotice}</p>
-      <PageNumber value={5} />
+      <PageNumber value={6} />
     </section>
   );
 }
@@ -1078,7 +1158,7 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
           ? editors.slice(0, 12).map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)
           : fallbackEditors.map((member) => <MemberLine key={member[0]} member={member} />)}
       </div>
-      <PageNumber value={6} />
+      <PageNumber value={7} />
     </section>
   );
 }
@@ -1116,7 +1196,7 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
         <span>{draft.directorName}</span>
         <b>{draft.directorRole}</b>
       </div>
-      <PageNumber value={7} />
+      <PageNumber value={8} />
     </section>
   );
 }
@@ -1138,7 +1218,7 @@ function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
           ))}
         </tbody>
       </table>
-      <PageNumber value={8} />
+      <PageNumber value={9} />
     </section>
   );
 }
@@ -1168,30 +1248,32 @@ function BinderPage({ page, journal, draft }: { page: number; journal: Journal; 
 
   switch (page) {
     case 1:
-      return <CoverPage journal={currentJournal} draft={draft} />;
+      return <CoverSpreadPage journal={currentJournal} draft={draft} />;
     case 2:
-      return <PaymentPage journal={currentJournal} />;
+      return <CoverPage journal={currentJournal} draft={draft} />;
     case 3:
-      return <JournalDetailsPage journal={currentJournal} draft={draft} />;
+      return <PaymentPage journal={currentJournal} />;
     case 4:
-      return <TeamPage journal={currentJournal} draft={draft} />;
+      return <JournalDetailsPage journal={currentJournal} draft={draft} />;
     case 5:
-      return <ManuscriptEnginePage journal={currentJournal} draft={draft} />;
+      return <TeamPage journal={currentJournal} draft={draft} />;
     case 6:
-      return <EditorialPage journal={currentJournal} draft={draft} />;
+      return <ManuscriptEnginePage journal={currentJournal} draft={draft} />;
     case 7:
-      return <DirectorPage journal={currentJournal} draft={draft} />;
+      return <EditorialPage journal={currentJournal} draft={draft} />;
     case 8:
+      return <DirectorPage journal={currentJournal} draft={draft} />;
+    case 9:
       return <ContentPage journal={currentJournal} draft={draft} />;
     default:
-      return <CoverPage journal={currentJournal} draft={draft} />;
+      return <CoverSpreadPage journal={currentJournal} draft={draft} />;
   }
 }
 
 function PageSet({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   return (
     <div className="page-set">
-      {Array.from({ length: 8 }, (_, index) => (
+      {Array.from({ length: totalPages }, (_, index) => (
         <BinderPage key={index + 1} page={index + 1} journal={journal} draft={draft} />
       ))}
     </div>
@@ -1374,6 +1456,22 @@ function SectionEditor({
               onChange={(event) => onChange({ ...draft, eIssn: event.target.value })}
             />
           </label>
+          <div className="two-field-grid">
+            <label>
+              <span>SJIF</span>
+              <input
+                value={draft.sjif}
+                onChange={(event) => onChange({ ...draft, sjif: event.target.value })}
+              />
+            </label>
+            <label>
+              <span>ICV</span>
+              <input
+                value={cleanIcv(draft.icv)}
+                onChange={(event) => onChange({ ...draft, icv: event.target.value })}
+              />
+            </label>
+          </div>
           <div className="cover-meta-editor">
             <label>
               <span>Volume</span>
@@ -1404,17 +1502,44 @@ function SectionEditor({
               />
             </label>
           </div>
+          <label className="file-field">
+            <span>Upload cover image</span>
+            <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (coverImage) => onChange({ ...draft, coverImage }))} />
+          </label>
+          <label>
+            <span>Static cover image URL</span>
+            <input
+              value={draft.coverImage}
+              onChange={(event) => onChange({ ...draft, coverImage: event.target.value })}
+            />
+          </label>
+          <label className="file-field">
+            <span>Upload journal logo</span>
+            <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (journalLogoImage) => onChange({ ...draft, journalLogoImage }))} />
+          </label>
+          <label>
+            <span>Static journal logo URL</span>
+            <input
+              value={draft.journalLogoImage}
+              onChange={(event) => onChange({ ...draft, journalLogoImage: event.target.value })}
+            />
+          </label>
           <div className="editor-note">
-            Cover logos, printer line, address, and publisher details are generated from the selected journal and publisher identity.
+            Front cover metadata and logo/image defaults come from journals_list.csv. If the CSV has no journal logo or cover image, upload one here and save the page.
           </div>
         </>
       ) : null}
       {activePage === 2 ? (
         <div className="editor-note">
-          Subscription, payment, online access policy, advertising, lost issue claims, and legal dispute text are publisher-specific generated blocks. These can be split into editable rich text fields in the next pass.
+          Publisher title page logos, printer line, address, and publisher details are generated from the selected journal and publisher identity.
         </div>
       ) : null}
       {activePage === 3 ? (
+        <div className="editor-note">
+          Subscription, payment, online access policy, advertising, lost issue claims, and legal dispute text are publisher-specific generated blocks. These can be split into editable rich text fields in the next pass.
+        </div>
+      ) : null}
+      {activePage === 4 ? (
         <>
           <label>
             <span>About journal</span>
@@ -1448,7 +1573,7 @@ function SectionEditor({
           ))}
         </>
       ) : null}
-      {activePage === 4 ? (
+      {activePage === 5 ? (
         <div className="editor-repeater">
           <div className="management-edit-head">
             <span>Management head</span>
@@ -1484,7 +1609,7 @@ function SectionEditor({
           ))}
         </div>
       ) : null}
-      {activePage === 5 ? (
+      {activePage === 6 ? (
         <label>
           <span>Manuscript submission notification</span>
           <textarea
@@ -1494,7 +1619,7 @@ function SectionEditor({
           />
         </label>
       ) : null}
-      {activePage === 6 ? (
+      {activePage === 7 ? (
         <div className="editor-repeater">
           <div className="editor-row-head">
             <span>Editorial Board Members</span>
@@ -1526,7 +1651,7 @@ function SectionEditor({
           ) : null}
         </div>
       ) : null}
-      {activePage === 7 ? (
+      {activePage === 8 ? (
         <>
           <label>
             <span>Director desk letter title</span>
@@ -1557,7 +1682,7 @@ function SectionEditor({
           ))}
         </>
       ) : null}
-      {activePage === 8 ? (
+      {activePage === 9 ? (
         <>
           <div className="editor-note">
             If current issue or archive data is not available from API, fill these static rows manually. Saved rows are reused for this journal.
@@ -1745,13 +1870,13 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
           </button>
           <span>Active editor target:</span>
           <div className="page-stepper">
-            {Array.from({ length: 8 }, (_, index) => index + 1).map((page) => (
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
               <button className={activePage === page ? "active" : ""} key={page} onClick={() => setActivePage(page)}>
                 Page {page}
               </button>
             ))}
           </div>
-          <button className="icon-step" onClick={() => setActivePage((page) => Math.min(8, page + 1))}>
+          <button className="icon-step" onClick={() => setActivePage((page) => Math.min(totalPages, page + 1))}>
             <ArrowRight size={16} />
           </button>
         </div>
@@ -1781,7 +1906,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
             ) : (
               <section className="export-panel">
                 <h2>Live Preview & Export</h2>
-                <p>Download exports only the active selected journal as an 8-page A4 PDF.</p>
+                <p>Download exports only the active selected journal as a 9-page PDF with a landscape A4 cover spread followed by portrait A4 pages.</p>
                 <div className="toolbar">
                   <button className="secondary-action" onClick={() => window.print()}>
                     <Printer size={16} /> Print

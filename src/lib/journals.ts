@@ -132,4 +132,4 @@ export function getJournals(): Journal[] {
     .filter((journal) => journal.id && journal.name);
 }
 
-export const targetJournalName = "NOLEGEIN Journal of Leadership and Strategic Management";
+export const targetJournalName = "Journal of Advanced Database Management & Systems";
