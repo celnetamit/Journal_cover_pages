@@ -73,6 +73,11 @@ const defaultIssueYear = "2026";
 const totalPages = 9;
 const romanNumerals = ["", "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"];
 
+function pageStepperLabel(page: number) {
+  if (page === 1) return "Cover Page";
+  return `Page ${page}`;
+}
+
 const boardMembers = [
   ["Dr. Tapas Kumar Chatterjee", "Associate Professor-Marketing", "Institute of Management Technology Maharashtra, India", "Editor in Chief"],
   ["Dr. Ritu Sharma", "Assistant Professor", "GD Goenka University Haryana, India", "Editor"],
@@ -920,7 +925,7 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
         <span>Regd. Office: Office No. 4, First Floor, CSC Pocket-E Market, Mayur Vihar, Phase-I, New Delhi-110091</span>
         <span>Website: www.celnet.in; CIN No.: U80302DL2005PTC138759</span>
       </div>
-      <PageNumber value={2} />
+      <PageNumber value={1} />
     </section>
   );
 }
@@ -1125,7 +1130,7 @@ function PaymentPage({ journal }: { journal: Journal }) {
         All the legal disputes are subjected to Delhi Jurisdiction only. If you have any questions, please contact the
         Publication Management Team at {identity.email}; Tel: {legalPhone}.
       </p>
-      <PageNumber value={3} />
+      <PageNumber value={2} />
     </section>
   );
 }
@@ -1176,7 +1181,7 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
       </ul>
 
       {focusNotes.map((note, index) => <p key={index}>{note}</p>)}
-      <PageNumber value={4} />
+      <PageNumber value={3} />
     </section>
   );
 }
@@ -1220,7 +1225,7 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
           <strong>Tel. no.: {identity.phone}</strong>
         </div>
       </div>
-      <PageNumber value={5} />
+      <PageNumber value={4} />
     </section>
   );
 }
@@ -1271,7 +1276,7 @@ function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: Bin
       </div>
       <p className="url-line">{url}</p>
       <p className="manuscript-notice">{draft.manuscriptNotice}</p>
-      <PageNumber value={6} />
+      <PageNumber value={5} />
     </section>
   );
 }
@@ -1309,7 +1314,7 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
           ? editors.slice(0, 12).map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)
           : fallbackEditors.map((member) => <MemberLine key={member[0]} member={member} />)}
       </div>
-      <PageNumber value={7} />
+      <PageNumber value={6} />
     </section>
   );
 }
@@ -1347,7 +1352,7 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
         <span>{draft.directorName}</span>
         <b>{draft.directorRole}</b>
       </div>
-      <PageNumber value={8} />
+      <PageNumber value={7} />
     </section>
   );
 }
@@ -1369,7 +1374,7 @@ function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
           ))}
         </tbody>
       </table>
-      <PageNumber value={9} />
+      <PageNumber value={8} />
     </section>
   );
 }
@@ -1746,6 +1751,9 @@ function SectionEditor({
           <div className="editor-note">
             Publisher logo defaults to the selected journal logo and can be overridden here. Leave Excellence logo empty if you do not want a lower-right cover logo.
           </div>
+          <div className="final-export-actions">
+            <DownloadButton disabled={false} filename={pdfFileName(journal, draft, "cover")} mode="cover" label="Download Cover PDF" />
+          </div>
         </>
       ) : null}
       {activePage === 2 ? (
@@ -1933,7 +1941,6 @@ function SectionEditor({
           </div>
           <div className="final-export-actions">
             <button type="button" className="secondary-action" onClick={onSave}>Save All Details</button>
-            <DownloadButton disabled={false} filename={pdfFileName(journal, draft, "cover")} mode="cover" label="Download Cover PDF" />
             <DownloadButton disabled={false} filename={pdfFileName(journal, draft, "internal")} mode="internal" label="Download Internal Pages PDF" />
           </div>
         </>
@@ -2092,7 +2099,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
           <div className="page-stepper">
             {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
               <button className={activePage === page ? "active" : ""} key={page} onClick={() => setActivePage(page)}>
-                Page {page}
+                {pageStepperLabel(page)}
               </button>
             ))}
           </div>
