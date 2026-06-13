@@ -885,6 +885,7 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
 function PaymentPage({ journal }: { journal: Journal }) {
   const identity = publisherIdentity(journal);
   const isJournalsPub = identity.logoMode === "journalspub";
+  const isStm = identity.logoMode === "stm";
   const isLaw = identity.logoMode === "law";
   const paymentPublisherName = isJournalsPub ? "Journals Pub" : identity.publisherName;
   const legalPhone = isJournalsPub ? "+91 120-4781200" : isLaw ? "+91 120-4781211" : identity.phone;
@@ -896,6 +897,8 @@ function PaymentPage({ journal }: { journal: Journal }) {
           ? "Law Journals (a division of Consortium e-Learning Network Private Ltd.) is the Publisher of Journal. Statements and opinions expressed in the Journal reflect the views of the author(s) and are not the opinion of Law Journals unless so stated."
           : isJournalsPub
           ? "Journals Pub (a division of Dhruv Infosystems Private Ltd.) having its Marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of the Journals. Statements and opinions expressed in the Journal reflect the views of the Author(s) and are not the opinion of Journals Pub unless so stated."
+          : isStm
+          ? "STM Journals (an imprint of Consortium e-Learning Network Pvt. Ltd.) having its marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of Journals. The author(s) or editor(s) expressed in the Journal reflect the views of the author(s) and are not the opinion of STM Journals unless so stated."
           : "MBA Journals (an imprint of Consortium e-Learning Network Pvt. Ltd.) having its marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of Journals. The author(s) or editor(s) expressed in the Journal reflect the views of the author(s) and are not the opinion of MBA Journals unless so stated."}
       </p>
 
@@ -980,6 +983,13 @@ function PaymentPage({ journal }: { journal: Journal }) {
             <b>Pay Through Cheque/Demand Draft</b><br />
             A/C Payee Cheque, Demand Draft, and RTGS (payment to be made in favor of Consortium e-Learning Network Pvt. Ltd.,
             payable at Delhi/New Delhi).
+          </p>
+          <p>
+            <b>Please Send Demand Draft/Cheque to following address:</b><br />
+            Subscription Department, {identity.publisherName},<br />
+            Consortium e-Learning Network Pvt. Ltd.<br />
+            A-118, Level 1, Sector-63, Noida, 201 301, U.P., India<br />
+            Tel.: {identity.phone}
           </p>
         </>
       )}
