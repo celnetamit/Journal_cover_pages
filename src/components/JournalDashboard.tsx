@@ -63,12 +63,15 @@ type ContentRow = {
   page: string;
 };
 
+type ExportMode = "cover" | "internal";
+
 const draftStorageKey = "journal-cover-page-drafts";
 const defaultIssueVolume = "13";
 const defaultIssueNumber = "1";
 const defaultIssueMonthRange = "January-April";
 const defaultIssueYear = "2026";
 const totalPages = 9;
+const romanNumerals = ["", "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"];
 
 const boardMembers = [
   ["Dr. Tapas Kumar Chatterjee", "Associate Professor-Marketing", "Institute of Management Technology Maharashtra, India", "Editor in Chief"],
@@ -338,6 +341,26 @@ function defaultCoverImage(journal: Journal) {
   return journal.logo;
 }
 
+function compactKeyword(value: string) {
+  return value
+    .trim()
+    .replace(/^[^a-z0-9]+/i, "")
+    .split(/[\s,/()-]+/)
+    .find(Boolean) || "";
+}
+
+function focusKeywords(focus: { keywords?: string[]; focusScope?: string[] } | undefined, fallback: string[]) {
+  const preferred = (focus?.keywords || [])
+    .map(compactKeyword)
+    .filter(Boolean);
+
+  if (preferred.length > 0) return preferred;
+
+  return (focus?.focusScope || fallback)
+    .map(compactKeyword)
+    .filter(Boolean);
+}
+
 function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): BinderDraft {
   const details = findDynamicValue(journal, dynamicData.detailsByKey);
   const focus = findDynamicValue(journal, dynamicData.focusByKey);
@@ -359,7 +382,7 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     issueMonthRange: defaultIssueMonthRange,
     issueYear: defaultIssueYear,
     about: focus?.about || details?.about || journal.about || "",
-    focusScope: focus?.focusScope?.length ? focus.focusScope : focusList,
+    focusScope: focusKeywords(focus, focusList),
     focusNotes: defaultFocusNotes,
     editorialBoard,
     managementHead: {
@@ -409,7 +432,7 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
     ? {
         ...hydratedDraft,
         about: focus.about || hydratedDraft.about,
-        focusScope: focus.focusScope.length ? focus.focusScope : hydratedDraft.focusScope,
+        focusScope: focusKeywords(focus, hydratedDraft.focusScope),
       }
     : hydratedDraft;
   const withFocusNotes = withFocus.focusNotes?.length ? withFocus : { ...withFocus, focusNotes: defaultFocusNotes };
@@ -526,19 +549,35 @@ function saveDraftsToStorage(drafts: Record<string, BinderDraft>) {
   window.localStorage.setItem(draftStorageKey, JSON.stringify(drafts));
 }
 
-function pdfFileName(journal: Journal | undefined, draft: BinderDraft | null) {
+function lowerRoman(value: number) {
+  return romanNumerals[value] || String(value).toLowerCase();
+}
+
+function exportBaseSlug(journal: Journal | undefined, draft: BinderDraft | null) {
   const base = journal?.abbreviation || journal?.shortName || draft?.journalTitle || "journal";
   const volume = draft?.issueVolume || defaultIssueVolume;
   const issue = draft?.issueNumber || defaultIssueNumber;
-  const slug = `${base}-volume-${volume}-issue-${issue}`
+  return `${base}-volume-${volume}-issue-${issue}`
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-
-  return `${slug || "journal"}.pdf`;
+    .replace(/^-|-$/g, "") || "journal";
 }
 
-function DownloadButton({ disabled, filename }: { disabled: boolean; filename: string }) {
+function pdfFileName(journal: Journal | undefined, draft: BinderDraft | null, mode: ExportMode) {
+  return `${exportBaseSlug(journal, draft)}-${mode === "cover" ? "cover" : "internal-pages"}.pdf`;
+}
+
+function DownloadButton({
+  disabled,
+  filename,
+  mode,
+  label,
+}: {
+  disabled: boolean;
+  filename: string;
+  mode: ExportMode;
+  label: string;
+}) {
   const [busy, setBusy] = useState(false);
 
   async function downloadPdf() {
@@ -549,18 +588,23 @@ function DownloadButton({ disabled, filename }: { disabled: boolean; filename: s
       import("html2canvas"),
       import("jspdf"),
     ]);
-    const pages = Array.from(source.querySelectorAll<HTMLElement>(".pdf-page"));
+    const pages = Array.from(source.querySelectorAll<HTMLElement>(`.pdf-page[data-export-group="${mode}"]`));
+    if (pages.length === 0) {
+      setBusy(false);
+      return;
+    }
     const firstLandscape = pages[0]?.classList.contains("cover-spread-page");
+    const pdfFormat = mode === "cover" ? [431.8, 304.8] : "a4";
     const pdf = new jsPDF({
       orientation: firstLandscape ? "landscape" : "portrait",
       unit: "mm",
-      format: "a4",
+      format: pdfFormat,
     });
 
     for (let index = 0; index < pages.length; index += 1) {
       const landscape = pages[index].classList.contains("cover-spread-page");
-      const pageWidth = landscape ? 297 : 210;
-      const pageHeight = landscape ? 210 : 297;
+      const pageWidth = mode === "cover" ? 431.8 : landscape ? 297 : 210;
+      const pageHeight = mode === "cover" ? 304.8 : landscape ? 210 : 297;
       const { width, height } = pages[index].getBoundingClientRect();
       const canvas = await html2canvas(pages[index], {
         scale: 2,
@@ -572,7 +616,7 @@ function DownloadButton({ disabled, filename }: { disabled: boolean; filename: s
         windowHeight: document.documentElement.scrollHeight,
       });
       const imgData = canvas.toDataURL("image/png");
-      if (index > 0) pdf.addPage("a4", landscape ? "landscape" : "portrait");
+      if (index > 0) pdf.addPage(pdfFormat, landscape ? "landscape" : "portrait");
       pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight);
     }
 
@@ -583,7 +627,7 @@ function DownloadButton({ disabled, filename }: { disabled: boolean; filename: s
   return (
     <button className="primary-action" disabled={disabled || busy} onClick={downloadPdf}>
       <Download size={16} />
-      {busy ? "Preparing PDF..." : "Download A4 PDF"}
+      {busy ? "Preparing PDF..." : label}
     </button>
   );
 }
@@ -603,7 +647,7 @@ function JournalLogo({ journal }: { journal: Journal }) {
 
 function PageNumber({ value }: { value: number }) {
   return (
-    <span className="page-number">{String(value).padStart(2, "0")}</span>
+    <span className="page-number">{lowerRoman(value)}</span>
   );
 }
 
@@ -620,14 +664,13 @@ function PdfHeader({ journal, label }: { journal: Journal; label: string }) {
   );
 }
 
-function ContentHeader({ journal }: { journal: Journal }) {
+function ContentHeader({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   return (
     <header className="content-header">
       <div>
-        <p>{journal.publisher || "MBA Journals"}</p>
         <h2>{titleCaseName(journal.name)}</h2>
+        <p>Volume {draft.issueVolume || defaultIssueVolume} | Issue {draft.issueNumber || defaultIssueNumber} | {(draft.issueMonthRange || defaultIssueMonthRange).replace("-", "–")}</p>
       </div>
-      <span>Contents</span>
     </header>
   );
 }
@@ -842,7 +885,7 @@ function JournalFrontCover({ journal, draft }: { journal: Journal; draft: Binder
 
 function CoverSpreadPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   return (
-    <section className="pdf-page cover-spread-page" data-page-title="Digital library back and journal front cover">
+    <section className="pdf-page cover-spread-page" data-export-group="cover" data-page-title="Digital library back and journal front cover">
       <DigitalLibraryBackCover draft={draft} />
       <JournalFrontCover journal={journal} draft={draft} />
     </section>
@@ -857,7 +900,7 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
   const year = draft.issueYear || defaultIssueYear;
 
   return (
-    <section className="pdf-page cover-page" data-page-title="Journal Name with volume issue page">
+    <section className="pdf-page cover-page" data-export-group="internal" data-page-title="Journal Name with volume issue page">
       <div className="page-rule" />
       <p className="cover-issn">ISSN: {journal.eIssn || "2582-2888"}</p>
       <p className="cover-printer">Printed by : Laxman Printo Graphics, Noida</p>
@@ -891,7 +934,7 @@ function PaymentPage({ journal }: { journal: Journal }) {
   const legalPhone = isJournalsPub ? "+91 120-4781200" : isLaw ? "+91 120-4781211" : identity.phone;
 
   return (
-    <section className="pdf-page payment-reference-page">
+    <section className="pdf-page payment-reference-page" data-export-group="internal">
       <p>
         {isLaw
           ? "Law Journals (a division of Consortium e-Learning Network Private Ltd.) is the Publisher of Journal. Statements and opinions expressed in the Journal reflect the views of the author(s) and are not the opinion of Law Journals unless so stated."
@@ -1095,7 +1138,7 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
   const aboutText = draft.about || journal.about;
 
   return (
-    <section className="pdf-page journal-info-page">
+    <section className="pdf-page journal-info-page" data-export-group="internal">
       <div className="journal-info-head">
         <PublisherLogo mode={identity.logoMode} side="publisher" />
         <h1>{titleCaseName(journal.name)}</h1>
@@ -1143,7 +1186,7 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
   const isLaw = identity.logoMode === "law";
 
   return (
-    <section className="pdf-page management-page">
+    <section className="pdf-page management-page" data-export-group="internal">
       <div className="page-rule" />
       <h1>Publication and Management Team</h1>
       <ManagementProfile person={draft.managementHead} featured />
@@ -1200,7 +1243,7 @@ function ManagementProfile({ person, featured = false }: { person: ManagementPer
 function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const url = journal.website || "https://journals.stmjournals.com/open-access/nolegein-journal-of-leadership-and-strategic-management/";
   return (
-    <section className="pdf-page details-page manuscript-page">
+    <section className="pdf-page details-page manuscript-page" data-export-group="internal">
       <PdfHeader journal={journal} label="Manuscript Engine" />
       <h1>Manuscript Engine</h1>
       <p className="lead-text">
@@ -1246,7 +1289,7 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
   const fallbackEditors = boardMembers.slice(1, 13);
 
   return (
-    <section className="pdf-page editorial-page">
+    <section className="pdf-page editorial-page" data-export-group="internal">
       <div className="page-rule" />
       <h1>{titleCaseName(journal.name)}</h1>
       <h2>Editorial Board Members</h2>
@@ -1275,7 +1318,7 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
   const paragraphs = draft.directorParagraphs.length ? draft.directorParagraphs : defaultDirectorParagraphs;
 
   return (
-    <section className="pdf-page director-page">
+    <section className="pdf-page director-page" data-export-group="internal">
       <div className="page-rule" />
       <h1>{draft.directorTitle}</h1>
       <div className="director-letter">
@@ -1313,8 +1356,8 @@ function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
   const rows = draft.contentRows.length ? draft.contentRows : contents;
 
   return (
-    <section className="pdf-page content-page">
-      <ContentHeader journal={journal} />
+    <section className="pdf-page content-page" data-export-group="internal">
+      <ContentHeader journal={journal} draft={draft} />
       <h1>Contents</h1>
       <table className="contents-table">
         <tbody>
@@ -1890,7 +1933,8 @@ function SectionEditor({
           </div>
           <div className="final-export-actions">
             <button type="button" className="secondary-action" onClick={onSave}>Save All Details</button>
-            <DownloadButton disabled={false} filename={pdfFileName(journal, draft)} />
+            <DownloadButton disabled={false} filename={pdfFileName(journal, draft, "cover")} mode="cover" label="Download Cover PDF" />
+            <DownloadButton disabled={false} filename={pdfFileName(journal, draft, "internal")} mode="internal" label="Download Internal Pages PDF" />
           </div>
         </>
       ) : null}
@@ -2082,14 +2126,22 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
             ) : (
               <section className="export-panel">
                 <h2>Live Preview & Export</h2>
-                <p>Download exports only the active selected journal as a 9-page PDF with a landscape A4 cover spread followed by portrait A4 pages.</p>
+                <p>Download the active journal as two separate PDFs: one cover spread and one internal-page file.</p>
                 <div className="toolbar">
                   <button className="secondary-action" onClick={() => window.print()}>
                     <Printer size={16} /> Print
                   </button>
                   <DownloadButton
                     disabled={selectedJournals.length === 0}
-                    filename={pdfFileName(primaryJournal, primaryDraft)}
+                    filename={pdfFileName(primaryJournal, primaryDraft, "cover")}
+                    mode="cover"
+                    label="Download Cover PDF"
+                  />
+                  <DownloadButton
+                    disabled={selectedJournals.length === 0}
+                    filename={pdfFileName(primaryJournal, primaryDraft, "internal")}
+                    mode="internal"
+                    label="Download Internal Pages PDF"
                   />
                 </div>
               </section>
