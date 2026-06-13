@@ -691,6 +691,33 @@ button {
   grid-template-columns: 1fr 1fr;
 }
 
+.logo-input-grid {
+  align-items: start;
+}
+
+.logo-input-section {
+  background: #f8fbfe;
+  border: 1px solid #d7e2ec;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.logo-input-section strong {
+  color: var(--blue-dark);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+@media (max-width: 860px) {
+  .two-field-grid,
+  .logo-input-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .export-panel {
   display: grid;
   gap: 14px;
@@ -1166,19 +1193,24 @@ button {
   margin: 0;
   min-height: 10.5%;
   padding: 0;
-  right: var(--front-cover-inset-x);
+  right: 18%;
   text-wrap: balance;
   top: 17.2%;
 }
 
 .front-cover-title.balanced {
-  font-size: 22.4pt;
-  line-height: 1.14;
+  font-size: 21.1pt;
+  line-height: 1.12;
 }
 
 .front-cover-title.compact {
-  font-size: 20.5pt;
-  line-height: 1.12;
+  font-size: 18.8pt;
+  line-height: 1.1;
+}
+
+.front-cover-title.ultra-compact {
+  font-size: 17.2pt;
+  line-height: 1.08;
 }
 
 .front-cover-month {
@@ -1245,6 +1277,14 @@ button {
 .front-cover-footer .publisher-logo.image-logo.law-logo img,
 .front-cover-footer .publisher-logo.image-logo.mba-logo img {
   max-height: 17.5mm;
+}
+
+.front-cover-publisher-logo {
+  background: #fff;
+  display: block;
+  max-height: 18mm;
+  max-width: 31mm;
+  object-fit: contain;
 }
 
 .front-cover-journal-logo {

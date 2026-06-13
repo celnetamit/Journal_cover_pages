@@ -351,8 +351,8 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     icv: journal.icv.replace(/^ICV\s*:\s*/i, "") || "62.07",
     coverImage: defaultCoverImage(journal),
     backCoverImage: defaultBackCoverImage(),
-    journalLogoImage: journal.journalLogo || "",
-    footerRightLogoImage: journal.journalLogo || "",
+    journalLogoImage: journal.journalLogo || journal.logo || "",
+    footerRightLogoImage: "",
     journalWebsite: defaultCoverWebsite(journal),
     issueVolume: defaultIssueVolume,
     issueNumber: defaultIssueNumber,
@@ -399,8 +399,8 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
     icv: draft.icv ?? journal.icv.replace(/^ICV\s*:\s*/i, "") ?? "",
     coverImage: draft.coverImage && draft.coverImage !== journal.logo ? draft.coverImage : defaultCoverImage(journal),
     backCoverImage: draft.backCoverImage || defaultBackCoverImage(),
-    journalLogoImage: draft.journalLogoImage ?? journal.journalLogo ?? "",
-    footerRightLogoImage: draft.footerRightLogoImage ?? draft.journalLogoImage ?? journal.journalLogo ?? "",
+    journalLogoImage: draft.journalLogoImage ?? journal.journalLogo ?? journal.logo ?? "",
+    footerRightLogoImage: draft.footerRightLogoImage ?? "",
     journalAbbreviation: draft.journalAbbreviation || journal.abbreviation || journal.shortName,
     journalWebsite: normalizeCoverWebsite(draft.journalWebsite, journal),
   };
@@ -446,7 +446,7 @@ function draftJournal(journal: Journal, draft: BinderDraft): Journal {
     impactFactor: draft.sjif || journal.impactFactor,
     icv: draft.icv || journal.icv,
     logo: draft.journalLogoImage || journal.journalLogo || journal.logo,
-    journalLogo: draft.journalLogoImage || journal.journalLogo,
+    journalLogo: journal.journalLogo,
     about: draft.about || journal.about,
   };
 }
@@ -766,23 +766,34 @@ function cleanIcv(value: string) {
 
 function frontCoverTitleClass(title: string) {
   const length = title.trim().length;
-  if (length > 74) return "front-cover-title compact";
-  if (length > 54) return "front-cover-title balanced";
+  if (length > 72) return "front-cover-title ultra-compact";
+  if (length > 54) return "front-cover-title compact";
+  if (length > 38) return "front-cover-title balanced";
   return "front-cover-title";
 }
 
-function usableJournalLogo(draft: BinderDraft, journal: Journal) {
-  const logo = draft.footerRightLogoImage || journal.journalLogo;
+function excellenceLogoSource(draft: BinderDraft, journal: Journal) {
+  const logo = draft.footerRightLogoImage?.trim();
   const cover = draft.coverImage || defaultCoverImage(journal);
   if (!logo || logo === cover || logo === defaultCoverImage(journal)) return "";
   return logo;
 }
 
-function FrontCoverJournalMark({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
-  const logo = usableJournalLogo(draft, journal);
+function FrontCoverPublisherMark({ draft }: { draft: BinderDraft }) {
+  const publisherLogo = draft.journalLogoImage?.trim();
 
-  if (logo) {
-    return <CoverBitmap src={logo} alt={`${journal.name} logo`} className="front-cover-journal-logo" />;
+  if (publisherLogo) {
+    return <CoverBitmap src={publisherLogo} alt="Publisher logo" className="front-cover-publisher-logo" />;
+  }
+
+  return <span className="front-cover-footer-spacer" aria-hidden="true" />;
+}
+
+function FrontCoverExcellenceMark({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+  const excellenceLogo = excellenceLogoSource(draft, journal);
+
+  if (excellenceLogo) {
+    return <CoverBitmap src={excellenceLogo} alt={`${journal.name} logo`} className="front-cover-journal-logo" />;
   }
 
   return null;
@@ -797,7 +808,6 @@ function DigitalLibraryBackCover({ draft }: { draft: BinderDraft }) {
 }
 
 function JournalFrontCover({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
-  const identity = publisherIdentity(journal);
   const volume = draft.issueVolume || defaultIssueVolume;
   const issue = draft.issueNumber || defaultIssueNumber;
   const monthRange = draft.issueMonthRange || defaultIssueMonthRange;
@@ -822,12 +832,8 @@ function JournalFrontCover({ journal, draft }: { journal: Journal; draft: Binder
         <h1 className={frontCoverTitleClass(journal.name)}>{titleCaseName(journal.name)}</h1>
         <span className="front-cover-month">{monthRange.replace("-", "–")}</span>
         <div className="front-cover-footer">
-          {identity.logoMode === "stm" ? (
-            <span className="front-cover-footer-spacer" aria-hidden="true" />
-          ) : (
-            <PublisherLogo mode={identity.logoMode} side="publisher" />
-          )}
-          <FrontCoverJournalMark journal={journal} draft={draft} />
+          <FrontCoverPublisherMark draft={draft} />
+          <FrontCoverExcellenceMark journal={journal} draft={draft} />
         </div>
       </div>
     </article>
@@ -1654,30 +1660,38 @@ function SectionEditor({
               onChange={(event) => onChange({ ...draft, backCoverImage: event.target.value })}
             />
           </label>
-          <label className="file-field">
-            <span>Upload bottom right footer logo</span>
-            <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (footerRightLogoImage) => onChange({ ...draft, footerRightLogoImage }))} />
-          </label>
-          <label>
-            <span>Static bottom right footer logo URL</span>
-            <input
-              value={draft.footerRightLogoImage || ""}
-              onChange={(event) => onChange({ ...draft, footerRightLogoImage: event.target.value })}
-            />
-          </label>
-          <label className="file-field">
-            <span>Upload journal logo</span>
-            <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (journalLogoImage) => onChange({ ...draft, journalLogoImage }))} />
-          </label>
-          <label>
-            <span>Static journal logo URL</span>
-            <input
-              value={draft.journalLogoImage}
-              onChange={(event) => onChange({ ...draft, journalLogoImage: event.target.value })}
-            />
-          </label>
+          <div className="two-field-grid logo-input-grid">
+            <div className="logo-input-section">
+              <strong>Publisher logo</strong>
+              <label className="file-field">
+                <span>Upload publisher logo</span>
+                <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (journalLogoImage) => onChange({ ...draft, journalLogoImage }))} />
+              </label>
+              <label>
+                <span>Static publisher logo URL</span>
+                <input
+                  value={draft.journalLogoImage}
+                  onChange={(event) => onChange({ ...draft, journalLogoImage: event.target.value })}
+                />
+              </label>
+            </div>
+            <div className="logo-input-section">
+              <strong>Excellence logo</strong>
+              <label className="file-field">
+                <span>Upload excellence logo</span>
+                <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (footerRightLogoImage) => onChange({ ...draft, footerRightLogoImage }))} />
+              </label>
+              <label>
+                <span>Static excellence logo URL</span>
+                <input
+                  value={draft.footerRightLogoImage || ""}
+                  onChange={(event) => onChange({ ...draft, footerRightLogoImage: event.target.value })}
+                />
+              </label>
+            </div>
+          </div>
           <div className="editor-note">
-            Front cover metadata and logo/image defaults come from journals_list.csv. Use the bottom right footer logo fields to replace the cover logo in the lower-right corner, then save the page.
+            Publisher logo defaults to the selected journal logo and can be overridden here. Leave Excellence logo empty if you do not want a lower-right cover logo.
           </div>
         </>
       ) : null}
