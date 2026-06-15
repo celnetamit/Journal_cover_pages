@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { parseCsv } from "@/lib/csv";
 
 export type Journal = {
   id: string;
@@ -36,53 +37,6 @@ export type Journal = {
 
 const csvPath = path.join(process.cwd(), "journals_list.csv");
 
-function parseCsv(input: string) {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let value = "";
-  let quoted = false;
-
-  for (let index = 0; index < input.length; index += 1) {
-    const char = input[index];
-    const next = input[index + 1];
-
-    if (char === '"' && quoted && next === '"') {
-      value += '"';
-      index += 1;
-      continue;
-    }
-
-    if (char === '"') {
-      quoted = !quoted;
-      continue;
-    }
-
-    if (char === "," && !quoted) {
-      row.push(value);
-      value = "";
-      continue;
-    }
-
-    if ((char === "\n" || char === "\r") && !quoted) {
-      if (char === "\r" && next === "\n") index += 1;
-      row.push(value);
-      rows.push(row);
-      row = [];
-      value = "";
-      continue;
-    }
-
-    value += char;
-  }
-
-  if (value || row.length) {
-    row.push(value);
-    rows.push(row);
-  }
-
-  return rows;
-}
-
 function text(value: string | undefined) {
   return (value ?? "")
     .replaceAll("&amp;", "&")
@@ -92,13 +46,16 @@ function text(value: string | undefined) {
     .trim();
 }
 
+let cachedJournals: Journal[] | null = null;
+
 export function getJournals(): Journal[] {
+  if (cachedJournals) return cachedJournals;
   const raw = fs.readFileSync(csvPath, "utf8");
   const [headers, ...rows] = parseCsv(raw);
   const headerIndex = new Map(headers.map((header, index) => [header.trim(), index]));
   const pick = (row: string[], key: string) => text(row[headerIndex.get(key) ?? -1]);
 
-  return rows
+  cachedJournals = rows
     .map((row) => ({
       id: pick(row, "ID") || pick(row, "Key") || pick(row, "Abbreviation"),
       domain: pick(row, "Domain"),
@@ -132,6 +89,7 @@ export function getJournals(): Journal[] {
       editorEmail: pick(row, "Jm Email") || "info@mbajournals.in",
     }))
     .filter((journal) => journal.id && journal.name);
+  return cachedJournals;
 }
 
 export const targetJournalName = "Journal of Advanced Database Management & Systems";

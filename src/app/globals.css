@@ -338,6 +338,43 @@ button {
   gap: 6px;
 }
 
+.error-shell {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.error-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(12, 45, 77, 0.12);
+  display: grid;
+  gap: 12px;
+  max-width: 460px;
+  padding: 28px;
+  text-align: center;
+}
+
+.error-card h1 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.error-card p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.error-card .primary-action {
+  justify-self: center;
+  padding: 0 20px;
+}
+
 .download-error {
   color: #8a2d2d;
   font-size: 11px;

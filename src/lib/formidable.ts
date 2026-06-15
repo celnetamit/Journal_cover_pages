@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { getJournals, type Journal } from "@/lib/journals";
 import { dynamicKey } from "@/lib/lookup";
+import { parseCsv } from "@/lib/csv";
 
 export type EditorialMember = {
   role: string;
@@ -110,14 +111,23 @@ function normalizeJournalDetails(journals: Journal[]) {
   return byKey;
 }
 
-function loadLocalFocusScopeData() {
-  if (!fs.existsSync(localFocusScopeCsvPath)) return {};
+let cachedFocusScope: Record<string, DynamicFocusScope> | null = null;
+
+function loadLocalFocusScopeData(): Record<string, DynamicFocusScope> {
+  if (cachedFocusScope) return cachedFocusScope;
+
+  if (!fs.existsSync(localFocusScopeCsvPath)) {
+    cachedFocusScope = {};
+    return cachedFocusScope;
+  }
 
   try {
-    return normalizeLocalFocusScopeCsv(fs.readFileSync(localFocusScopeCsvPath, "utf8"));
+    cachedFocusScope = normalizeLocalFocusScopeCsv(fs.readFileSync(localFocusScopeCsvPath, "utf8"));
   } catch {
-    return {};
+    cachedFocusScope = {};
   }
+
+  return cachedFocusScope;
 }
 
 function normalizeLocalFocusScopeCsv(input: string) {
@@ -147,53 +157,6 @@ function normalizeLocalFocusScopeCsv(input: string) {
   }
 
   return byKey;
-}
-
-function parseCsv(input: string) {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let value = "";
-  let quoted = false;
-
-  for (let index = 0; index < input.length; index += 1) {
-    const char = input[index];
-    const next = input[index + 1];
-
-    if (char === "\"" && quoted && next === "\"") {
-      value += "\"";
-      index += 1;
-      continue;
-    }
-
-    if (char === "\"") {
-      quoted = !quoted;
-      continue;
-    }
-
-    if (char === "," && !quoted) {
-      row.push(value);
-      value = "";
-      continue;
-    }
-
-    if ((char === "\n" || char === "\r") && !quoted) {
-      if (char === "\r" && next === "\n") index += 1;
-      row.push(value);
-      rows.push(row);
-      row = [];
-      value = "";
-      continue;
-    }
-
-    value += char;
-  }
-
-  if (value || row.length) {
-    row.push(value);
-    rows.push(row);
-  }
-
-  return rows;
 }
 
 function listFromRichText(value: string) {
