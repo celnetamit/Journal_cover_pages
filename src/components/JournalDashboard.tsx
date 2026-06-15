@@ -618,17 +618,21 @@ function DownloadButton({
       const pageHeight = mode === "cover" ? 304.8 : landscape ? 210 : 297;
       const { width, height } = pages[index].getBoundingClientRect();
       const canvas = await html2canvas(pages[index], {
-        scale: 2,
+        // Cover spreads are very large; using a slightly lower scale avoids corrupted image data in jsPDF exports.
+        scale: mode === "cover" ? 1.5 : 2,
         useCORS: true,
         backgroundColor: "#ffffff",
         width,
         height,
-        windowWidth: document.documentElement.scrollWidth,
-        windowHeight: document.documentElement.scrollHeight,
+        windowWidth: Math.ceil(width),
+        windowHeight: Math.ceil(height),
       });
-      const imgData = canvas.toDataURL("image/png");
+      const imageType = mode === "cover" ? "JPEG" : "PNG";
+      const imgData = mode === "cover"
+        ? canvas.toDataURL("image/jpeg", 0.92)
+        : canvas.toDataURL("image/png");
       if (index > 0) pdf.addPage(pdfFormat, landscape ? "landscape" : "portrait");
-      pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight);
+      pdf.addImage(imgData, imageType, 0, 0, pageWidth, pageHeight, undefined, mode === "cover" ? "FAST" : undefined);
     }
 
     pdf.save(filename);
@@ -662,15 +666,25 @@ function PageNumber({ value }: { value: number }) {
   );
 }
 
-function PdfHeader({ journal, label }: { journal: Journal; label: string }) {
+function PdfHeader({
+  journal,
+  label,
+  showLogo = true,
+  showLabel = true,
+}: {
+  journal: Journal;
+  label: string;
+  showLogo?: boolean;
+  showLabel?: boolean;
+}) {
   return (
     <header className="pdf-header">
-      <JournalLogo journal={journal} />
+      {showLogo ? <JournalLogo journal={journal} /> : <div aria-hidden="true" />}
       <div>
         <p>{journal.publisher || "MBA Journals"}</p>
         <h2>{titleCaseName(journal.name)}</h2>
       </div>
-      <span>{label}</span>
+      {showLabel ? <span>{label}</span> : <div aria-hidden="true" />}
     </header>
   );
 }
@@ -874,6 +888,7 @@ function JournalFrontCover({ journal, draft }: { journal: Journal; draft: Binder
   const website = normalizeCoverWebsite(draft.journalWebsite, journal);
   const coverImage = draft.coverImage || defaultCoverImage(journal);
   const shouldMaskEmbeddedFooter = coverHasEmbeddedFooterLogos(coverImage);
+  const coverTitle = draft.journalTitle || journal.name;
 
   return (
     <article className="journal-front-cover">
@@ -890,7 +905,7 @@ function JournalFrontCover({ journal, draft }: { journal: Journal; draft: Binder
           <span>Volume {volume}&nbsp; No. {issue}&nbsp; {year}</span>
           <span>{website.replace(/^https?:\/\//i, "")}</span>
         </div>
-        <h1 className={frontCoverTitleClass(journal.name)}>{titleCaseName(journal.name)}</h1>
+        <h1 className={frontCoverTitleClass(coverTitle)}>{coverTitle}</h1>
         <span className="front-cover-month">{monthRange.replace("-", "–")}</span>
         <div className="front-cover-footer">
           <FrontCoverPublisherMark draft={draft} />
@@ -1262,7 +1277,7 @@ function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: Bin
   const url = journal.website || "https://journals.stmjournals.com/open-access/nolegein-journal-of-leadership-and-strategic-management/";
   return (
     <section className="pdf-page details-page manuscript-page" data-export-group="internal">
-      <PdfHeader journal={journal} label="Manuscript Engine" />
+      <PdfHeader journal={journal} label="Manuscript Engine" showLogo={false} showLabel={false} />
       <h1>Manuscript Engine</h1>
       <p className="lead-text">
         Authors can submit manuscripts, track review progress, view decisions, and communicate with the editorial office through the journal manuscript engine.
@@ -1321,7 +1336,7 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
           </div>
         </>
       ) : null}
-      <h3>Editor</h3>
+      <h3>Editors</h3>
       <div className="editor-grid">
         {editors.length > 0
           ? editors.slice(0, 12).map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)
