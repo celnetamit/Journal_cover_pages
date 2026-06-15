@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -602,9 +603,9 @@ function pdfFileName(journal: Journal | undefined, draft: BinderDraft | null, mo
   return `${exportBaseSlug(journal, draft)}-${mode === "cover" ? "cover" : "internal-pages"}.pdf`;
 }
 
-type ExportKind = ExportMode | "print";
-type ExportJob = { kind: ExportKind; journal: Journal; draft: BinderDraft };
+type ExportJob = { mode: ExportMode; journal: Journal; draft: BinderDraft };
 type ExportError = { mode: ExportMode; message: string } | null;
+type BookSnapshot = { journal: Journal; draft: BinderDraft } | null;
 
 // Rasterizes the currently-mounted #pdf-book to a PDF. Throws on failure so the
 // caller can surface an error; html2canvas loads the images in its own clone.
@@ -640,12 +641,11 @@ async function exportBookToPdf(mode: ExportMode, filename: string) {
       windowWidth: Math.ceil(width),
       windowHeight: Math.ceil(height),
     });
-    const imageType = mode === "cover" ? "JPEG" : "PNG";
-    const imgData = mode === "cover"
-      ? canvas.toDataURL("image/jpeg", 0.92)
-      : canvas.toDataURL("image/png");
+    // JPEG for both modes: full-page PNG bitmaps made the internal PDF ~100x
+    // larger (85 MB+). JPEG at high quality keeps text crisp at a fraction of the size.
+    const imgData = canvas.toDataURL("image/jpeg", mode === "cover" ? 0.92 : 0.95);
     if (index > 0) pdf.addPage(pdfFormat, landscape ? "landscape" : "portrait");
-    pdf.addImage(imgData, imageType, 0, 0, pageWidth, pageHeight, undefined, mode === "cover" ? "FAST" : undefined);
+    pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
   }
 
   pdf.save(filename);
@@ -1512,7 +1512,7 @@ function SectionEditor({
   saveStatus,
   onChange,
   onSave,
-  exportingKind,
+  exportingMode,
   exportError,
   onExport,
 }: {
@@ -1523,9 +1523,9 @@ function SectionEditor({
   saveStatus: string;
   onChange: (draft: BinderDraft) => void;
   onSave: () => void;
-  exportingKind: ExportKind | null;
+  exportingMode: ExportMode | null;
   exportError: ExportError;
-  onExport: (kind: ExportKind) => void;
+  onExport: (mode: ExportMode) => void;
 }) {
   const apiKeys = journalLookupKeys(journal);
   const hasDetails = apiKeys.some((key) => dynamicData.detailsByKey[key]);
@@ -1832,8 +1832,8 @@ function SectionEditor({
             <DownloadButton
               mode="cover"
               label="Download Cover PDF"
-              busy={exportingKind === "cover"}
-              disabled={exportingKind !== null}
+              busy={exportingMode === "cover"}
+              disabled={exportingMode !== null}
               error={exportError?.mode === "cover" ? exportError.message : ""}
               onExport={onExport}
             />
@@ -2030,8 +2030,8 @@ function SectionEditor({
             <DownloadButton
               mode="internal"
               label="Download Internal Pages PDF"
-              busy={exportingKind === "internal"}
-              disabled={exportingKind !== null}
+              busy={exportingMode === "internal"}
+              disabled={exportingMode !== null}
               error={exportError?.mode === "internal" ? exportError.message : ""}
               onExport={onExport}
             />
@@ -2051,6 +2051,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   const [journalQuery, setJournalQuery] = useState("");
   const [exportJob, setExportJob] = useState<ExportJob | null>(null);
   const [exportError, setExportError] = useState<ExportError>(null);
+  const [bookSnapshot, setBookSnapshot] = useState<BookSnapshot>(null);
   const primaryJournal = journals.find((journal) => journal.id === selectedId) || journals[0];
   const selectedJournals = primaryJournal ? [primaryJournal] : [];
   const primaryDraft = primaryJournal ? drafts[primaryJournal.id] || draftFromDynamic(primaryJournal, dynamicData) : null;
@@ -2112,13 +2113,14 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     window.setTimeout(() => setSaveStatus(""), saved ? 2500 : 6000);
   }
 
-  // Capture a snapshot of the active journal/draft and mount #pdf-book only for
-  // the duration of the job, so the 9-page export DOM is not in the per-keystroke
-  // render path. Covers both PDF export and Print.
-  function runExport(kind: ExportKind) {
+  // PDF export: snapshot the active journal/draft, mount #pdf-book for html2canvas,
+  // rasterize, then unmount so the 9-page export DOM stays out of the per-keystroke path.
+  function runExport(mode: ExportMode) {
     if (exportJob || !primaryJournal || !primaryDraft) return;
     setExportError(null);
-    setExportJob({ kind, journal: primaryJournal, draft: primaryDraft });
+    const snapshot = { journal: primaryJournal, draft: primaryDraft };
+    setBookSnapshot(snapshot);
+    setExportJob({ mode, ...snapshot });
   }
 
   useEffect(() => {
@@ -2128,25 +2130,24 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
 
     (async () => {
       try {
-        // Let the freshly-mounted export DOM lay out and paint before capture/print.
+        // Let the freshly-mounted export DOM lay out and paint before capture.
         await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
         if (cancelled) return;
-        if (job.kind === "print") {
-          window.print();
-        } else {
-          await exportBookToPdf(job.kind, pdfFileName(job.journal, job.draft, job.kind));
-        }
+        await exportBookToPdf(job.mode, pdfFileName(job.journal, job.draft, job.mode));
       } catch (cause) {
-        console.error("Export failed", cause);
-        if (!cancelled && job.kind !== "print") {
+        console.error("PDF export failed", cause);
+        if (!cancelled) {
           setExportError({
-            mode: job.kind,
+            mode: job.mode,
             message:
               "PDF export failed. A cover image may be blocking export (cross-origin), or the browser ran low on memory. Try re-uploading the image or using a smaller one.",
           });
         }
       } finally {
-        if (!cancelled) setExportJob(null);
+        if (!cancelled) {
+          setExportJob(null);
+          setBookSnapshot(null);
+        }
       }
     })();
 
@@ -2154,6 +2155,27 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
       cancelled = true;
     };
   }, [exportJob]);
+
+  // Native browser print (Ctrl+P / File > Print) and the Print button both fire
+  // `beforeprint`. flushSync mounts #pdf-book synchronously *before* the browser
+  // snapshots the page, so the print shows the journal pages (the print stylesheet
+  // hides the editor chrome). afterprint returns to the lean unmounted state.
+  useEffect(() => {
+    function onBeforePrint() {
+      if (primaryJournal && primaryDraft) {
+        flushSync(() => setBookSnapshot({ journal: primaryJournal, draft: primaryDraft }));
+      }
+    }
+    function onAfterPrint() {
+      if (!exportJob) setBookSnapshot(null);
+    }
+    window.addEventListener("beforeprint", onBeforePrint);
+    window.addEventListener("afterprint", onAfterPrint);
+    return () => {
+      window.removeEventListener("beforeprint", onBeforePrint);
+      window.removeEventListener("afterprint", onAfterPrint);
+    };
+  }, [primaryJournal, primaryDraft, exportJob]);
 
   return (
     <main className="app-shell">
@@ -2227,7 +2249,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                 saveStatus={saveStatus}
                 onChange={(draft) => updateDraft(primaryJournal.id, draft)}
                 onSave={saveCurrentDraft}
-                exportingKind={exportJob?.kind ?? null}
+                exportingMode={exportJob?.mode ?? null}
                 exportError={exportError}
                 onExport={runExport}
               />
@@ -2236,13 +2258,13 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                 <h2>Live Preview & Export</h2>
                 <p>Download the active journal as two separate PDFs: one cover spread and one internal-page file.</p>
                 <div className="toolbar">
-                  <button className="secondary-action" disabled={exportJob !== null} onClick={() => runExport("print")}>
-                    <Printer size={16} /> {exportJob?.kind === "print" ? "Preparing..." : "Print"}
+                  <button className="secondary-action" disabled={exportJob !== null} onClick={() => window.print()}>
+                    <Printer size={16} /> Print
                   </button>
                   <DownloadButton
                     mode="cover"
                     label="Download Cover PDF"
-                    busy={exportJob?.kind === "cover"}
+                    busy={exportJob?.mode === "cover"}
                     disabled={exportJob !== null || selectedJournals.length === 0}
                     error={exportError?.mode === "cover" ? exportError.message : ""}
                     onExport={runExport}
@@ -2250,7 +2272,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                   <DownloadButton
                     mode="internal"
                     label="Download Internal Pages PDF"
-                    busy={exportJob?.kind === "internal"}
+                    busy={exportJob?.mode === "internal"}
                     disabled={exportJob !== null || selectedJournals.length === 0}
                     error={exportError?.mode === "internal" ? exportError.message : ""}
                     onExport={runExport}
@@ -2261,9 +2283,9 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
           </div>
         ) : null}
 
-        {exportJob ? (
+        {bookSnapshot ? (
           <div id="pdf-book" className="pdf-export-source" aria-hidden="true">
-            <PageSet journal={exportJob.journal} draft={exportJob.draft} />
+            <PageSet journal={bookSnapshot.journal} draft={bookSnapshot.draft} />
           </div>
         ) : null}
       </section>
