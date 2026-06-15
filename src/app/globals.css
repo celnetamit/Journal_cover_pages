@@ -1253,6 +1253,16 @@ button {
   right: 0;
 }
 
+.front-cover-embedded-footer-mask {
+  background: #fff;
+  bottom: 0;
+  left: 0;
+  min-height: 17.6%;
+  position: absolute;
+  right: 0;
+  z-index: 0;
+}
+
 .front-cover-footer .publisher-logo {
   min-height: 18.5mm;
   min-width: 31mm;

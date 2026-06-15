@@ -379,7 +379,7 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     icv: journal.icv.replace(/^ICV\s*:\s*/i, "") || "62.07",
     coverImage: defaultCoverImage(journal),
     backCoverImage: defaultBackCoverImage(),
-    journalLogoImage: journal.journalLogo || journal.logo || "",
+    journalLogoImage: "",
     footerRightLogoImage: "",
     journalWebsite: defaultCoverWebsite(journal),
     issueVolume: defaultIssueVolume,
@@ -421,16 +421,18 @@ function hasDefaultFocusScope(draft: BinderDraft) {
 }
 
 function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicData?: DynamicBinderData) {
+  const defaultDirectorLetter = isLawJournal(journal) ? lawDirectorParagraphs : defaultDirectorParagraphs;
   const hydratedDraft = {
     ...draft,
     sjif: draft.sjif ?? journal.impactFactor ?? "",
     icv: draft.icv ?? journal.icv.replace(/^ICV\s*:\s*/i, "") ?? "",
     coverImage: draft.coverImage && draft.coverImage !== journal.logo ? draft.coverImage : defaultCoverImage(journal),
     backCoverImage: draft.backCoverImage || defaultBackCoverImage(),
-    journalLogoImage: draft.journalLogoImage ?? journal.journalLogo ?? journal.logo ?? "",
+    journalLogoImage: draft.journalLogoImage ?? "",
     footerRightLogoImage: draft.footerRightLogoImage ?? "",
     journalAbbreviation: draft.journalAbbreviation || journal.abbreviation || journal.shortName,
     journalWebsite: normalizeCoverWebsite(draft.journalWebsite, journal),
+    directorParagraphs: draft.directorParagraphs?.length ? draft.directorParagraphs : defaultDirectorLetter,
   };
   const focus = dynamicData ? findDynamicValue(journal, dynamicData.focusByKey) : undefined;
   const withFocus = focus && hasDefaultFocusScope(draft)
@@ -511,6 +513,11 @@ function parseEditorialText(value: string): EditorialMember[] {
 }
 
 function mergeDynamicData(current: DynamicBinderData, next: DynamicBinderData): DynamicBinderData {
+  const nextHasPayload =
+    Object.keys(next.detailsByKey).length > 0 ||
+    Object.keys(next.focusByKey).length > 0 ||
+    Object.keys(next.editorialByKey).length > 0;
+
   return {
     detailsByKey: { ...current.detailsByKey, ...next.detailsByKey },
     focusByKey: { ...current.focusByKey, ...next.focusByKey },
@@ -518,7 +525,9 @@ function mergeDynamicData(current: DynamicBinderData, next: DynamicBinderData): 
     status: {
       enabled: current.status.enabled || next.status.enabled,
       fetchedAt: next.status.fetchedAt || current.status.fetchedAt,
-      errors: [...current.status.errors, ...next.status.errors].filter((error, index, list) => list.indexOf(error) === index),
+      errors: nextHasPayload
+        ? next.status.errors
+        : [...current.status.errors, ...next.status.errors].filter((error, index, list) => list.indexOf(error) === index),
     },
   };
 }
@@ -827,6 +836,10 @@ function excellenceLogoSource(draft: BinderDraft, journal: Journal) {
   return logo;
 }
 
+function coverHasEmbeddedFooterLogos(src: string) {
+  return ["/brand/joadms-pdf-front.png", "/brand/joadms-cover.webp"].includes(src.trim());
+}
+
 function FrontCoverPublisherMark({ draft }: { draft: BinderDraft }) {
   const publisherLogo = draft.journalLogoImage?.trim();
 
@@ -862,11 +875,14 @@ function JournalFrontCover({ journal, draft }: { journal: Journal; draft: Binder
   const year = draft.issueYear || defaultIssueYear;
   const abbreviation = draft.journalAbbreviation || journal.abbreviation || journal.shortName || "JOADMS";
   const website = normalizeCoverWebsite(draft.journalWebsite, journal);
+  const coverImage = draft.coverImage || defaultCoverImage(journal);
+  const shouldMaskEmbeddedFooter = coverHasEmbeddedFooterLogos(coverImage);
 
   return (
     <article className="journal-front-cover">
-      <CoverBitmap src={draft.coverImage || defaultCoverImage(journal)} alt={journal.name} className="cover-panel-image" />
+      <CoverBitmap src={coverImage} alt={journal.name} className="cover-panel-image" />
       <div className="front-cover-dynamic-layer">
+        {shouldMaskEmbeddedFooter ? <div className="front-cover-embedded-footer-mask" aria-hidden="true" /> : null}
         <div className="front-cover-abbreviation">
           <b>{abbreviation.toUpperCase()}</b>
           <span>SJIF: {journal.impactFactor || "Not set"}</span>
@@ -1458,6 +1474,9 @@ function SectionEditor({
   const hasFocus = apiKeys.some((key) => dynamicData.focusByKey[key]);
   const hasEditorial = apiKeys.some((key) => dynamicData.editorialByKey[key]);
   const focusNotes = draft.focusNotes?.length ? draft.focusNotes : defaultFocusNotes;
+  const directorParagraphs = draft.directorParagraphs.length
+    ? draft.directorParagraphs
+    : (isLawJournal(journal) ? lawDirectorParagraphs : defaultDirectorParagraphs);
 
   function updateEditorial(index: number, patch: Partial<EditorialMember>) {
     onChange({
@@ -1495,7 +1514,7 @@ function SectionEditor({
   function updateParagraph(index: number, value: string) {
     onChange({
       ...draft,
-      directorParagraphs: draft.directorParagraphs.map((paragraph, paragraphIndex) =>
+      directorParagraphs: directorParagraphs.map((paragraph, paragraphIndex) =>
         paragraphIndex === index ? value : paragraph,
       ),
     });
@@ -1509,11 +1528,7 @@ function SectionEditor({
   }
 
   function addParagraph() {
-    onChange({ ...draft, directorParagraphs: [...draft.directorParagraphs, ""] });
-  }
-
-  function useDefaultDirectorLetter() {
-    onChange({ ...draft, directorParagraphs: isLawJournal(journal) ? lawDirectorParagraphs : defaultDirectorParagraphs });
+    onChange({ ...draft, directorParagraphs: [...directorParagraphs, ""] });
   }
 
   function updateManagementHead(patch: Partial<ManagementPerson>) {
@@ -1749,7 +1764,7 @@ function SectionEditor({
             </div>
           </div>
           <div className="editor-note">
-            Publisher logo defaults to the selected journal logo and can be overridden here. Leave Excellence logo empty if you do not want a lower-right cover logo.
+            Both bottom logo slots are blank by default. Add a publisher or excellence logo here only when you want them shown on the cover footer.
           </div>
           <div className="final-export-actions">
             <DownloadButton disabled={false} filename={pdfFileName(journal, draft, "cover")} mode="cover" label="Download Cover PDF" />
@@ -1897,11 +1912,10 @@ function SectionEditor({
           <div className="editor-row-head">
             <span>Letter body paragraphs</span>
             <div className="editor-row-actions">
-              <button type="button" onClick={useDefaultDirectorLetter}>Use Default Letter</button>
               <button type="button" onClick={addParagraph}>Add Paragraph</button>
             </div>
           </div>
-          {draft.directorParagraphs.map((paragraph, index) => (
+          {directorParagraphs.map((paragraph, index) => (
             <label key={index}>
               <span>Paragraph {index + 1}</span>
               <textarea rows={4} value={paragraph} onChange={(event) => updateParagraph(index, event.target.value)} />

@@ -200,7 +200,12 @@ class FormidableClient {
     try {
       json = JSON.parse(body);
     } catch {
-      throw new Error(`Invalid JSON response (${response.status})`);
+      const contentType = response.headers.get("content-type") || "unknown content-type";
+      const preview = body
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 160);
+      throw new Error(`Invalid JSON response (${response.status}, ${contentType})${preview ? `: ${preview}` : ""}`);
     }
 
     if (!response.ok || hasApiError(json)) {
