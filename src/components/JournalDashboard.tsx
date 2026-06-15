@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -602,80 +602,73 @@ function pdfFileName(journal: Journal | undefined, draft: BinderDraft | null, mo
   return `${exportBaseSlug(journal, draft)}-${mode === "cover" ? "cover" : "internal-pages"}.pdf`;
 }
 
-function DownloadButton({
-  disabled,
-  filename,
-  mode,
-  label,
-}: {
-  disabled: boolean;
-  filename: string;
-  mode: ExportMode;
-  label: string;
-}) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+type ExportKind = ExportMode | "print";
+type ExportJob = { kind: ExportKind; journal: Journal; draft: BinderDraft };
+type ExportError = { mode: ExportMode; message: string } | null;
 
-  async function downloadPdf() {
-    const source = document.getElementById("pdf-book");
-    if (!source) return;
-    setBusy(true);
-    setError("");
-    try {
-      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-        import("html2canvas"),
-        import("jspdf"),
-      ]);
-      const pages = Array.from(source.querySelectorAll<HTMLElement>(`.pdf-page[data-export-group="${mode}"]`));
-      if (pages.length === 0) {
-        setError("No pages were found to export.");
-        return;
-      }
-      const firstLandscape = pages[0]?.classList.contains("cover-spread-page");
-      const pdfFormat = mode === "cover" ? [431.8, 304.8] : "a4";
-      const pdf = new jsPDF({
-        orientation: firstLandscape ? "landscape" : "portrait",
-        unit: "mm",
-        format: pdfFormat,
-      });
+// Rasterizes the currently-mounted #pdf-book to a PDF. Throws on failure so the
+// caller can surface an error; html2canvas loads the images in its own clone.
+async function exportBookToPdf(mode: ExportMode, filename: string) {
+  const source = document.getElementById("pdf-book");
+  if (!source) throw new Error("Export container not found.");
+  const pages = Array.from(source.querySelectorAll<HTMLElement>(`.pdf-page[data-export-group="${mode}"]`));
+  if (pages.length === 0) throw new Error("No pages were found to export.");
+  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+    import("html2canvas"),
+    import("jspdf"),
+  ]);
+  const firstLandscape = pages[0]?.classList.contains("cover-spread-page");
+  const pdfFormat = mode === "cover" ? [431.8, 304.8] : "a4";
+  const pdf = new jsPDF({
+    orientation: firstLandscape ? "landscape" : "portrait",
+    unit: "mm",
+    format: pdfFormat,
+  });
 
-      for (let index = 0; index < pages.length; index += 1) {
-        const landscape = pages[index].classList.contains("cover-spread-page");
-        const pageWidth = mode === "cover" ? 431.8 : landscape ? 297 : 210;
-        const pageHeight = mode === "cover" ? 304.8 : landscape ? 210 : 297;
-        const { width, height } = pages[index].getBoundingClientRect();
-        const canvas = await html2canvas(pages[index], {
-          // Cover spreads are very large; using a slightly lower scale avoids corrupted image data in jsPDF exports.
-          scale: mode === "cover" ? 1.5 : 2,
-          useCORS: true,
-          backgroundColor: "#ffffff",
-          width,
-          height,
-          windowWidth: Math.ceil(width),
-          windowHeight: Math.ceil(height),
-        });
-        const imageType = mode === "cover" ? "JPEG" : "PNG";
-        const imgData = mode === "cover"
-          ? canvas.toDataURL("image/jpeg", 0.92)
-          : canvas.toDataURL("image/png");
-        if (index > 0) pdf.addPage(pdfFormat, landscape ? "landscape" : "portrait");
-        pdf.addImage(imgData, imageType, 0, 0, pageWidth, pageHeight, undefined, mode === "cover" ? "FAST" : undefined);
-      }
-
-      pdf.save(filename);
-    } catch (cause) {
-      console.error("PDF export failed", cause);
-      setError(
-        "PDF export failed. A cover image may be blocking export (cross-origin), or the browser ran low on memory. Try re-uploading the image or using a smaller one.",
-      );
-    } finally {
-      setBusy(false);
-    }
+  for (let index = 0; index < pages.length; index += 1) {
+    const landscape = pages[index].classList.contains("cover-spread-page");
+    const pageWidth = mode === "cover" ? 431.8 : landscape ? 297 : 210;
+    const pageHeight = mode === "cover" ? 304.8 : landscape ? 210 : 297;
+    const { width, height } = pages[index].getBoundingClientRect();
+    const canvas = await html2canvas(pages[index], {
+      // Cover spreads are very large; using a slightly lower scale avoids corrupted image data in jsPDF exports.
+      scale: mode === "cover" ? 1.5 : 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      width,
+      height,
+      windowWidth: Math.ceil(width),
+      windowHeight: Math.ceil(height),
+    });
+    const imageType = mode === "cover" ? "JPEG" : "PNG";
+    const imgData = mode === "cover"
+      ? canvas.toDataURL("image/jpeg", 0.92)
+      : canvas.toDataURL("image/png");
+    if (index > 0) pdf.addPage(pdfFormat, landscape ? "landscape" : "portrait");
+    pdf.addImage(imgData, imageType, 0, 0, pageWidth, pageHeight, undefined, mode === "cover" ? "FAST" : undefined);
   }
 
+  pdf.save(filename);
+}
+
+function DownloadButton({
+  label,
+  mode,
+  busy,
+  disabled,
+  error,
+  onExport,
+}: {
+  label: string;
+  mode: ExportMode;
+  busy: boolean;
+  disabled: boolean;
+  error: string;
+  onExport: (mode: ExportMode) => void;
+}) {
   return (
     <div className="download-button">
-      <button className="primary-action" disabled={disabled || busy} onClick={downloadPdf}>
+      <button className="primary-action" disabled={disabled || busy} onClick={() => onExport(mode)}>
         <Download size={16} />
         {busy ? "Preparing PDF..." : label}
       </button>
@@ -1519,6 +1512,9 @@ function SectionEditor({
   saveStatus,
   onChange,
   onSave,
+  exportingKind,
+  exportError,
+  onExport,
 }: {
   journal: Journal;
   draft: BinderDraft;
@@ -1527,6 +1523,9 @@ function SectionEditor({
   saveStatus: string;
   onChange: (draft: BinderDraft) => void;
   onSave: () => void;
+  exportingKind: ExportKind | null;
+  exportError: ExportError;
+  onExport: (kind: ExportKind) => void;
 }) {
   const apiKeys = journalLookupKeys(journal);
   const hasDetails = apiKeys.some((key) => dynamicData.detailsByKey[key]);
@@ -1830,7 +1829,14 @@ function SectionEditor({
             Both bottom logo slots are blank by default. Add a publisher or excellence logo here only when you want them shown on the cover footer.
           </div>
           <div className="final-export-actions">
-            <DownloadButton disabled={false} filename={pdfFileName(journal, draft, "cover")} mode="cover" label="Download Cover PDF" />
+            <DownloadButton
+              mode="cover"
+              label="Download Cover PDF"
+              busy={exportingKind === "cover"}
+              disabled={exportingKind !== null}
+              error={exportError?.mode === "cover" ? exportError.message : ""}
+              onExport={onExport}
+            />
           </div>
         </>
       ) : null}
@@ -2021,7 +2027,14 @@ function SectionEditor({
           </div>
           <div className="final-export-actions">
             <button type="button" className="secondary-action" onClick={onSave}>Save All Details</button>
-            <DownloadButton disabled={false} filename={pdfFileName(journal, draft, "internal")} mode="internal" label="Download Internal Pages PDF" />
+            <DownloadButton
+              mode="internal"
+              label="Download Internal Pages PDF"
+              busy={exportingKind === "internal"}
+              disabled={exportingKind !== null}
+              error={exportError?.mode === "internal" ? exportError.message : ""}
+              onExport={onExport}
+            />
           </div>
         </>
       ) : null}
@@ -2036,6 +2049,8 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   const [dashboardMode, setDashboardMode] = useState<"templates" | "preview">("templates");
   const [saveStatus, setSaveStatus] = useState("");
   const [journalQuery, setJournalQuery] = useState("");
+  const [exportJob, setExportJob] = useState<ExportJob | null>(null);
+  const [exportError, setExportError] = useState<ExportError>(null);
   const primaryJournal = journals.find((journal) => journal.id === selectedId) || journals[0];
   const selectedJournals = primaryJournal ? [primaryJournal] : [];
   const primaryDraft = primaryJournal ? drafts[primaryJournal.id] || draftFromDynamic(primaryJournal, dynamicData) : null;
@@ -2096,6 +2111,49 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     );
     window.setTimeout(() => setSaveStatus(""), saved ? 2500 : 6000);
   }
+
+  // Capture a snapshot of the active journal/draft and mount #pdf-book only for
+  // the duration of the job, so the 9-page export DOM is not in the per-keystroke
+  // render path. Covers both PDF export and Print.
+  function runExport(kind: ExportKind) {
+    if (exportJob || !primaryJournal || !primaryDraft) return;
+    setExportError(null);
+    setExportJob({ kind, journal: primaryJournal, draft: primaryDraft });
+  }
+
+  useEffect(() => {
+    if (!exportJob) return;
+    const job = exportJob;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        // Let the freshly-mounted export DOM lay out and paint before capture/print.
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        if (cancelled) return;
+        if (job.kind === "print") {
+          window.print();
+        } else {
+          await exportBookToPdf(job.kind, pdfFileName(job.journal, job.draft, job.kind));
+        }
+      } catch (cause) {
+        console.error("Export failed", cause);
+        if (!cancelled && job.kind !== "print") {
+          setExportError({
+            mode: job.kind,
+            message:
+              "PDF export failed. A cover image may be blocking export (cross-origin), or the browser ran low on memory. Try re-uploading the image or using a smaller one.",
+          });
+        }
+      } finally {
+        if (!cancelled) setExportJob(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [exportJob]);
 
   return (
     <main className="app-shell">
@@ -2169,26 +2227,33 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                 saveStatus={saveStatus}
                 onChange={(draft) => updateDraft(primaryJournal.id, draft)}
                 onSave={saveCurrentDraft}
+                exportingKind={exportJob?.kind ?? null}
+                exportError={exportError}
+                onExport={runExport}
               />
             ) : (
               <section className="export-panel">
                 <h2>Live Preview & Export</h2>
                 <p>Download the active journal as two separate PDFs: one cover spread and one internal-page file.</p>
                 <div className="toolbar">
-                  <button className="secondary-action" onClick={() => window.print()}>
-                    <Printer size={16} /> Print
+                  <button className="secondary-action" disabled={exportJob !== null} onClick={() => runExport("print")}>
+                    <Printer size={16} /> {exportJob?.kind === "print" ? "Preparing..." : "Print"}
                   </button>
                   <DownloadButton
-                    disabled={selectedJournals.length === 0}
-                    filename={pdfFileName(primaryJournal, primaryDraft, "cover")}
                     mode="cover"
                     label="Download Cover PDF"
+                    busy={exportJob?.kind === "cover"}
+                    disabled={exportJob !== null || selectedJournals.length === 0}
+                    error={exportError?.mode === "cover" ? exportError.message : ""}
+                    onExport={runExport}
                   />
                   <DownloadButton
-                    disabled={selectedJournals.length === 0}
-                    filename={pdfFileName(primaryJournal, primaryDraft, "internal")}
                     mode="internal"
                     label="Download Internal Pages PDF"
+                    busy={exportJob?.kind === "internal"}
+                    disabled={exportJob !== null || selectedJournals.length === 0}
+                    error={exportError?.mode === "internal" ? exportError.message : ""}
+                    onExport={runExport}
                   />
                 </div>
               </section>
@@ -2196,11 +2261,11 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
           </div>
         ) : null}
 
-        <div id="pdf-book" className="pdf-export-source" aria-hidden="true">
-          {selectedJournals.map((journal) => (
-            <PageSet key={journal.id} journal={journal} draft={drafts[journal.id] || draftFromDynamic(journal, dynamicData)} />
-          ))}
-        </div>
+        {exportJob ? (
+          <div id="pdf-book" className="pdf-export-source" aria-hidden="true">
+            <PageSet journal={exportJob.journal} draft={exportJob.draft} />
+          </div>
+        ) : null}
       </section>
     </main>
   );
