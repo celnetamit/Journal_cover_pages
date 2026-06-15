@@ -49,6 +49,16 @@ type BinderDraft = {
   directorParagraphs: string[];
   manuscriptNotice: string;
   contentRows: ContentRow[];
+  // Page 2 (title page) overrides — blank = use the generated publisher default.
+  coverPrinter: string;
+  publisherAddress: string;
+  publisherPhone: string;
+  publisherEmail: string;
+  publisherWebsite: string;
+  registeredOffice: string;
+  cin: string;
+  // Page 3 (subscription/legal) full-text override — blank = use generated content.
+  paymentOverride: string;
 };
 
 type ManagementPerson = {
@@ -72,10 +82,15 @@ const defaultIssueNumber = "1";
 const defaultIssueMonthRange = "January-April";
 const defaultIssueYear = "2026";
 const totalPages = 9;
+const defaultCoverPrinter = "Laxman Printo Graphics, Noida";
+const defaultRegisteredOffice =
+  "Office No. 4, First Floor, CSC Pocket-E Market, Mayur Vihar, Phase-I, New Delhi-110091";
+const defaultCin = "U80302DL2005PTC138759";
 const romanNumerals = ["", "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"];
 
 function pageStepperLabel(page: number) {
-  if (page === 1) return "Cover Page";
+  if (page === 1) return "Cover Spread";
+  if (page === 2) return "Title Page";
   return `Page ${page}`;
 }
 
@@ -418,6 +433,14 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     directorParagraphs: directorDesk.paragraphs,
     manuscriptNotice: defaultManuscriptNotice,
     contentRows: contents,
+    coverPrinter: "",
+    publisherAddress: "",
+    publisherPhone: "",
+    publisherEmail: "",
+    publisherWebsite: "",
+    registeredOffice: "",
+    cin: "",
+    paymentOverride: "",
   };
 }
 
@@ -603,9 +626,10 @@ function pdfFileName(journal: Journal | undefined, draft: BinderDraft | null, mo
   return `${exportBaseSlug(journal, draft)}-${mode === "cover" ? "cover" : "internal-pages"}.pdf`;
 }
 
-type ExportJob = { mode: ExportMode; journal: Journal; draft: BinderDraft };
+type ExportJob = { mode: ExportMode; filename: string };
 type ExportError = { mode: ExportMode; message: string } | null;
-type BookSnapshot = { journal: Journal; draft: BinderDraft } | null;
+type BookEntry = { journal: Journal; draft: BinderDraft };
+type BookSnapshot = BookEntry[] | null;
 
 // Rasterizes the currently-mounted #pdf-book to a PDF. Throws on failure so the
 // caller can surface an error; html2canvas loads the images in its own clone.
@@ -677,6 +701,16 @@ function DownloadButton({
           {error}
         </span>
       ) : null}
+    </div>
+  );
+}
+
+function LogoThumb({ src, label }: { src: string; label: string }) {
+  if (!src || !src.trim()) return null;
+  return (
+    <div className="logo-thumb" aria-hidden="true">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={`${label} preview`} />
     </div>
   );
 }
@@ -970,7 +1004,7 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
     <section className="pdf-page cover-page" data-export-group="internal" data-page-title="Journal Name with volume issue page">
       <div className="page-rule" />
       <p className="cover-issn">ISSN: {journal.eIssn || "2582-2888"}</p>
-      <p className="cover-printer">Printed by : Laxman Printo Graphics, Noida</p>
+      <p className="cover-printer">Printed by : {draft.coverPrinter || defaultCoverPrinter}</p>
       <h1>{titleCaseName(journal.name)}</h1>
       <p className="issue-line">Volume {volume} | Issue {issue}</p>
       <p className="cover-meta">{monthRange} | {year}</p>
@@ -981,18 +1015,67 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
         </div>
         <b>{identity.publisherName}</b>
         <strong>{identity.companyName}</strong>
-        <span>{identity.address}</span>
-        <span>Tel. No.: {identity.phone}</span>
-        <span>E-mail: {identity.email}; Website: {identity.website}</span>
-        <span>Regd. Office: Office No. 4, First Floor, CSC Pocket-E Market, Mayur Vihar, Phase-I, New Delhi-110091</span>
-        <span>Website: www.celnet.in; CIN No.: U80302DL2005PTC138759</span>
+        <span>{draft.publisherAddress || identity.address}</span>
+        <span>Tel. No.: {draft.publisherPhone || identity.phone}</span>
+        <span>E-mail: {draft.publisherEmail || identity.email}; Website: {draft.publisherWebsite || identity.website}</span>
+        <span>Regd. Office: {draft.registeredOffice || defaultRegisteredOffice}</span>
+        <span>Website: www.celnet.in; CIN No.: {draft.cin || defaultCin}</span>
       </div>
       <PageNumber value={1} />
     </section>
   );
 }
 
+// Plain-text seed for the page-3 override editor: a solid starting point the
+// user can edit. Mirrors the general (non-publisher-specific) generated content.
+function generatePaymentText(journal: Journal, draft: BinderDraft): string {
+  const identity = publisherIdentity(journal);
+  const year = draft.issueYear || defaultIssueYear;
+  const email = draft.publisherEmail || identity.email;
+  const phone = draft.publisherPhone || identity.phone;
+  return [
+    `${identity.publisherName} (an imprint of ${identity.companyName}) is the Publisher of the Journal. Statements and opinions expressed in the Journal reflect the views of the author(s) and are not the opinion of ${identity.publisherName} unless so stated.`,
+    "",
+    `SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, ${year})`,
+    "",
+    "National Subscription",
+    "Print: ₹3500 per Journal (Two Print Issues), Single Issue ₹1800.",
+    "Online: ₹6500 per Journal (Online Access of Current and Back Issues).",
+    "Print + Online: ₹7315 per Journal (Two Print and Online Access of Current and Back Issues).",
+    "",
+    "International Subscription",
+    ...subscriptionPlans,
+    "",
+    `To purchase print compilation of back issues, please send your query at ${email}. Subscription must be prepaid. Rates outside of India include delivery. Prices subject to change without notice.`,
+    "",
+    "MODE OF PAYMENT — Pay Through NEFT/RTGS/Online Transfer",
+    "Account Number: 03942000001153",
+    `Account Name: ${identity.companyName}`,
+    "Bank Name: HDFC, Sector-62, Noida, U.P., India",
+    "IFSC Code: HDFC0002649, Swift Code: HDFCINBBXXX",
+    "",
+    "ONLINE ACCESS POLICY — For Authors",
+    `${identity.publisherName} offers Optional Open Access publication at nominal cost:`,
+    "India: ₹1500 includes single hard copy of Author's Journal.",
+    "SAARC and African Countries: $100 includes single hard copy of Author's Journal.",
+    "Other Countries: $200 includes single hard copy of Author's Journal.",
+    "",
+    "LEGAL DISPUTES",
+    `All legal disputes are subject to Delhi Jurisdiction only. For any questions, please contact the Publication Management Team at ${email}; Tel: ${phone}.`,
+  ].join("\n");
+}
+
 function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+  const override = draft.paymentOverride?.trim();
+  if (override) {
+    return (
+      <section className="pdf-page payment-reference-page" data-export-group="internal">
+        <div className="payment-override">{draft.paymentOverride}</div>
+        <PageNumber value={2} />
+      </section>
+    );
+  }
+
   const identity = publisherIdentity(journal);
   const isJournalsPub = identity.logoMode === "journalspub";
   const isStm = identity.logoMode === "stm";
@@ -1535,6 +1618,7 @@ function SectionEditor({
   const directorParagraphs = hasDirectorContent(draft.directorParagraphs)
     ? draft.directorParagraphs
     : defaultDirectorDesk(journal).paragraphs;
+  const [uploadError, setUploadError] = useState("");
 
   function updateEditorial(index: number, patch: Partial<EditorialMember>) {
     onChange({
@@ -1629,8 +1713,21 @@ function SectionEditor({
 
   function readPhoto(file: File | undefined, callback: (photo: string) => void) {
     if (!file) return;
+    const maxBytes = 5 * 1024 * 1024;
+    if (!file.type.startsWith("image/")) {
+      setUploadError(`"${file.name}" is not an image file. Choose a PNG, JPG, or WEBP.`);
+      return;
+    }
+    if (file.size > maxBytes) {
+      setUploadError(`"${file.name}" is ${(file.size / 1048576).toFixed(1)} MB — please use an image under 5 MB.`);
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = () => callback(String(reader.result || ""));
+    reader.onload = () => {
+      setUploadError("");
+      callback(String(reader.result || ""));
+    };
+    reader.onerror = () => setUploadError(`Could not read "${file.name}". Please try a different file.`);
     reader.readAsDataURL(file);
   }
 
@@ -1691,6 +1788,7 @@ function SectionEditor({
         <button type="button" onClick={onSave}>Save Page {activePage} Details</button>
         {saveStatus ? <span>{saveStatus}</span> : null}
       </div>
+      {uploadError ? <div className="upload-error" role="alert">{uploadError}</div> : null}
       {activePage === 1 ? (
         <>
           <div className="editor-row-head">
@@ -1784,6 +1882,7 @@ function SectionEditor({
               onChange={(event) => onChange({ ...draft, coverImage: event.target.value })}
             />
           </label>
+          <LogoThumb src={draft.coverImage} label="Front cover" />
           <label className="file-field">
             <span>Upload back cover image</span>
             <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (backCoverImage) => onChange({ ...draft, backCoverImage }))} />
@@ -1795,38 +1894,41 @@ function SectionEditor({
               onChange={(event) => onChange({ ...draft, backCoverImage: event.target.value })}
             />
           </label>
+          <LogoThumb src={draft.backCoverImage} label="Back cover" />
           <div className="two-field-grid logo-input-grid">
             <div className="logo-input-section">
-              <strong>Publisher logo</strong>
+              <strong>Bottom-left cover logo (publisher mark)</strong>
               <label className="file-field">
-                <span>Upload publisher logo</span>
+                <span>Upload bottom-left logo</span>
                 <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (journalLogoImage) => onChange({ ...draft, journalLogoImage }))} />
               </label>
               <label>
-                <span>Static publisher logo URL</span>
+                <span>Or bottom-left logo URL</span>
                 <input
                   value={draft.journalLogoImage}
                   onChange={(event) => onChange({ ...draft, journalLogoImage: event.target.value })}
                 />
               </label>
+              <LogoThumb src={draft.journalLogoImage} label="Bottom-left logo" />
             </div>
             <div className="logo-input-section">
-              <strong>Excellence logo</strong>
+              <strong>Bottom-right cover logo (excellence / award)</strong>
               <label className="file-field">
-                <span>Upload excellence logo</span>
+                <span>Upload bottom-right logo</span>
                 <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (footerRightLogoImage) => onChange({ ...draft, footerRightLogoImage }))} />
               </label>
               <label>
-                <span>Static excellence logo URL</span>
+                <span>Or bottom-right logo URL</span>
                 <input
                   value={draft.footerRightLogoImage || ""}
                   onChange={(event) => onChange({ ...draft, footerRightLogoImage: event.target.value })}
                 />
               </label>
+              <LogoThumb src={draft.footerRightLogoImage} label="Bottom-right logo" />
             </div>
           </div>
           <div className="editor-note">
-            Both bottom logo slots are blank by default. Add a publisher or excellence logo here only when you want them shown on the cover footer.
+            Both bottom cover-footer logo slots are blank by default. Add a logo here only when you want it shown in the cover footer (left = publisher mark, right = excellence/award badge).
           </div>
           <div className="final-export-actions">
             <DownloadButton
@@ -1841,14 +1943,59 @@ function SectionEditor({
         </>
       ) : null}
       {activePage === 2 ? (
-        <div className="editor-note">
-          Publisher title page logos, printer line, address, and publisher details are generated from the selected journal and publisher identity.
-        </div>
+        <>
+          <div className="editor-note">
+            The title page logos and publisher name come from the selected journal. Override any line below — leave blank to use the generated default (shown as placeholder).
+          </div>
+          <label>
+            <span>Printed by</span>
+            <input value={draft.coverPrinter || ""} placeholder={defaultCoverPrinter} onChange={(event) => onChange({ ...draft, coverPrinter: event.target.value })} />
+          </label>
+          <label>
+            <span>Publisher address</span>
+            <textarea rows={2} value={draft.publisherAddress || ""} placeholder={publisherIdentity(journal).address} onChange={(event) => onChange({ ...draft, publisherAddress: event.target.value })} />
+          </label>
+          <div className="two-field-grid">
+            <label>
+              <span>Publisher phone</span>
+              <input value={draft.publisherPhone || ""} placeholder={publisherIdentity(journal).phone} onChange={(event) => onChange({ ...draft, publisherPhone: event.target.value })} />
+            </label>
+            <label>
+              <span>Publisher email</span>
+              <input value={draft.publisherEmail || ""} placeholder={publisherIdentity(journal).email} onChange={(event) => onChange({ ...draft, publisherEmail: event.target.value })} />
+            </label>
+          </div>
+          <label>
+            <span>Publisher website</span>
+            <input value={draft.publisherWebsite || ""} placeholder={publisherIdentity(journal).website} onChange={(event) => onChange({ ...draft, publisherWebsite: event.target.value })} />
+          </label>
+          <label>
+            <span>Registered office</span>
+            <textarea rows={2} value={draft.registeredOffice || ""} placeholder={defaultRegisteredOffice} onChange={(event) => onChange({ ...draft, registeredOffice: event.target.value })} />
+          </label>
+          <label>
+            <span>CIN No.</span>
+            <input value={draft.cin || ""} placeholder={defaultCin} onChange={(event) => onChange({ ...draft, cin: event.target.value })} />
+          </label>
+        </>
       ) : null}
       {activePage === 3 ? (
-        <div className="editor-note">
-          Subscription, payment, online access policy, advertising, lost issue claims, and legal dispute text are publisher-specific generated blocks. These can be split into editable rich text fields in the next pass.
-        </div>
+        <>
+          <div className="editor-note">
+            This subscription &amp; legal page is auto-generated per publisher. To customise it, click &ldquo;Load Current Text&rdquo;, edit, and it will be used instead. Clear the box to return to the generated page.
+          </div>
+          <div className="editor-row-head">
+            <span>Subscription &amp; legal page</span>
+            <div className="editor-row-actions">
+              <button type="button" onClick={() => onChange({ ...draft, paymentOverride: generatePaymentText(journal, draft) })}>Load Current Text</button>
+              {draft.paymentOverride ? <button type="button" onClick={() => onChange({ ...draft, paymentOverride: "" })}>Reset to Generated</button> : null}
+            </div>
+          </div>
+          <label>
+            <span>Page text override</span>
+            <textarea rows={16} value={draft.paymentOverride || ""} placeholder="Leave blank to use the auto-generated subscription & legal page." onChange={(event) => onChange({ ...draft, paymentOverride: event.target.value })} />
+          </label>
+        </>
       ) : null}
       {activePage === 4 ? (
         <>
@@ -2052,6 +2199,8 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   const [exportJob, setExportJob] = useState<ExportJob | null>(null);
   const [exportError, setExportError] = useState<ExportError>(null);
   const [bookSnapshot, setBookSnapshot] = useState<BookSnapshot>(null);
+  const [batchIds, setBatchIds] = useState<string[]>([]);
+  const [importStatus, setImportStatus] = useState("");
   const primaryJournal = journals.find((journal) => journal.id === selectedId) || journals[0];
   const selectedJournals = primaryJournal ? [primaryJournal] : [];
   const primaryDraft = primaryJournal ? drafts[primaryJournal.id] || draftFromDynamic(primaryJournal, dynamicData) : null;
@@ -2113,14 +2262,78 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     window.setTimeout(() => setSaveStatus(""), saved ? 2500 : 6000);
   }
 
+  // W3 — download all drafts (in-memory + saved) as a JSON backup file.
+  function exportDraftsJson() {
+    const data = { ...loadSavedDrafts(), ...drafts };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "journal-cover-drafts.json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // W3 — import a drafts JSON backup, keeping only entries that match known journals.
+  function importDraftsJson(file: File | undefined) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || "{}")) as Record<string, BinderDraft>;
+        if (!parsed || typeof parsed !== "object") throw new Error("invalid");
+        const additions: Record<string, BinderDraft> = {};
+        for (const [id, draft] of Object.entries(parsed)) {
+          const journal = journals.find((item) => item.id === id);
+          if (journal && draft && typeof draft === "object") {
+            additions[id] = normalizeDraftForJournal(journal, draft as BinderDraft, dynamicData);
+          }
+        }
+        const count = Object.keys(additions).length;
+        if (count === 0) {
+          setImportStatus("No matching journals found in that file.");
+        } else {
+          const merged = { ...drafts, ...additions };
+          setDrafts(merged);
+          saveDraftsToStorage(merged);
+          setImportStatus(`Imported ${count} draft${count === 1 ? "" : "s"}.`);
+        }
+      } catch {
+        setImportStatus("Could not import — the file is not valid drafts JSON.");
+      }
+      window.setTimeout(() => setImportStatus(""), 5000);
+    };
+    reader.onerror = () => {
+      setImportStatus("Could not read the file.");
+      window.setTimeout(() => setImportStatus(""), 5000);
+    };
+    reader.readAsText(file);
+  }
+
   // PDF export: snapshot the active journal/draft, mount #pdf-book for html2canvas,
   // rasterize, then unmount so the 9-page export DOM stays out of the per-keystroke path.
   function runExport(mode: ExportMode) {
     if (exportJob || !primaryJournal || !primaryDraft) return;
     setExportError(null);
-    const snapshot = { journal: primaryJournal, draft: primaryDraft };
-    setBookSnapshot(snapshot);
-    setExportJob({ mode, ...snapshot });
+    setBookSnapshot([{ journal: primaryJournal, draft: primaryDraft }]);
+    setExportJob({ mode, filename: pdfFileName(primaryJournal, primaryDraft, mode) });
+  }
+
+  // W2 — combine the selected journals into one PDF (covers or internal pages).
+  function runBatchExport(mode: ExportMode) {
+    if (exportJob) return;
+    const entries = batchIds
+      .map((id) => {
+        const journal = journals.find((item) => item.id === id);
+        return journal ? { journal, draft: drafts[id] || draftFromDynamic(journal, dynamicData) } : null;
+      })
+      .filter((entry): entry is BookEntry => entry !== null);
+    if (entries.length === 0) return;
+    setExportError(null);
+    setBookSnapshot(entries);
+    setExportJob({ mode, filename: `journals-batch-${entries.length}-${mode === "cover" ? "covers" : "internal-pages"}.pdf` });
   }
 
   useEffect(() => {
@@ -2133,7 +2346,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
         // Let the freshly-mounted export DOM lay out and paint before capture.
         await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
         if (cancelled) return;
-        await exportBookToPdf(job.mode, pdfFileName(job.journal, job.draft, job.mode));
+        await exportBookToPdf(job.mode, job.filename);
       } catch (cause) {
         console.error("PDF export failed", cause);
         if (!cancelled) {
@@ -2163,7 +2376,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   useEffect(() => {
     function onBeforePrint() {
       if (primaryJournal && primaryDraft) {
-        flushSync(() => setBookSnapshot({ journal: primaryJournal, draft: primaryDraft }));
+        flushSync(() => setBookSnapshot([{ journal: primaryJournal, draft: primaryDraft }]));
       }
     }
     function onAfterPrint() {
@@ -2278,6 +2491,55 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                     onExport={runExport}
                   />
                 </div>
+
+                <div className="batch-export">
+                  <div className="editor-row-head">
+                    <span>Batch export ({batchIds.length} selected)</span>
+                    <div className="editor-row-actions">
+                      <button type="button" onClick={() => setBatchIds(filteredJournals.slice(0, 50).map((journal) => journal.id))}>Select shown</button>
+                      <button type="button" onClick={() => setBatchIds([])}>Clear</button>
+                    </div>
+                  </div>
+                  <input
+                    value={journalQuery}
+                    onChange={(event) => setJournalQuery(event.target.value)}
+                    placeholder="Filter journals to select…"
+                  />
+                  <div className="batch-list">
+                    {filteredJournals.slice(0, 100).map((journal) => (
+                      <label key={journal.id} className="batch-item">
+                        <input
+                          type="checkbox"
+                          checked={batchIds.includes(journal.id)}
+                          onChange={(event) =>
+                            setBatchIds((current) =>
+                              event.target.checked ? [...current, journal.id] : current.filter((id) => id !== journal.id),
+                            )
+                          }
+                        />
+                        <span>{journal.name} ({journal.abbreviation})</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="toolbar">
+                    <button className="secondary-action" disabled={exportJob !== null || batchIds.length === 0} onClick={() => runBatchExport("cover")}>
+                      {exportJob?.mode === "cover" ? "Preparing…" : `Download ${batchIds.length} Covers`}
+                    </button>
+                    <button className="secondary-action" disabled={exportJob !== null || batchIds.length === 0} onClick={() => runBatchExport("internal")}>
+                      {exportJob?.mode === "internal" ? "Preparing…" : `Download ${batchIds.length} Internal Sets`}
+                    </button>
+                  </div>
+                  <p className="batch-note">Selected journals combine into one PDF. Large batches are memory-heavy — about 25 journals at a time is a safe limit.</p>
+                </div>
+
+                <div className="backup-row">
+                  <button type="button" className="secondary-action" onClick={exportDraftsJson}>Export Drafts (JSON)</button>
+                  <label className="file-field">
+                    <span>Import Drafts (JSON)</span>
+                    <input type="file" accept="application/json,.json" onChange={(event) => importDraftsJson(event.target.files?.[0])} />
+                  </label>
+                  {importStatus ? <span className="backup-status">{importStatus}</span> : null}
+                </div>
               </section>
             )}
           </div>
@@ -2285,7 +2547,9 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
 
         {bookSnapshot ? (
           <div id="pdf-book" className="pdf-export-source" aria-hidden="true">
-            <PageSet journal={bookSnapshot.journal} draft={bookSnapshot.draft} />
+            {bookSnapshot.map((entry) => (
+              <PageSet key={entry.journal.id} journal={entry.journal} draft={entry.draft} />
+            ))}
           </div>
         ) : null}
       </section>
