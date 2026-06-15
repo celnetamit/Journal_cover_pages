@@ -333,6 +333,18 @@ button {
   opacity: 0.55;
 }
 
+.download-button {
+  display: grid;
+  gap: 6px;
+}
+
+.download-error {
+  color: #8a2d2d;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .stats-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1109,7 +1121,8 @@ button {
 
 .cover-spread-page .cover-panel-image {
   height: 100%;
-  object-fit: fill;
+  object-fit: cover;
+  object-position: center;
   display: block;
   width: 100%;
 }
@@ -2205,6 +2218,13 @@ button {
   margin: 5.5mm 0 3.5mm;
 }
 
+.editorial-empty {
+  color: #66758d;
+  font-size: 11pt;
+  font-style: italic;
+  margin: 4mm 0 0;
+}
+
 .editor-grid {
   display: grid;
   gap: 5mm 13mm;
@@ -2357,6 +2377,23 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .layout-workbench,
+  .layout-workbench.preview-only {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-sidebar {
+    min-height: auto;
+    position: static;
+  }
+
+  .live-canvas-panel,
+  .section-editor,
+  .export-panel {
+    max-height: none;
+    height: auto;
+  }
+
   .admin-panel {
     position: static;
   }
@@ -2413,21 +2450,47 @@ button {
 @media print {
   @page {
     margin: 0;
-    size: A4;
+  }
+
+  @page internal-page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  @page cover-page {
+    size: 431.8mm 304.8mm;
+    margin: 0;
   }
 
   body {
     background: #fff;
   }
 
+  /* Hide the editor chrome so only the journal pages print. */
+  .dashboard-sidebar,
+  .workspace-toolbar,
+  .section-editor,
+  .export-panel,
+  .live-canvas-panel,
+  .live-badge,
   .admin-panel,
   .preview-heading {
     display: none !important;
   }
 
-  .app-shell {
+  .app-shell,
+  .workspace-panel {
     display: block;
+    margin: 0;
     padding: 0;
+  }
+
+  /* The export source is parked off-screen on screen; bring it back for print. */
+  .pdf-export-source {
+    position: static;
+    left: 0;
+    top: 0;
+    width: auto;
   }
 
   #pdf-book,
@@ -2437,7 +2500,13 @@ button {
 
   .pdf-page {
     box-shadow: none;
-    margin: 0;
+    margin: 0 auto;
+    page: internal-page;
     page-break-after: always;
+    break-after: page;
+  }
+
+  .pdf-page.cover-spread-page {
+    page: cover-page;
   }
 }

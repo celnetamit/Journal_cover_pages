@@ -529,6 +529,24 @@ function parseEditorialText(value: string): EditorialMember[] {
     .filter((member) => member.name);
 }
 
+// No editorial-board data exists in the CSV sources, so new drafts are seeded with this
+// editable sample board. Surfacing it into the draft keeps the page-7 editor and the
+// rendered/exported page in sync (previously the editor was empty while the page injected
+// these names invisibly). Users replace these rows per journal.
+function sampleEditorialBoard(): EditorialMember[] {
+  return boardMembers.map(([name, designation, affiliation, role], index) => ({
+    role: role || "Editor",
+    name,
+    designation,
+    department: "",
+    affiliation,
+    location: "",
+    email: "",
+    photo: "",
+    priority: index + 1,
+  }));
+}
+
 function pageEditorTitle(page: number) {
   const titles = [
     "Cover spread journal metadata",
@@ -555,9 +573,15 @@ function loadSavedDrafts() {
   }
 }
 
-function saveDraftsToStorage(drafts: Record<string, BinderDraft>) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(draftStorageKey, JSON.stringify(drafts));
+function saveDraftsToStorage(drafts: Record<string, BinderDraft>): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    window.localStorage.setItem(draftStorageKey, JSON.stringify(drafts));
+    return true;
+  } catch {
+    // Most often QuotaExceededError: uploaded images are stored as large base64 data URLs.
+    return false;
+  }
 }
 
 function lowerRoman(value: number) {
@@ -590,60 +614,77 @@ function DownloadButton({
   label: string;
 }) {
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   async function downloadPdf() {
     const source = document.getElementById("pdf-book");
     if (!source) return;
     setBusy(true);
-    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-      import("html2canvas"),
-      import("jspdf"),
-    ]);
-    const pages = Array.from(source.querySelectorAll<HTMLElement>(`.pdf-page[data-export-group="${mode}"]`));
-    if (pages.length === 0) {
-      setBusy(false);
-      return;
-    }
-    const firstLandscape = pages[0]?.classList.contains("cover-spread-page");
-    const pdfFormat = mode === "cover" ? [431.8, 304.8] : "a4";
-    const pdf = new jsPDF({
-      orientation: firstLandscape ? "landscape" : "portrait",
-      unit: "mm",
-      format: pdfFormat,
-    });
-
-    for (let index = 0; index < pages.length; index += 1) {
-      const landscape = pages[index].classList.contains("cover-spread-page");
-      const pageWidth = mode === "cover" ? 431.8 : landscape ? 297 : 210;
-      const pageHeight = mode === "cover" ? 304.8 : landscape ? 210 : 297;
-      const { width, height } = pages[index].getBoundingClientRect();
-      const canvas = await html2canvas(pages[index], {
-        // Cover spreads are very large; using a slightly lower scale avoids corrupted image data in jsPDF exports.
-        scale: mode === "cover" ? 1.5 : 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        width,
-        height,
-        windowWidth: Math.ceil(width),
-        windowHeight: Math.ceil(height),
+    setError("");
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+      const pages = Array.from(source.querySelectorAll<HTMLElement>(`.pdf-page[data-export-group="${mode}"]`));
+      if (pages.length === 0) {
+        setError("No pages were found to export.");
+        return;
+      }
+      const firstLandscape = pages[0]?.classList.contains("cover-spread-page");
+      const pdfFormat = mode === "cover" ? [431.8, 304.8] : "a4";
+      const pdf = new jsPDF({
+        orientation: firstLandscape ? "landscape" : "portrait",
+        unit: "mm",
+        format: pdfFormat,
       });
-      const imageType = mode === "cover" ? "JPEG" : "PNG";
-      const imgData = mode === "cover"
-        ? canvas.toDataURL("image/jpeg", 0.92)
-        : canvas.toDataURL("image/png");
-      if (index > 0) pdf.addPage(pdfFormat, landscape ? "landscape" : "portrait");
-      pdf.addImage(imgData, imageType, 0, 0, pageWidth, pageHeight, undefined, mode === "cover" ? "FAST" : undefined);
-    }
 
-    pdf.save(filename);
-    setBusy(false);
+      for (let index = 0; index < pages.length; index += 1) {
+        const landscape = pages[index].classList.contains("cover-spread-page");
+        const pageWidth = mode === "cover" ? 431.8 : landscape ? 297 : 210;
+        const pageHeight = mode === "cover" ? 304.8 : landscape ? 210 : 297;
+        const { width, height } = pages[index].getBoundingClientRect();
+        const canvas = await html2canvas(pages[index], {
+          // Cover spreads are very large; using a slightly lower scale avoids corrupted image data in jsPDF exports.
+          scale: mode === "cover" ? 1.5 : 2,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          width,
+          height,
+          windowWidth: Math.ceil(width),
+          windowHeight: Math.ceil(height),
+        });
+        const imageType = mode === "cover" ? "JPEG" : "PNG";
+        const imgData = mode === "cover"
+          ? canvas.toDataURL("image/jpeg", 0.92)
+          : canvas.toDataURL("image/png");
+        if (index > 0) pdf.addPage(pdfFormat, landscape ? "landscape" : "portrait");
+        pdf.addImage(imgData, imageType, 0, 0, pageWidth, pageHeight, undefined, mode === "cover" ? "FAST" : undefined);
+      }
+
+      pdf.save(filename);
+    } catch (cause) {
+      console.error("PDF export failed", cause);
+      setError(
+        "PDF export failed. A cover image may be blocking export (cross-origin), or the browser ran low on memory. Try re-uploading the image or using a smaller one.",
+      );
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <button className="primary-action" disabled={disabled || busy} onClick={downloadPdf}>
-      <Download size={16} />
-      {busy ? "Preparing PDF..." : label}
-    </button>
+    <div className="download-button">
+      <button className="primary-action" disabled={disabled || busy} onClick={downloadPdf}>
+        <Download size={16} />
+        {busy ? "Preparing PDF..." : label}
+      </button>
+      {error ? (
+        <span className="download-error" role="alert">
+          {error}
+        </span>
+      ) : null}
+    </div>
   );
 }
 
@@ -958,13 +999,14 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
   );
 }
 
-function PaymentPage({ journal }: { journal: Journal }) {
+function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
   const isJournalsPub = identity.logoMode === "journalspub";
   const isStm = identity.logoMode === "stm";
   const isLaw = identity.logoMode === "law";
   const paymentPublisherName = isJournalsPub ? "Journals Pub" : identity.publisherName;
   const legalPhone = isJournalsPub ? "+91 120-4781200" : isLaw ? "+91 120-4781211" : identity.phone;
+  const subscriptionYear = draft.issueYear || defaultIssueYear;
 
   return (
     <section className="pdf-page payment-reference-page" data-export-group="internal">
@@ -978,7 +1020,7 @@ function PaymentPage({ journal }: { journal: Journal }) {
           : "MBA Journals (an imprint of Consortium e-Learning Network Pvt. Ltd.) having its marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of Journals. The author(s) or editor(s) expressed in the Journal reflect the views of the author(s) and are not the opinion of MBA Journals unless so stated."}
       </p>
 
-      <h1>{isJournalsPub ? "SUBSCRIPTION INFORMATION AND ORDER (JANUARYTO DECEMBER, 2026)" : "SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, 2026)"}</h1>
+      <h1>SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, {subscriptionYear})</h1>
       <p><b>National Subscription</b></p>
       {isJournalsPub ? (
         <ul className="checkbox-list">
@@ -1310,38 +1352,51 @@ function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: Bin
 }
 
 function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
-  const dynamicMembers = draft.editorialBoard;
-  const chief = dynamicMembers.find((member) => member.role.toLowerCase().includes("chief"));
-  const associateChiefs = dynamicMembers.filter((member) => member.role.toLowerCase().includes("associate"));
-  const editors = dynamicMembers.filter(
+  const members = draft.editorialBoard;
+  const chief = members.find((member) => {
+    const role = member.role.toLowerCase();
+    return role.includes("chief") && !role.includes("associate");
+  });
+  const associateChiefs = members.filter((member) => member.role.toLowerCase().includes("associate"));
+  const editors = members.filter(
     (member) =>
       !member.role.toLowerCase().includes("chief") &&
       !member.role.toLowerCase().includes("associate"),
   );
-  const fallbackChief = boardMembers[0];
-  const fallbackEditors = boardMembers.slice(1, 13);
 
   return (
     <section className="pdf-page editorial-page" data-export-group="internal">
       <div className="page-rule" />
       <h1>{titleCaseName(journal.name)}</h1>
       <h2>Editorial Board Members</h2>
-      <h3>Editor-in-Chief</h3>
-      {chief ? <EditorialMemberLine member={chief} /> : <MemberLine member={fallbackChief} />}
-      {associateChiefs.length > 0 ? (
+      {members.length === 0 ? (
+        <p className="editorial-empty">No editorial board members have been added for this journal yet.</p>
+      ) : (
         <>
-          <h3>Associate Editor-in-Chief</h3>
-          <div className="editor-grid">
-            {associateChiefs.map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)}
-          </div>
+          {chief ? (
+            <>
+              <h3>Editor-in-Chief</h3>
+              <EditorialMemberLine member={chief} />
+            </>
+          ) : null}
+          {associateChiefs.length > 0 ? (
+            <>
+              <h3>Associate Editor-in-Chief</h3>
+              <div className="editor-grid">
+                {associateChiefs.map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)}
+              </div>
+            </>
+          ) : null}
+          {editors.length > 0 ? (
+            <>
+              <h3>Editors</h3>
+              <div className="editor-grid">
+                {editors.slice(0, 12).map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)}
+              </div>
+            </>
+          ) : null}
         </>
-      ) : null}
-      <h3>Editors</h3>
-      <div className="editor-grid">
-        {editors.length > 0
-          ? editors.slice(0, 12).map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)
-          : fallbackEditors.map((member) => <MemberLine key={member[0]} member={member} />)}
-      </div>
+      )}
       <PageNumber value={6} />
     </section>
   );
@@ -1409,16 +1464,6 @@ function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
   );
 }
 
-function MemberLine({ member }: { member: string[] }) {
-  return (
-    <div className="member-line">
-      <b>{member[0]}</b>
-      <span>{member[1]}</span>
-      <small>{member[2]}</small>
-    </div>
-  );
-}
-
 function EditorialMemberLine({ member }: { member: EditorialMember }) {
   return (
     <div className="member-line">
@@ -1438,7 +1483,7 @@ function BinderPage({ page, journal, draft }: { page: number; journal: Journal; 
     case 2:
       return <CoverPage journal={currentJournal} draft={draft} />;
     case 3:
-      return <PaymentPage journal={currentJournal} />;
+      return <PaymentPage journal={currentJournal} draft={draft} />;
     case 4:
       return <JournalDetailsPage journal={currentJournal} draft={draft} />;
     case 5:
@@ -1523,6 +1568,10 @@ function SectionEditor({
 
   function removeEditorial(index: number) {
     onChange({ ...draft, editorialBoard: draft.editorialBoard.filter((_, memberIndex) => memberIndex !== index) });
+  }
+
+  function useSampleEditorialBoard() {
+    onChange({ ...draft, editorialBoard: sampleEditorialBoard() });
   }
 
   function updateParagraph(index: number, value: string) {
@@ -1834,8 +1883,8 @@ function SectionEditor({
           <div className="management-edit-head">
             <span>Management head</span>
             <div className="management-edit-row">
-              <input value={draft.managementHead.name} onChange={(event) => updateManagementHead({ name: event.target.value })} />
-              <input value={draft.managementHead.role} onChange={(event) => updateManagementHead({ role: event.target.value })} />
+              <input aria-label="Management head name" placeholder="Name" value={draft.managementHead.name} onChange={(event) => updateManagementHead({ name: event.target.value })} />
+              <input aria-label="Management head role" placeholder="Role" value={draft.managementHead.role} onChange={(event) => updateManagementHead({ role: event.target.value })} />
               <label className="file-field">
                 <span>Photo</span>
                 <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (photo) => updateManagementHead({ photo }))} />
@@ -1878,13 +1927,16 @@ function SectionEditor({
       {activePage === 7 ? (
         <div className="editor-repeater">
           <div className="editor-row-head">
-            <span>Editorial Board Members</span>
-            <button type="button" onClick={addEditorial}>Add Board Row</button>
+            <span>Editorial Board Members ({draft.editorialBoard.length})</span>
+            <div className="editor-row-actions">
+              <button type="button" onClick={useSampleEditorialBoard}>Insert Sample Board</button>
+              <button type="button" onClick={addEditorial}>Add Board Row</button>
+            </div>
           </div>
           {draft.editorialBoard.map((member, index) => (
             <article className="editorial-edit-card" key={index}>
               <div className="editorial-edit-actions">
-                <select value={member.role} onChange={(event) => updateEditorial(index, { role: event.target.value })}>
+                <select aria-label="Board member role" value={member.role} onChange={(event) => updateEditorial(index, { role: event.target.value })}>
                   <option>Editor in Chief</option>
                   <option>Editor</option>
                   <option>Associate Editor-in-Chief</option>
@@ -2035,10 +2087,14 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   function saveCurrentDraft() {
     if (!primaryJournal || !primaryDraft) return;
     const nextDrafts = { ...loadSavedDrafts(), ...drafts, [primaryJournal.id]: primaryDraft };
-    saveDraftsToStorage(nextDrafts);
+    const saved = saveDraftsToStorage(nextDrafts);
     setDrafts((current) => ({ ...current, [primaryJournal.id]: primaryDraft }));
-    setSaveStatus(`Saved Page ${activePage} details for ${primaryJournal.abbreviation || primaryJournal.name}`);
-    window.setTimeout(() => setSaveStatus(""), 2500);
+    setSaveStatus(
+      saved
+        ? `Saved details for ${primaryJournal.abbreviation || primaryJournal.name}`
+        : "Could not save — browser storage is full. Remove uploaded images or clear saved drafts, then try again.",
+    );
+    window.setTimeout(() => setSaveStatus(""), saved ? 2500 : 6000);
   }
 
   return (
