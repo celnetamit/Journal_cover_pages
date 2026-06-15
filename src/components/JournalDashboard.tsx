@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -510,26 +510,6 @@ function parseEditorialText(value: string): EditorialMember[] {
       };
     })
     .filter((member) => member.name);
-}
-
-function mergeDynamicData(current: DynamicBinderData, next: DynamicBinderData): DynamicBinderData {
-  const nextHasPayload =
-    Object.keys(next.detailsByKey).length > 0 ||
-    Object.keys(next.focusByKey).length > 0 ||
-    Object.keys(next.editorialByKey).length > 0;
-
-  return {
-    detailsByKey: { ...current.detailsByKey, ...next.detailsByKey },
-    focusByKey: { ...current.focusByKey, ...next.focusByKey },
-    editorialByKey: { ...current.editorialByKey, ...next.editorialByKey },
-    status: {
-      enabled: current.status.enabled || next.status.enabled,
-      fetchedAt: next.status.fetchedAt || current.status.fetchedAt,
-      errors: nextHasPayload
-        ? next.status.errors
-        : [...current.status.errors, ...next.status.errors].filter((error, index, list) => list.indexOf(error) === index),
-    },
-  };
 }
 
 function pageEditorTitle(page: number) {
@@ -1613,12 +1593,12 @@ function SectionEditor({
       <div className="section-editor-head">
         <span className="editor-kicker">Page {activePage} form controls</span>
         <b>{pageEditorTitle(activePage)}</b>
-        <span>{dynamicData.status.enabled ? "Formidable API connected" : "Using local fallback"}</span>
+        <span>Using local CSV and static defaults</span>
       </div>
       <div className="api-source-grid">
-        <span className={hasDetails ? "loaded" : ""}>Journal details</span>
-        <span className={hasFocus ? "loaded" : ""}>Focus & scope</span>
-        <span className={hasEditorial ? "loaded" : ""}>Editorial board</span>
+        <span className={hasDetails ? "loaded" : ""}>Journal details CSV</span>
+        <span className={hasFocus ? "loaded" : ""}>Focus & scope CSV</span>
+        <span className={hasEditorial ? "loaded" : ""}>Static editorial board</span>
       </div>
       {dynamicData.status.errors.length > 0 ? (
         <div className="api-errors">
@@ -1633,7 +1613,7 @@ function SectionEditor({
         <>
           <div className="editor-row-head">
             <span>First page dynamic data</span>
-            <button type="button" onClick={useDynamicPageOneData}>Refresh From Form Data</button>
+            <button type="button" onClick={useDynamicPageOneData}>Reload CSV Data</button>
           </div>
           <label>
             <span>Journal title</span>
@@ -1965,7 +1945,6 @@ function SectionEditor({
 
 export default function JournalDashboard({ journals, defaultJournalId, dynamicData }: Props) {
   const [selectedId, setSelectedId] = useState(defaultJournalId);
-  const [runtimeDynamicData, setRuntimeDynamicData] = useState(dynamicData);
   const [drafts, setDrafts] = useState<Record<string, BinderDraft>>(() => initialDrafts(journals, dynamicData));
   const [activePage, setActivePage] = useState(1);
   const [dashboardMode, setDashboardMode] = useState<"templates" | "preview">("templates");
@@ -1973,7 +1952,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   const [journalQuery, setJournalQuery] = useState("");
   const primaryJournal = journals.find((journal) => journal.id === selectedId) || journals[0];
   const selectedJournals = primaryJournal ? [primaryJournal] : [];
-  const primaryDraft = primaryJournal ? drafts[primaryJournal.id] || draftFromDynamic(primaryJournal, runtimeDynamicData) : null;
+  const primaryDraft = primaryJournal ? drafts[primaryJournal.id] || draftFromDynamic(primaryJournal, dynamicData) : null;
   const filteredJournals = useMemo(() => {
     const query = journalQuery.trim().toLowerCase();
     const matches = query
@@ -2001,49 +1980,6 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     return withSelected.slice(0, 600);
   }, [journalQuery, journals, primaryJournal]);
 
-  useEffect(() => {
-    if (!primaryJournal || !runtimeDynamicData.status.enabled) return;
-
-    const keys = journalLookupKeys(primaryJournal);
-    const hasAllSections = keys.some((key) => runtimeDynamicData.detailsByKey[key]) &&
-      keys.some((key) => runtimeDynamicData.focusByKey[key]) &&
-      keys.some((key) => runtimeDynamicData.editorialByKey[key]);
-
-    if (hasAllSections) return;
-
-    const controller = new AbortController();
-    const search = primaryJournal.abbreviation || primaryJournal.name;
-
-    fetch(`/api/binder-data?search=${encodeURIComponent(search)}`, { signal: controller.signal })
-      .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
-      .then((nextData: DynamicBinderData) => {
-        setRuntimeDynamicData((current) => {
-          const merged = mergeDynamicData(current, nextData);
-          setDrafts((currentDrafts) => ({
-            ...currentDrafts,
-            [primaryJournal.id]: normalizeDraftForJournal(
-              primaryJournal,
-              loadSavedDrafts()[primaryJournal.id] || currentDrafts[primaryJournal.id] || draftFromDynamic(primaryJournal, merged),
-              merged,
-            ),
-          }));
-          return merged;
-        });
-      })
-      .catch((error: unknown) => {
-        if (error instanceof Error && error.name === "AbortError") return;
-        setRuntimeDynamicData((current) => ({
-          ...current,
-          status: {
-            ...current.status,
-            errors: [...current.status.errors, `Runtime Formidable fetch failed: ${error instanceof Error ? error.message : String(error)}`],
-          },
-        }));
-      });
-
-    return () => controller.abort();
-  }, [primaryJournal, runtimeDynamicData]);
-
   function selectJournal(id: string) {
     const journal = journals.find((item) => item.id === id);
     setSelectedId(id);
@@ -2053,7 +1989,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     if (journal) {
       setDrafts((current) => ({
         ...current,
-        [id]: normalizeDraftForJournal(journal, current[id] || draftFromDynamic(journal, runtimeDynamicData), runtimeDynamicData),
+        [id]: normalizeDraftForJournal(journal, current[id] || draftFromDynamic(journal, dynamicData), dynamicData),
       }));
     }
   }
@@ -2138,7 +2074,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
               <SectionEditor
                 journal={primaryJournal}
                 draft={primaryDraft}
-                dynamicData={runtimeDynamicData}
+                dynamicData={dynamicData}
                 activePage={activePage}
                 saveStatus={saveStatus}
                 onChange={(draft) => updateDraft(primaryJournal.id, draft)}
@@ -2172,7 +2108,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
 
         <div id="pdf-book" className="pdf-export-source" aria-hidden="true">
           {selectedJournals.map((journal) => (
-            <PageSet key={journal.id} journal={journal} draft={drafts[journal.id] || draftFromDynamic(journal, runtimeDynamicData)} />
+            <PageSet key={journal.id} journal={journal} draft={drafts[journal.id] || draftFromDynamic(journal, dynamicData)} />
           ))}
         </div>
       </section>
