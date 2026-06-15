@@ -116,6 +116,19 @@ button {
   font-size: 11px;
 }
 
+.save-state {
+  font-weight: 800;
+  text-transform: none;
+}
+
+.save-state.is-dirty {
+  color: #97540a;
+}
+
+.save-state.is-saved {
+  color: #21633c;
+}
+
 .journal-select-label {
   display: grid;
   gap: 6px;
@@ -144,6 +157,58 @@ button {
 
 .journal-select-label input::placeholder {
   color: #8aa0b5;
+  font-weight: 600;
+}
+
+.journal-combobox {
+  position: relative;
+}
+
+.combo-list {
+  background: #fff;
+  border: 1px solid #cbd8e4;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(12, 45, 77, 0.16);
+  left: 0;
+  list-style: none;
+  margin: 4px 0 0;
+  max-height: 280px;
+  overflow: auto;
+  padding: 4px;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 20;
+}
+
+.combo-list li {
+  border-radius: 4px;
+  color: var(--foreground);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 8px;
+}
+
+.combo-list li small {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.combo-list li:hover,
+.combo-list li.active {
+  background: #f0efff;
+  color: #4f35f2;
+}
+
+.combo-list li.active small,
+.combo-list li:hover small {
+  color: #6f5bf5;
+}
+
+.combo-list li.empty {
+  color: var(--muted);
+  cursor: default;
   font-weight: 600;
 }
 

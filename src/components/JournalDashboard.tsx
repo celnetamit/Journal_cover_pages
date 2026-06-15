@@ -15,6 +15,37 @@ import {
 import { dynamicKey, journalLookupKeys } from "@/lib/lookup";
 import type { DynamicBinderData, EditorialMember } from "@/lib/formidable";
 import type { Journal } from "@/lib/journals";
+import { exportBookToPdf, type ExportMode } from "@/lib/pdf-export";
+import {
+  cleanIcv,
+  compactKeyword,
+  frontCoverTitleClass,
+  initials,
+  isLawJournal,
+  lowerRoman,
+  titleCaseName,
+} from "@/lib/binder-format";
+import {
+  type BinderDraft,
+  type ManagementPerson,
+  type ContentRow,
+  boardMembers,
+  contents,
+  focusList,
+  objectives,
+  salientFeatures,
+  lawObjectives,
+  lawSalientFeatures,
+  lawJournalNames,
+  managementMembers,
+  lawManagementMembers,
+  subscriptionPlans,
+  defaultDirectorParagraphs,
+  lawDirectorParagraphs,
+  defaultFocusNotes,
+  defaultManuscriptNotice,
+  logoAssets,
+} from "@/lib/binder-content";
 
 type Props = {
   journals: Journal[];
@@ -22,59 +53,7 @@ type Props = {
   dynamicData: DynamicBinderData;
 };
 
-type BinderDraft = {
-  journalTitle: string;
-  journalAbbreviation: string;
-  eIssn: string;
-  sjif: string;
-  icv: string;
-  coverImage: string;
-  backCoverImage: string;
-  journalLogoImage: string;
-  footerRightLogoImage: string;
-  journalWebsite: string;
-  issueVolume: string;
-  issueNumber: string;
-  issueMonthRange: string;
-  issueYear: string;
-  about: string;
-  focusScope: string[];
-  focusNotes: string[];
-  editorialBoard: EditorialMember[];
-  managementHead: ManagementPerson;
-  managementMembers: ManagementPerson[];
-  directorTitle: string;
-  directorName: string;
-  directorRole: string;
-  directorParagraphs: string[];
-  manuscriptNotice: string;
-  contentRows: ContentRow[];
-  // Page 2 (title page) overrides — blank = use the generated publisher default.
-  coverPrinter: string;
-  publisherAddress: string;
-  publisherPhone: string;
-  publisherEmail: string;
-  publisherWebsite: string;
-  registeredOffice: string;
-  cin: string;
-  // Page 3 (subscription/legal) full-text override — blank = use generated content.
-  paymentOverride: string;
-};
 
-type ManagementPerson = {
-  name: string;
-  role: string;
-  department: string;
-  photo: string;
-};
-
-type ContentRow = {
-  title: string;
-  author: string;
-  page: string;
-};
-
-type ExportMode = "cover" | "internal";
 
 const draftStorageKey = "journal-cover-page-drafts";
 const defaultIssueVolume = "13";
@@ -86,7 +65,6 @@ const defaultCoverPrinter = "Laxman Printo Graphics, Noida";
 const defaultRegisteredOffice =
   "Office No. 4, First Floor, CSC Pocket-E Market, Mayur Vihar, Phase-I, New Delhi-110091";
 const defaultCin = "U80302DL2005PTC138759";
-const romanNumerals = ["", "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"];
 
 function pageStepperLabel(page: number) {
   if (page === 1) return "Cover Spread";
@@ -94,234 +72,8 @@ function pageStepperLabel(page: number) {
   return `Page ${page}`;
 }
 
-const boardMembers = [
-  ["Dr. Tapas Kumar Chatterjee", "Associate Professor-Marketing", "Institute of Management Technology Maharashtra, India", "Editor in Chief"],
-  ["Dr. Ritu Sharma", "Assistant Professor", "GD Goenka University Haryana, India", "Editor"],
-  ["Dr. Sonali S. Patnaik", "Assistant Professor", "International University Uttar Pradesh, India", "Editor"],
-  ["Dr. Herlandi de Souza Andrade", "Professor", "Centro Estadual de Educacao Tecnologica Paula Souza, Brazil", "Editor"],
-  ["Dr. ALOK RANJAN", "Board of Directors, Advisory", "Emerit College University Uttar Pradesh, India", "Editor"],
-  ["Dr. P.Malyadri", "Principal", "Rayalaseema University Andhra Pradesh, India", "Editor"],
-  ["Dr. Shikha Bhardwaj", "Associate Professor", "IILM Graduate School Of Management Uttar Pradesh, India", "Editor"],
-  ["Dr. D. GNYANESWER", "Assistant Professor", "Badruka School of Management Hyderabad, India", "Editor"],
-  ["Dr. Prof. Naresh Sachdev", "Director", "PCTE Group of Institutes Ludhiana Punjab, India", "Editor"],
-  ["Dr. Sundari Dadabhai", "Associate Professor", "Karnavati University Gujarat, India", "Editor"],
-  ["Dr. Smita Raj Jain", "Professor", "Sagar Institute of Research & Technology Madhya Pradesh, India", "Editor"],
-  ["Dr. Archita Banerjee", "Associate Professor", "West Bengal, India", "Editor"],
-  ["Dr. Nada Jabbour Al Maalouf", "Assistant Professor", "Holy Spirit University of Kaslik Lebanon", "Editor"],
-];
 
-const contents: ContentRow[] = [
-  { title: "Indian Knowledge System and Management in India: An Integrative Perspective", author: "Bindya S. Soni", page: "1" },
-  { title: "AI-Enabled Leadership Development and Strategic Organizational Analysis in Higher Education: Emerging HRM and Organizational Behavior Practices for 2026-2027", author: "Ameya Mohammed Ali", page: "7" },
-  { title: "Impact of Toxic Leadership in the 21st Century on Employees' Intentions to Leave, with Workplace Bullying as a Mediating Factor", author: "Amaresh Satpathy, Pranad Ranjan Panda, Swapnamayee Sahoo", page: "16" },
-  { title: "Standardizing Public Infrastructure Procurement: A Best Practice Trajectory for Nigerian Quantity Surveyors", author: "Alozie I. Ahmadi", page: "25" },
-  { title: "Purpose-Driven Startups: A Holistic Leadership Framework for Building Resilient and Scalable Ventures", author: "Tuhin Mukharjee, Mayank Kumar Dwivedi", page: "35" },
-];
 
-const focusList = [
-  "Strategic Management Process",
-  "Management Decisions",
-  "Time Scales and Production Development Planning",
-  "Structure of the Organization",
-  "Activities of the Organization",
-  "Analysis of Internal and External Factors for Product Development",
-  "SWOT Analysis",
-  "Experience Curve",
-  "Corporate Strategy and Portfolio Theory",
-  "Competitor Analysis",
-  "Generic Competitive Strategic Thinking",
-  "Globalization and the Virtual Firm",
-  "Internet and Information Availability",
-  "Sustainability",
-  "Age of Discontinuity-New Technologies, Globalization, Cultural Pluralism and Knowledge Capital",
-];
-
-const objectives = [
-  "Promotion of articles related with Management, Business and Administration domains.",
-  "Publication of genuine articles through proper peer review process.",
-  "Publishing Special Issues on Conferences.",
-  "Preparing online platform for other print Journals.",
-  "Empowering the libraries with online and print Journals in MBA domains.",
-];
-
-const salientFeatures = [
-  "Employs Open Journals System (OJS)-A Journal Management & Publishing System.",
-  "Rapid online submission and publication of papers, soon after their formal acceptance/ finalization.",
-  "Free online access to the abstracts of all articles.",
-  "An effective global web exposure for your Journal.",
-  "A chance to preserve your research/review work, online.",
-  "An initiative to share and empower knowledge worldwide.",
-  "A mode to generate interest in your subject area.",
-  "Facilitates linking with the other authors or professionals.",
-];
-
-const lawObjectives = [
-  "Promotion of research works in the field of Law and legality.",
-  "To publish articles that inspire thought and insight of the major issues related to Law.",
-  "Empowering the libraries with online and print Journals in legal domain.",
-  "Publication of original research, review, short articles and case studies through peer review process.",
-  "To reach readers worldwide who are interested in legal research and legal issues through the Open Access system.",
-];
-
-const lawSalientFeatures = [
-  "A bouquet of 15 Journals sharing all aspects of legal knowledge.",
-  "Employs Open Journals System (OJS)-A Journal Management & Publishing System.",
-  "Worldwide circulation and visibility.",
-  "Presents an opportunity for unbiased reflection on particular legal developments and issues.",
-  "Rapid online submission and publication of papers, soon after their formal acceptance/finalization.",
-];
-
-const lawJournalNames = [
-  "National Journal of Criminal Law",
-  "Journal of Family and Adoption Law",
-  "Journal of Banking and Insurance Law",
-  "National Journal of Real Estate Law",
-  "National Journal of Environmental Law",
-  "National Journal of Cyber Security Law",
-  "Indian Journal of Health & Medical Law",
-  "Journal of Human Rights Law and Practice",
-  "Journal of Intellectual Property Rights Law",
-  "Journal of Capital Market and Securities Law",
-  "Journal of Constitutional Law & Jurisprudence",
-  "Journal of Taxation and Regulatory Framework",
-  "National Journal of Labour and Industrial Law",
-  "Journal of Law of Torts and Consumer Protection Law",
-  "Journal of Corporate Governance and International Business Law",
-];
-
-const managementMembers: ManagementPerson[] = [
-  { name: "Quaisher J. Hossain", role: "Senior Editor", department: "", photo: "" },
-  { name: "Gautam Goswami", role: "Manager", department: "Quality Control", photo: "" },
-  { name: "Rahul Kumar", role: "Marketing Manager", department: "STM Conferences", photo: "" },
-  { name: "Farha Khan", role: "Commissioning Editor", department: "Nursing", photo: "" },
-  { name: "Rishabh Pandey", role: "Assistant Commissioning Editor", department: "Computer Science & Engineering", photo: "" },
-  { name: "Akash Gupta", role: "Commissioning Editor", department: "Medical & Pharmacy", photo: "" },
-  { name: "Subia Abbasi", role: "Associate Editor", department: "Lifescience & Ayurveda", photo: "" },
-  { name: "Neetu Raghav", role: "Commissioning Editor", department: "Architecture", photo: "" },
-  { name: "Mansi Srivastava", role: "Commissioning Editor", department: "Mechanical Engineering", photo: "" },
-  { name: "Susmita Jahan", role: "Commissioning Editor", department: "Civil Engineering", photo: "" },
-  { name: "Chinku Gautam", role: "Associate Editor", department: "Computer Science & Engineering", photo: "" },
-  { name: "Shivani Sonkar", role: "Commissioning Editor", department: "Chemistry", photo: "" },
-  { name: "Anjul Varshney", role: "Commissioning Editor", department: "Mechanical Engineering", photo: "" },
-  { name: "Vanshika Kardam", role: "Associate Editor", department: "Chemical Engineering & Material Science", photo: "" },
-  { name: "Gauri Kaushik", role: "Associate Editor", department: "Electrical and Electronic", photo: "" },
-  { name: "Alisha", role: "Associate Editor", department: "Biotechnology & Multidisciplinary", photo: "" },
-  { name: "Arun Pratap Singh", role: "Associate Editor", department: "Chemistry", photo: "" },
-  { name: "Nandini Sahu", role: "Associate Editor", department: "Agriculture", photo: "" },
-];
-
-const lawManagementMembers: ManagementPerson[] = [
-  { name: "Dr. Archana Mehrotra", role: "Group Managing Editor and Managing Director", department: "CELNET, Delhi, India", photo: "" },
-  { name: "Quaisher J. Hossain", role: "Senior Editor", department: "", photo: "" },
-  { name: "Gagan Kumar", role: "Associate Editor", department: "Law Journals | cle@celnet.in", photo: "" },
-  { name: "Gautam Goswami", role: "Manager", department: "Quality Control", photo: "" },
-];
-
-const subscriptionPlans = [
-  "Print: Only $44 (Two Print Issues)",
-  "Online: Only $149 (Online Access of Current and Back Issues)",
-  "Print + Online: $200 (Two Print Issues and Online Access of Current and Back Issues)",
-];
-
-const defaultDirectorParagraphs = [
-  "We would like to present, with great pleasure, the Twelfth volume of a scholarly International Journal of Industrial Biotechnology and Biomaterials. This journal is part of the Applied Sciences, and is devoted to the scope of present Industrial Biotechnology and Biomaterials issues, from theoretical aspects to application-dependent studies and the validation of emerging technologies. This journal was planned and established to represent the growing needs of Industrial Biotechnology and Biomaterials as an emerging and increasingly vital field, now widely recognized as an integral part of scientific and technical investigations. Its mission is to become a voice of Industrial Biotechnology and Biomaterials, addressing researchers and practitioners in this area.",
-  "The core vision of International Journal of Industrial Biotechnology and Biomaterials in JournalsPub is to propagate novel awareness and know-how for the profit of mankind ranging from the academic and professional research societies to industry practitioners in a range of topics in Industrial Biotechnology and Biomaterials in general. JournalsPub acts as a pathfinder for the scientific community to publish their papers at excellently, well-timed & successfully.",
-  "International Journals of Industrial Biotechnology and Biomaterials focuses on original high-quality research in the realm of Bioenergy, biofuels, bio-refining, Biomass and feed stocks, Bio-plastics, biofilms, Bio-based chemicals and enzymes, Fermentation and cell culture, Biocatalysis, Environmental microbiology, Natural products discovery and biosynthesis, Drug delivery mechanisms, Sustainable materials, etc.",
-  "The Journal is intended as a forum for practitioners and researchers to share the techniques of Industrial Biotechnology and Biomaterials and solutions in the area. Many scientists and researchers have contributed to the creation and success of Industrial Biotechnology and Biomaterials. We are very thankful to everybody within that community who supported the idea of creating an innovative platform. We are certain that this issue will be followed by many others, reporting new developments in the field of Industrial Biotechnology and Biomaterials.",
-  "This issue would not have been possible without the great support of the Editorial Board members, and we would like to express our sincere thanks to all of them. We would also like to express our gratitude to the editorial staff of JournalsPub, who supported us at every stage of the project. It is our hope that this fine collection of articles will be a valuable resource for Industrial Biotechnology and Biomaterials readers and will stimulate further research into the vibrant area of Industrial Biotechnology and Biomaterials.",
-];
-
-const lawDirectorParagraphs = [
-  "It is my privilege to present the print version of the {journal}. The intention of this journal is to create an atmosphere that stimulates vision and research in the area of law and legal studies.",
-  "Law Journals aims to provide an academic medium and an important reference for the advancement and dissemination of research results that support high-level learning, teaching, and research in legal domains.",
-  "Lastly, I would like to express my sincere gratitude to our Editorial/Review Board, authors and publication team for their continued support, invaluable contributions and suggestions in the form of authoring writeups, reviewing, and providing constructive comments for the advancement of the journals.",
-  "I hope you will enjoy reading this issue and we welcome your feedback on any aspect of the Journal.",
-];
-
-const defaultFocusNotes = [
-  "Sections covered by this journal are review papers, research papers, interviews, news, companies/institutions write-ups, short popular articles and case studies.",
-  "All contributions to the journal are rigorously refereed and are selected on the basis of quality and originality of the work. The journal publishes the most significant new research papers or any other original contribution in the form of reviews and reports on new concepts in all areas pertaining to its scope and research being done in the world, thus ensuring its scientific priority and significance.",
-  "No part of this publication may be reproduced, stored in retrieval or transmitted in any form without written permission to the publisher.",
-  "To cite any of the material contained in this journal, in English or translation, please use the full English reference at the beginning of each article. To reuse any of the material, please contact STM Journals. The author(s) is/are solely responsible for the content of the article(s) published in the STM Journalsplatform. The published articles are not constituted or deemed to constitute any representation of view of the editors or publisher. The data presented therein are correct or sufficient to support the conclusions reached or that the experiment design or methodology is adequate and the information, opinions, views presented in the articles reflect the views of the authors and contributors of the article and not the opinion of publisher or the editorial board.",
-];
-
-const defaultManuscriptNotice =
-  "Manuscript Engine is our specialized platform ensuring a seamless publication flow. Please don't hesitate to reach out to us for any inquiries regarding APID and manuscript submission. You can contact us at info@stmjournals.com.";
-
-const logoAssets = {
-  dhruv: {
-    src: "/brand/dhruv-info-systems.jpg",
-    alt: "Dhruv Info Systems Private Limited",
-    width: 924,
-    height: 363,
-  },
-  journalspub: {
-    src: "/brand/journalspub.jpg",
-    alt: "JournalsPub International Journals Publisher",
-    width: 657,
-    height: 392,
-  },
-  stm: {
-    src: "/brand/stm-journals.jpg",
-    alt: "STM Journals",
-    width: 763,
-    height: 620,
-  },
-  mba: {
-    src: "/brand/mba-journals.jpeg",
-    alt: "MBA Journals",
-    width: 248,
-    height: 204,
-  },
-  consortium: {
-    src: "/brand/consortium.jpeg",
-    alt: "Consortium e-Learning Network",
-    width: 325,
-    height: 155,
-  },
-  law: {
-    src: "/brand/law-journals.jpeg",
-    alt: "Law Journals",
-    width: 244,
-    height: 148,
-  },
-  signature: {
-    src: "/brand/puneet-sign.webp",
-    alt: "Puneet Mehrotra signature",
-    width: 2507,
-    height: 1002,
-  },
-  manuscriptQr: {
-    src: "/brand/manuscript-engine-qr.png",
-    alt: "QR code for manuscript engine",
-    width: 1024,
-    height: 1024,
-  },
-  director: {
-    src: "/brand/puneet-sir-director.jpg",
-    alt: "Puneet Mehrotra",
-    width: 661,
-    height: 1149,
-  },
-};
-
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
-
-function titleCaseName(name: string) {
-  return name
-    .replace(/^NOLEGEIN/i, "NOLEGEIN")
-    .replace(/\b\w+/g, (word) =>
-      word === "NOLEGEIN" ? word : word[0].toUpperCase() + word.slice(1).toLowerCase(),
-    );
-}
 
 function findDynamicValue<T>(journal: Journal, map: Record<string, T>) {
   for (const key of journalLookupKeys(journal)) {
@@ -330,9 +82,6 @@ function findDynamicValue<T>(journal: Journal, map: Record<string, T>) {
   }
 }
 
-function isLawJournal(journal: Journal) {
-  return `${journal.publisher} ${journal.imprint} ${journal.domain}`.toLowerCase().includes("law");
-}
 
 function defaultBackCoverImage() {
   return "/brand/stm-digital-library-back.png";
@@ -343,12 +92,14 @@ function defaultCoverWebsite(journal: Journal) {
 }
 
 function normalizeCoverWebsite(value: string | undefined, journal: Journal) {
+  // Strip protocol and trailing slashes but keep any path — a path-based URL is
+  // still valid for the cover and should not be silently replaced.
   const cleaned = (value || "")
+    .trim()
     .replace(/^https?:\/\//i, "")
-    .replace(/\/$/g, "")
-    .trim();
+    .replace(/\/+$/g, "");
 
-  if (!cleaned || cleaned.includes("/")) return defaultCoverWebsite(journal);
+  if (!cleaned) return defaultCoverWebsite(journal);
   return cleaned;
 }
 
@@ -362,13 +113,6 @@ function defaultCoverImage(journal: Journal) {
   return journal.logo;
 }
 
-function compactKeyword(value: string) {
-  return value
-    .trim()
-    .replace(/^[^a-z0-9]+/i, "")
-    .split(/[\s,/()-]+/)
-    .find(Boolean) || "";
-}
 
 function focusKeywords(focus: { keywords?: string[]; focusScope?: string[] } | undefined, fallback: string[]) {
   const preferred = (focus?.keywords || [])
@@ -608,9 +352,6 @@ function saveDraftsToStorage(drafts: Record<string, BinderDraft>): boolean {
   }
 }
 
-function lowerRoman(value: number) {
-  return romanNumerals[value] || String(value).toLowerCase();
-}
 
 function exportBaseSlug(journal: Journal | undefined, draft: BinderDraft | null) {
   const base = journal?.abbreviation || journal?.shortName || draft?.journalTitle || "journal";
@@ -631,49 +372,6 @@ type ExportError = { mode: ExportMode; message: string } | null;
 type BookEntry = { journal: Journal; draft: BinderDraft };
 type BookSnapshot = BookEntry[] | null;
 
-// Rasterizes the currently-mounted #pdf-book to a PDF. Throws on failure so the
-// caller can surface an error; html2canvas loads the images in its own clone.
-async function exportBookToPdf(mode: ExportMode, filename: string) {
-  const source = document.getElementById("pdf-book");
-  if (!source) throw new Error("Export container not found.");
-  const pages = Array.from(source.querySelectorAll<HTMLElement>(`.pdf-page[data-export-group="${mode}"]`));
-  if (pages.length === 0) throw new Error("No pages were found to export.");
-  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-    import("html2canvas"),
-    import("jspdf"),
-  ]);
-  const firstLandscape = pages[0]?.classList.contains("cover-spread-page");
-  const pdfFormat = mode === "cover" ? [431.8, 304.8] : "a4";
-  const pdf = new jsPDF({
-    orientation: firstLandscape ? "landscape" : "portrait",
-    unit: "mm",
-    format: pdfFormat,
-  });
-
-  for (let index = 0; index < pages.length; index += 1) {
-    const landscape = pages[index].classList.contains("cover-spread-page");
-    const pageWidth = mode === "cover" ? 431.8 : landscape ? 297 : 210;
-    const pageHeight = mode === "cover" ? 304.8 : landscape ? 210 : 297;
-    const { width, height } = pages[index].getBoundingClientRect();
-    const canvas = await html2canvas(pages[index], {
-      // Cover spreads are very large; using a slightly lower scale avoids corrupted image data in jsPDF exports.
-      scale: mode === "cover" ? 1.5 : 2,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-      width,
-      height,
-      windowWidth: Math.ceil(width),
-      windowHeight: Math.ceil(height),
-    });
-    // JPEG for both modes: full-page PNG bitmaps made the internal PDF ~100x
-    // larger (85 MB+). JPEG at high quality keeps text crisp at a fraction of the size.
-    const imgData = canvas.toDataURL("image/jpeg", mode === "cover" ? 0.92 : 0.95);
-    if (index > 0) pdf.addPage(pdfFormat, landscape ? "landscape" : "portrait");
-    pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-  }
-
-  pdf.save(filename);
-}
 
 function DownloadButton({
   label,
@@ -896,17 +594,7 @@ function CoverBitmap({ src, alt, className }: { src: string; alt: string; classN
   return <img className={className} src={src} alt={alt} crossOrigin="anonymous" />;
 }
 
-function cleanIcv(value: string) {
-  return value.replace(/^ICV\s*:\s*/i, "").trim();
-}
 
-function frontCoverTitleClass(title: string) {
-  const length = title.trim().length;
-  if (length > 72) return "front-cover-title ultra-compact";
-  if (length > 54) return "front-cover-title compact";
-  if (length > 38) return "front-cover-title balanced";
-  return "front-cover-title";
-}
 
 function excellenceLogoSource(draft: BinderDraft, journal: Journal) {
   const logo = draft.footerRightLogoImage?.trim();
@@ -2201,6 +1889,8 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   const [bookSnapshot, setBookSnapshot] = useState<BookSnapshot>(null);
   const [batchIds, setBatchIds] = useState<string[]>([]);
   const [importStatus, setImportStatus] = useState("");
+  const [dirty, setDirty] = useState(false);
+  const [comboOpen, setComboOpen] = useState(false);
   const primaryJournal = journals.find((journal) => journal.id === selectedId) || journals[0];
   const selectedJournals = primaryJournal ? [primaryJournal] : [];
   const primaryDraft = primaryJournal ? drafts[primaryJournal.id] || draftFromDynamic(primaryJournal, dynamicData) : null;
@@ -2247,6 +1937,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
 
   function updateDraft(journalId: string, draft: BinderDraft) {
     setDrafts((current) => ({ ...current, [journalId]: draft }));
+    setDirty(true);
   }
 
   function saveCurrentDraft() {
@@ -2254,6 +1945,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     const nextDrafts = { ...loadSavedDrafts(), ...drafts, [primaryJournal.id]: primaryDraft };
     const saved = saveDraftsToStorage(nextDrafts);
     setDrafts((current) => ({ ...current, [primaryJournal.id]: primaryDraft }));
+    if (saved) setDirty(false);
     setSaveStatus(
       saved
         ? `Saved details for ${primaryJournal.abbreviation || primaryJournal.name}`
@@ -2261,6 +1953,23 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     );
     window.setTimeout(() => setSaveStatus(""), saved ? 2500 : 6000);
   }
+
+  // U4 — debounced autosave: persist all drafts ~1.5s after the last edit.
+  useEffect(() => {
+    if (!dirty) return;
+    const timer = window.setTimeout(() => {
+      const saved = saveDraftsToStorage({ ...loadSavedDrafts(), ...drafts });
+      if (saved) {
+        setDirty(false);
+        setSaveStatus("Auto-saved");
+        window.setTimeout(() => setSaveStatus(""), 1500);
+      } else {
+        setSaveStatus("Auto-save failed — storage full. Use Export Drafts to back up your work.");
+        window.setTimeout(() => setSaveStatus(""), 6000);
+      }
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [dirty, drafts]);
 
   // W3 — download all drafts (in-memory + saved) as a JSON backup file.
   function exportDraftsJson() {
@@ -2405,21 +2114,55 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
           <span>Active Journal</span>
           <b>{primaryJournal ? titleCaseName(primaryJournal.name) : "No journal selected"}</b>
           <small>ISSN: {primaryDraft?.eIssn || primaryJournal?.eIssn || "Not set"}</small>
-          <label className="journal-select-label">
+          <small className={dirty ? "save-state is-dirty" : "save-state is-saved"}>
+            {dirty ? "● Unsaved changes" : "✓ All changes saved"}
+          </small>
+          <div className="journal-select-label">
             <span>Select journal</span>
-            <input
-              value={journalQuery}
-              onChange={(event) => setJournalQuery(event.target.value)}
-              placeholder="Search journal by name, abbreviation, publisher"
-            />
-            <select value={primaryJournal?.id || ""} onChange={(event) => selectJournal(event.target.value)}>
-              {filteredJournals.map((journal) => (
-                <option key={journal.id} value={journal.id}>
-                  {journal.name} ({journal.abbreviation})
-                </option>
-              ))}
-            </select>
-          </label>
+            <div className="journal-combobox">
+              <input
+                value={journalQuery}
+                onChange={(event) => {
+                  setJournalQuery(event.target.value);
+                  setComboOpen(true);
+                }}
+                onFocus={() => setComboOpen(true)}
+                onBlur={() => window.setTimeout(() => setComboOpen(false), 120)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") setComboOpen(false);
+                  if (event.key === "Enter" && comboOpen && filteredJournals[0]) {
+                    selectJournal(filteredJournals[0].id);
+                    setComboOpen(false);
+                  }
+                }}
+                placeholder={primaryJournal ? titleCaseName(primaryJournal.name) : "Search journal by name or abbreviation"}
+                aria-label="Search and select journal"
+                role="combobox"
+                aria-controls="journal-combo-list"
+                aria-expanded={comboOpen}
+              />
+              {comboOpen ? (
+                <ul className="combo-list" id="journal-combo-list" role="listbox">
+                  {filteredJournals.slice(0, 50).map((journal) => (
+                    <li
+                      key={journal.id}
+                      role="option"
+                      aria-selected={journal.id === primaryJournal?.id}
+                      className={journal.id === primaryJournal?.id ? "active" : ""}
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                        selectJournal(journal.id);
+                        setComboOpen(false);
+                      }}
+                    >
+                      {journal.name} <small>({journal.abbreviation})</small>
+                    </li>
+                  ))}
+                  {filteredJournals.length === 0 ? <li className="empty">No matches</li> : null}
+                </ul>
+              ) : null}
+            </div>
+          </div>
         </div>
       </aside>
 
