@@ -366,10 +366,24 @@ function focusKeywords(focus: { keywords?: string[]; focusScope?: string[] } | u
     .filter(Boolean);
 }
 
+function defaultDirectorDesk(journal: Journal) {
+  return {
+    title: isLawJournal(journal) ? "Director's Desk" : "From the Director's Desk",
+    name: "Puneet Mehrotra",
+    role: isLawJournal(journal) ? "Chairman & Director, Law Journals" : "Managing Director",
+    paragraphs: isLawJournal(journal) ? lawDirectorParagraphs : defaultDirectorParagraphs,
+  };
+}
+
+function hasDirectorContent(paragraphs: string[] | undefined) {
+  return (paragraphs || []).some((paragraph) => paragraph.trim());
+}
+
 function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): BinderDraft {
   const details = findDynamicValue(journal, dynamicData.detailsByKey);
   const focus = findDynamicValue(journal, dynamicData.focusByKey);
   const editorialBoard = findDynamicValue(journal, dynamicData.editorialByKey) || [];
+  const directorDesk = defaultDirectorDesk(journal);
 
   return {
     journalTitle: details?.name || journal.name,
@@ -397,10 +411,10 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
       photo: logoAssets.director.src,
     },
     managementMembers: isLawJournal(journal) ? lawManagementMembers : managementMembers,
-    directorTitle: isLawJournal(journal) ? "Director's Desk" : "From the Director's Desk",
-    directorName: "Puneet Mehrotra",
-    directorRole: isLawJournal(journal) ? "Chairman & Director, Law Journals" : "Managing Director",
-    directorParagraphs: isLawJournal(journal) ? lawDirectorParagraphs : defaultDirectorParagraphs,
+    directorTitle: directorDesk.title,
+    directorName: directorDesk.name,
+    directorRole: directorDesk.role,
+    directorParagraphs: directorDesk.paragraphs,
     manuscriptNotice: defaultManuscriptNotice,
     contentRows: contents,
   };
@@ -421,7 +435,7 @@ function hasDefaultFocusScope(draft: BinderDraft) {
 }
 
 function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicData?: DynamicBinderData) {
-  const defaultDirectorLetter = isLawJournal(journal) ? lawDirectorParagraphs : defaultDirectorParagraphs;
+  const directorDesk = defaultDirectorDesk(journal);
   const hydratedDraft = {
     ...draft,
     sjif: draft.sjif ?? journal.impactFactor ?? "",
@@ -432,7 +446,10 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
     footerRightLogoImage: draft.footerRightLogoImage ?? "",
     journalAbbreviation: draft.journalAbbreviation || journal.abbreviation || journal.shortName,
     journalWebsite: normalizeCoverWebsite(draft.journalWebsite, journal),
-    directorParagraphs: draft.directorParagraphs?.length ? draft.directorParagraphs : defaultDirectorLetter,
+    directorTitle: draft.directorTitle?.trim() || directorDesk.title,
+    directorName: draft.directorName?.trim() || directorDesk.name,
+    directorRole: draft.directorRole?.trim() || directorDesk.role,
+    directorParagraphs: hasDirectorContent(draft.directorParagraphs) ? draft.directorParagraphs : directorDesk.paragraphs,
   };
   const focus = dynamicData ? findDynamicValue(journal, dynamicData.focusByKey) : undefined;
   const withFocus = focus && hasDefaultFocusScope(draft)
@@ -449,9 +466,9 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
   return {
     ...withFocusNotes,
     managementMembers: lawManagementMembers,
-    directorTitle: withFocusNotes.directorTitle === "From the Director's Desk" ? "Director's Desk" : withFocusNotes.directorTitle,
-    directorRole: withFocusNotes.directorRole === "Managing Director" ? "Chairman & Director, Law Journals" : withFocusNotes.directorRole,
-    directorParagraphs: withFocusNotes.directorParagraphs === defaultDirectorParagraphs ? lawDirectorParagraphs : withFocusNotes.directorParagraphs,
+    directorTitle: withFocusNotes.directorTitle === "From the Director's Desk" ? directorDesk.title : withFocusNotes.directorTitle,
+    directorRole: withFocusNotes.directorRole === "Managing Director" ? directorDesk.role : withFocusNotes.directorRole,
+    directorParagraphs: hasDirectorContent(withFocusNotes.directorParagraphs) ? withFocusNotes.directorParagraphs : directorDesk.paragraphs,
   };
 }
 
@@ -1316,7 +1333,9 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
 }
 
 function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
-  const paragraphs = draft.directorParagraphs.length ? draft.directorParagraphs : defaultDirectorParagraphs;
+  const paragraphs = hasDirectorContent(draft.directorParagraphs)
+    ? draft.directorParagraphs
+    : defaultDirectorDesk(journal).paragraphs;
 
   return (
     <section className="pdf-page director-page" data-export-group="internal">
@@ -1454,9 +1473,9 @@ function SectionEditor({
   const hasFocus = apiKeys.some((key) => dynamicData.focusByKey[key]);
   const hasEditorial = apiKeys.some((key) => dynamicData.editorialByKey[key]);
   const focusNotes = draft.focusNotes?.length ? draft.focusNotes : defaultFocusNotes;
-  const directorParagraphs = draft.directorParagraphs.length
+  const directorParagraphs = hasDirectorContent(draft.directorParagraphs)
     ? draft.directorParagraphs
-    : (isLawJournal(journal) ? lawDirectorParagraphs : defaultDirectorParagraphs);
+    : defaultDirectorDesk(journal).paragraphs;
 
   function updateEditorial(index: number, patch: Partial<EditorialMember>) {
     onChange({
