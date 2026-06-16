@@ -1428,8 +1428,8 @@ function DirectorPage({
   const page8Items: Array<{ id: DirectorElementId; className: string; content: ReactNode }> = [
     { id: "title", className: "page8-block page8-title", content: <h1>{draft.directorTitle}</h1> },
     {
-      id: "intro",
-      className: "page8-block page8-intro",
+      id: "letter",
+      className: "page8-block page8-letter",
       content: (
         <div className="director-letter">
           <div className="director-intro">
@@ -1446,14 +1446,6 @@ function DirectorPage({
               <p className="director-first-paragraph">{paragraphs[0].replaceAll("{journal}", titleCaseName(journal.name))}</p>
             </div>
           </div>
-        </div>
-      ),
-    },
-    {
-      id: "body",
-      className: "page8-block page8-body",
-      content: (
-        <div className="director-letter">
           {paragraphs.slice(1).map((paragraph, index) => (
             <p key={index}>{paragraph.replaceAll("{journal}", titleCaseName(journal.name))}</p>
           ))}
@@ -1745,6 +1737,14 @@ function SectionEditor({
 
   function addParagraph() {
     onChange({ ...draft, directorParagraphs: [...directorParagraphs, ""] });
+  }
+
+  function removeParagraph(index: number) {
+    if (directorParagraphs.length <= 1) return;
+    onChange({
+      ...draft,
+      directorParagraphs: directorParagraphs.filter((_, paragraphIndex) => paragraphIndex !== index),
+    });
   }
 
   function updateManagementHead(patch: Partial<ManagementPerson>) {
@@ -2211,7 +2211,7 @@ function SectionEditor({
       {activePage === 8 ? (
         <>
           <div className="editor-note">
-            The Director&apos;s Desk title, intro/photo block, body block, and signature can all be repositioned directly on the canvas for page 8.
+            The Director&apos;s Desk title, full letter block, and signature can all be repositioned directly on the canvas for page 8.
           </div>
           <label>
             <span>Director desk letter title</span>
@@ -2234,10 +2234,15 @@ function SectionEditor({
             </div>
           </div>
           {directorParagraphs.map((paragraph, index) => (
-            <label key={index}>
-              <span>Paragraph {index + 1}</span>
+            <article key={index} className="content-edit-card">
+              <div className="editor-row-head">
+                <span>Paragraph {index + 1}</span>
+                <div className="editor-row-actions">
+                  <button type="button" disabled={directorParagraphs.length <= 1} onClick={() => removeParagraph(index)}>Remove</button>
+                </div>
+              </div>
               <textarea rows={4} value={paragraph} onChange={(event) => updateParagraph(index, event.target.value)} />
-            </label>
+            </article>
           ))}
         </>
       ) : null}

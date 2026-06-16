@@ -134,8 +134,7 @@ export type PaymentElementId =
 
 export type DirectorElementId =
   | "title"
-  | "intro"
-  | "body"
+  | "letter"
   | "signature";
 
 export type ContentElementId =
@@ -215,8 +214,7 @@ export const defaultBinderPageLayouts: BinderPageLayouts = {
   },
   page8: {
     title: { x: 13.8, y: 7.2 },
-    intro: { x: 8.2, y: 17.6 },
-    body: { x: 8.2, y: 48.8 },
+    letter: { x: 8.2, y: 17.6 },
     signature: { x: 10.2, y: 82.8 },
   },
   page9: {
@@ -318,6 +316,7 @@ export function normalizeBinderPageLayouts(
     page9: Partial<Record<ContentElementId, Partial<GenericPageElementLayout>>>;
   }> | undefined,
 ): BinderPageLayouts {
+  const legacyPage8 = layouts?.page8 as Partial<Record<"intro" | "body", Partial<GenericPageElementLayout>>> | undefined;
   return {
     page2: normalizeGenericRecord(defaultBinderPageLayouts.page2, layouts?.page2),
     page3: normalizeGenericRecord(defaultBinderPageLayouts.page3, layouts?.page3),
@@ -325,7 +324,10 @@ export function normalizeBinderPageLayouts(
     page5: normalizeGenericRecord(defaultBinderPageLayouts.page5, layouts?.page5),
     page6: normalizeGenericRecord(defaultBinderPageLayouts.page6, layouts?.page6),
     page7: normalizeGenericRecord(defaultBinderPageLayouts.page7, layouts?.page7),
-    page8: normalizeGenericRecord(defaultBinderPageLayouts.page8, layouts?.page8),
+    page8: normalizeGenericRecord(defaultBinderPageLayouts.page8, {
+      ...(layouts?.page8 || {}),
+      letter: layouts?.page8?.letter || legacyPage8?.intro || legacyPage8?.body || defaultBinderPageLayouts.page8.letter,
+    }),
     page9: normalizeGenericRecord(defaultBinderPageLayouts.page9, layouts?.page9),
   };
 }
