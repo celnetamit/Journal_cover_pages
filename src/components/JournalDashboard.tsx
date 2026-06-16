@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
 import {
   ArrowLeft,
@@ -70,6 +70,7 @@ const defaultCoverPrinter = "Laxman Printo Graphics, Noida";
 const defaultRegisteredOffice =
   "Office No. 4, First Floor, CSC Pocket-E Market, Mayur Vihar, Phase-I, New Delhi-110091";
 const defaultCin = "U80302DL2005PTC138759";
+const maxFocusScopeKeywords = 10;
 
 function pageStepperLabel(page: number) {
   if (page === 1) return "Cover Spread";
@@ -94,6 +95,19 @@ function defaultBackCoverImage() {
 
 function defaultCoverWebsite(journal: Journal) {
   return publisherIdentity(journal).website;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function pageDensityScale(contentLength: number, idealLength: number, min = 0.88, max = 1.12) {
+  if (contentLength <= 0 || idealLength <= 0) return 1;
+  return Number(clamp(Math.sqrt(idealLength / contentLength), min, max).toFixed(3));
+}
+
+function pageStyle(scale: number): CSSProperties {
+  return { ["--page-scale" as never]: scale };
 }
 
 function normalizeCoverWebsite(value: string | undefined, journal: Journal) {
@@ -131,6 +145,34 @@ function focusKeywords(focus: { keywords?: string[]; focusScope?: string[] } | u
     .filter(Boolean);
 }
 
+function normalizeFocusScopeInput(value: string) {
+  return value
+    .split("\n")
+    .map((item) => compactKeyword(item))
+    .filter(Boolean)
+    .slice(0, maxFocusScopeKeywords);
+}
+
+function focusScopeItemsForPage(draft: BinderDraft) {
+  const draftItems = (draft.focusScope || [])
+    .map(compactKeyword)
+    .filter(Boolean);
+  const fallbackItems = focusList.map(compactKeyword).filter(Boolean);
+  const merged: string[] = [];
+
+  for (const item of draftItems) {
+    if (!merged.includes(item)) merged.push(item);
+    if (merged.length >= maxFocusScopeKeywords) return merged.slice(0, maxFocusScopeKeywords);
+  }
+
+  for (const item of fallbackItems) {
+    if (!merged.includes(item)) merged.push(item);
+    if (merged.length >= maxFocusScopeKeywords) break;
+  }
+
+  return merged.slice(0, maxFocusScopeKeywords);
+}
+
 function defaultDirectorDesk(journal: Journal) {
   return {
     title: isLawJournal(journal) ? "Director's Desk" : "From the Director's Desk",
@@ -142,6 +184,11 @@ function defaultDirectorDesk(journal: Journal) {
 
 function hasDirectorContent(paragraphs: string[] | undefined) {
   return (paragraphs || []).some((paragraph) => paragraph.trim());
+}
+
+function directorParagraphsForJournal(journal: Journal, draft: BinderDraft) {
+  const defaults = defaultDirectorDesk(journal).paragraphs;
+  return defaults.map((paragraph, index) => draft.directorParagraphs?.[index]?.trim() || paragraph);
 }
 
 function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): BinderDraft {
@@ -1003,12 +1050,16 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
 function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
   const isLaw = identity.logoMode === "law";
-  const scopeItems = (draft.focusScope.length ? draft.focusScope : focusList).slice(0, 12);
+  const scopeItems = focusScopeItemsForPage(draft);
   const focusNotes = draft.focusNotes?.length ? draft.focusNotes : defaultFocusNotes;
   const aboutText = draft.about || journal.about;
+  const pageScale = pageDensityScale(
+    [aboutText, ...scopeItems, ...focusNotes].join(" ").length,
+    2350,
+  );
 
   return (
-    <section className="pdf-page journal-info-page" data-export-group="internal">
+    <section className="pdf-page journal-info-page" data-export-group="internal" style={pageStyle(pageScale)}>
       <div className="journal-info-head">
         <PublisherLogo mode={identity.logoMode} side="publisher" />
         <h1>{titleCaseName(journal.name)}</h1>
@@ -1058,9 +1109,18 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
 function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
   const isLaw = identity.logoMode === "law";
+  const pageScale = pageDensityScale(
+    [
+      identity.website,
+      identity.phone,
+      identity.email,
+      ...(isLaw ? lawJournalNames : []),
+    ].join(" ").length,
+    1200,
+  );
 
   return (
-    <section className="pdf-page management-page" data-export-group="internal">
+    <section className="pdf-page management-page" data-export-group="internal" style={pageStyle(pageScale)}>
       <div className="page-rule" />
       <h1>Publication and Management Team</h1>
       <ManagementProfile person={draft.managementHead} featured />
@@ -1116,8 +1176,9 @@ function ManagementProfile({ person, featured = false }: { person: ManagementPer
 
 function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const url = journal.website || "https://journals.stmjournals.com/open-access/nolegein-journal-of-leadership-and-strategic-management/";
+  const pageScale = pageDensityScale(`${url} ${draft.manuscriptNotice}`.length, 340);
   return (
-    <section className="pdf-page details-page manuscript-page" data-export-group="internal">
+    <section className="pdf-page details-page manuscript-page" data-export-group="internal" style={pageStyle(pageScale)}>
       <PdfHeader journal={journal} label="Manuscript Engine" showLogo={false} showLabel={false} />
       <h1>Manuscript Engine</h1>
       <p className="lead-text">
@@ -1184,9 +1245,16 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
       </div>
     </section>
   ) : null;
+  const pageScale = pageDensityScale(
+    members
+      .map((member) => [member.name, member.designation, member.affiliation, member.location].filter(Boolean).join(" "))
+      .join(" ")
+      .length,
+    3600,
+  );
 
   return (
-    <section className="pdf-page editorial-page" data-export-group="internal">
+    <section className="pdf-page editorial-page" data-export-group="internal" style={pageStyle(pageScale)}>
       <div className="page-rule" />
       <h1>{titleCaseName(journal.name)}</h1>
       <h2>Editorial Board Members</h2>
@@ -1200,13 +1268,11 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
 }
 
 function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
-  const defaultParagraphs = defaultDirectorDesk(journal).paragraphs;
-  const paragraphs = defaultParagraphs
-    .map((paragraph, index) => draft.directorParagraphs?.[index]?.trim() || paragraph)
-    .filter((paragraph) => paragraph.trim());
+  const paragraphs = directorParagraphsForJournal(journal, draft).filter((paragraph) => paragraph.trim());
+  const pageScale = pageDensityScale(paragraphs.join(" ").length, 3600);
 
   return (
-    <section className="pdf-page director-page" data-export-group="internal">
+    <section className="pdf-page director-page" data-export-group="internal" style={pageStyle(pageScale)}>
       <div className="page-rule" />
       <h1>{draft.directorTitle}</h1>
       <div className="director-letter">
@@ -1246,9 +1312,13 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
 
 function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const rows = draft.contentRows.length ? draft.contentRows : contents;
+  const pageScale = pageDensityScale(
+    rows.map((row) => `${row.title} ${row.author} ${row.page}`).join(" ").length,
+    1600,
+  );
 
   return (
-    <section className="pdf-page content-page" data-export-group="internal">
+    <section className="pdf-page content-page" data-export-group="internal" style={pageStyle(pageScale)}>
       <ContentHeader journal={journal} draft={draft} />
       <h1>Contents</h1>
       <table className="contents-table">
@@ -1362,9 +1432,7 @@ function SectionEditor({
   const hasFocus = apiKeys.some((key) => dynamicData.focusByKey[key]);
   const hasEditorial = apiKeys.some((key) => dynamicData.editorialByKey[key]);
   const focusNotes = draft.focusNotes?.length ? draft.focusNotes : defaultFocusNotes;
-  const directorParagraphs = hasDirectorContent(draft.directorParagraphs)
-    ? draft.directorParagraphs
-    : defaultDirectorDesk(journal).paragraphs;
+  const directorParagraphs = directorParagraphsForJournal(journal, draft);
   const [uploadError, setUploadError] = useState("");
 
   function updateEditorial(index: number, patch: Partial<EditorialMember>) {
@@ -1417,18 +1485,6 @@ function SectionEditor({
     onChange({
       ...draft,
       focusNotes: focusNotes.map((note, noteIndex) => (noteIndex === index ? value : note)),
-    });
-  }
-
-  function addParagraph() {
-    onChange({ ...draft, directorParagraphs: [...directorParagraphs, ""] });
-  }
-
-  function removeParagraph(index: number) {
-    if (directorParagraphs.length <= 1) return;
-    onChange({
-      ...draft,
-      directorParagraphs: directorParagraphs.filter((_, paragraphIndex) => paragraphIndex !== index),
     });
   }
 
@@ -1785,7 +1841,7 @@ function SectionEditor({
               onChange={(event) =>
                 onChange({
                   ...draft,
-                  focusScope: event.target.value.split("\n").map((item) => item.trim()).filter(Boolean),
+                  focusScope: normalizeFocusScopeInput(event.target.value),
                 })
               }
             />
@@ -1896,7 +1952,7 @@ function SectionEditor({
       {activePage === 8 ? (
         <>
           <div className="editor-note">
-            Edit the full Director&apos;s Desk content here. Page 8 now uses a fixed layout, and you can still add or remove paragraphs.
+            The Director&apos;s Desk keeps the default paragraph set by default. Edit any paragraph below to replace only that paragraph.
           </div>
           <label>
             <span>Director desk letter title</span>
@@ -1914,17 +1970,11 @@ function SectionEditor({
           </div>
           <div className="editor-row-head">
             <span>Letter body paragraphs</span>
-            <div className="editor-row-actions">
-              <button type="button" onClick={addParagraph}>Add Paragraph</button>
-            </div>
           </div>
           {directorParagraphs.map((paragraph, index) => (
             <article key={index} className="content-edit-card">
               <div className="editor-row-head">
                 <span>Paragraph {index + 1}</span>
-                <div className="editor-row-actions">
-                  <button type="button" disabled={directorParagraphs.length <= 1} onClick={() => removeParagraph(index)}>Remove</button>
-                </div>
               </div>
               <textarea rows={4} value={paragraph} onChange={(event) => updateParagraph(index, event.target.value)} />
             </article>

@@ -24,9 +24,10 @@ export async function exportBookToPdf(mode: ExportMode, filename: string) {
     const pageWidth = mode === "cover" ? 431.8 : landscape ? 297 : 210;
     const pageHeight = mode === "cover" ? 304.8 : landscape ? 210 : 297;
     const { width, height } = pages[index].getBoundingClientRect();
+    const isCover = mode === "cover";
     const canvas = await html2canvas(pages[index], {
-      // Cover spreads are very large; using a slightly lower scale avoids corrupted image data in jsPDF exports.
-      scale: mode === "cover" ? 1.5 : 2,
+      // Use a higher capture scale to keep text and thin rules crisp when users zoom the exported PDF.
+      scale: isCover ? 2.25 : 3.25,
       useCORS: true,
       backgroundColor: "#ffffff",
       width,
@@ -34,11 +35,10 @@ export async function exportBookToPdf(mode: ExportMode, filename: string) {
       windowWidth: Math.ceil(width),
       windowHeight: Math.ceil(height),
     });
-    // JPEG for both modes: full-page PNG bitmaps made the internal PDF ~100x
-    // larger (85 MB+). JPEG at high quality keeps text crisp at a fraction of the size.
-    const imgData = canvas.toDataURL("image/jpeg", mode === "cover" ? 0.92 : 0.95);
+    // Keep the internal pages lossless for sharper text; the cover spread stays JPEG to avoid huge files.
+    const imgData = isCover ? canvas.toDataURL("image/jpeg", 0.94) : canvas.toDataURL("image/png");
     if (index > 0) pdf.addPage(pdfFormat, landscape ? "landscape" : "portrait");
-    pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+    pdf.addImage(imgData, isCover ? "JPEG" : "PNG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
   }
 
   pdf.save(filename);
