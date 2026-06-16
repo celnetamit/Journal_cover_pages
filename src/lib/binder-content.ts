@@ -11,6 +11,7 @@ export type BinderDraft = {
   journalLogoImage: string;
   footerRightLogoImage: string;
   frontCoverLayout: FrontCoverLayout;
+  frontCoverLayoutCustomized?: boolean;
   pageLayouts: BinderPageLayouts;
   journalWebsite: string;
   issueVolume: string;
@@ -148,16 +149,16 @@ export type DirectorPageLayout = Record<DirectorElementId, GenericPageElementLay
 export type ContentPageLayout = Record<ContentElementId, GenericPageElementLayout>;
 
 export const defaultFrontCoverLayout: FrontCoverLayout = {
-  abbreviationBadge: { x: 3.8, y: 5.1 },
-  sjifLine: { x: 3.9, y: 11.2 },
-  icvLine: { x: 3.9, y: 13.35 },
-  issn: { x: 72.2, y: 5.2 },
-  issueLine: { x: 66.2, y: 9 },
-  websiteLine: { x: 66.2, y: 12.45 },
-  title: { x: 4.8, y: 14.8 },
-  month: { x: 82.2, y: 23.95 },
-  footerLeft: { x: 4, y: 84.4 },
-  footerRight: { x: 78.8, y: 84.2 },
+  abbreviationBadge: { x: 3.1, y: 4.7 },
+  sjifLine: { x: 3.15, y: 9.95 },
+  icvLine: { x: 3.15, y: 11.85 },
+  issn: { x: 83.4, y: 4.9 },
+  issueLine: { x: 68.8, y: 8.7 },
+  websiteLine: { x: 68.8, y: 11.9 },
+  title: { x: 3.4, y: 16.9 },
+  month: { x: 84.1, y: 28.1 },
+  footerLeft: { x: 2.6, y: 90.1 },
+  footerRight: { x: 82.4, y: 89.9 },
 };
 
 export const defaultBinderPageLayouts: BinderPageLayouts = {

@@ -1442,20 +1442,22 @@ button {
 
 .front-cover-abbreviation-badge {
   color: #fff200;
+  font-family: "Arial Narrow", "Helvetica Neue Condensed", Arial, sans-serif;
   font-size: 25.5pt;
   font-weight: 800;
-  letter-spacing: 0;
-  line-height: 0.9;
+  letter-spacing: -0.3px;
+  line-height: 0.88;
   max-width: 28%;
   white-space: nowrap;
 }
 
 .front-cover-meta-line {
   color: #fff;
-  font-family: Tahoma, Arial, sans-serif;
+  font-family: "Arial Narrow", "Helvetica Neue Condensed", Arial, sans-serif;
   font-size: 7.2pt;
-  font-weight: 400;
-  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+  line-height: 1.02;
   max-width: 24%;
   white-space: nowrap;
 }

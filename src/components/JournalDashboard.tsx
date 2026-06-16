@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { startTransition, useEffect, useMemo, useState, type ReactNode } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import {
   ArrowLeft,
@@ -12,7 +12,6 @@ import {
   QrCode,
   SlidersHorizontal,
 } from "lucide-react";
-import DraggablePageCanvas from "@/components/DraggablePageCanvas";
 import FrontCoverCanvas from "@/components/FrontCoverCanvas";
 import { dynamicKey, journalLookupKeys } from "@/lib/lookup";
 import type { DynamicBinderData, EditorialMember } from "@/lib/formidable";
@@ -30,18 +29,9 @@ import {
 import {
   type BinderDraft,
   defaultBinderPageLayouts,
-  type ContentElementId,
-  type CoverTitleElementId,
   defaultFrontCoverLayout,
-  type DirectorElementId,
-  type EditorialElementId,
-  type JournalInfoElementId,
-  type ManuscriptElementId,
   type ManagementPerson,
-  normalizeBinderPageLayouts,
-  type PaymentElementId,
   type ContentRow,
-  type TeamElementId,
   boardMembers,
   contents,
   focusList,
@@ -58,6 +48,7 @@ import {
   defaultFocusNotes,
   defaultManuscriptNotice,
   logoAssets,
+  normalizeBinderPageLayouts,
   normalizeFrontCoverLayout,
 } from "@/lib/binder-content";
 
@@ -170,6 +161,7 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     journalLogoImage: "",
     footerRightLogoImage: "",
     frontCoverLayout: defaultFrontCoverLayout,
+    frontCoverLayoutCustomized: false,
     pageLayouts: defaultBinderPageLayouts,
     journalWebsite: defaultCoverWebsite(journal),
     issueVolume: defaultIssueVolume,
@@ -228,7 +220,10 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
     backCoverImage: draft.backCoverImage || defaultBackCoverImage(),
     journalLogoImage: draft.journalLogoImage ?? "",
     footerRightLogoImage: draft.footerRightLogoImage ?? "",
-    frontCoverLayout: normalizeFrontCoverLayout(draft.frontCoverLayout),
+    frontCoverLayout: draft.frontCoverLayoutCustomized
+      ? normalizeFrontCoverLayout(draft.frontCoverLayout)
+      : defaultFrontCoverLayout,
+    frontCoverLayoutCustomized: Boolean(draft.frontCoverLayoutCustomized),
     pageLayouts: normalizeBinderPageLayouts(draft.pageLayouts),
     journalAbbreviation: draft.journalAbbreviation || journal.abbreviation || journal.shortName,
     journalWebsite: normalizeCoverWebsite(draft.journalWebsite, journal),
@@ -717,53 +712,34 @@ function CoverSpreadPage({
   );
 }
 
-function CoverPage({
-  journal,
-  draft,
-  interactive = false,
-  onLayoutChange,
-}: {
-  journal: Journal;
-  draft: BinderDraft;
-  interactive?: boolean;
-  onLayoutChange?: (layout: BinderDraft["pageLayouts"]["page2"]) => void;
-}) {
+function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
   const volume = draft.issueVolume || defaultIssueVolume;
   const issue = draft.issueNumber || defaultIssueNumber;
   const monthRange = draft.issueMonthRange || defaultIssueMonthRange;
   const year = draft.issueYear || defaultIssueYear;
-  const page2Items: Array<{ id: CoverTitleElementId; className: string; content: ReactNode }> = [
-    { id: "issn", className: "page2-block page2-issn", content: <p className="page2-cover-issn">ISSN: {journal.eIssn || "2582-2888"}</p> },
-    { id: "printer", className: "page2-block page2-printer", content: <p className="page2-cover-printer">Printed by : {draft.coverPrinter || defaultCoverPrinter}</p> },
-    { id: "title", className: "page2-block page2-title", content: <h1 className="page2-cover-title">{titleCaseName(journal.name)}</h1> },
-    { id: "issue", className: "page2-block page2-issue", content: <p className="page2-issue-line">Volume {volume} | Issue {issue}</p> },
-    { id: "meta", className: "page2-block page2-meta", content: <p className="page2-cover-meta">{monthRange} | {year}</p> },
-    {
-      id: "footer",
-      className: "page2-block page2-footer",
-      content: (
-        <div className="page2-cover-footer">
-          <div className="publisher-logo-row">
-            <PublisherLogo mode={identity.logoMode} side="publisher" />
-            <PublisherLogo mode={identity.logoMode} side="company" />
-          </div>
-          <b>{identity.publisherName}</b>
-          <strong>{identity.companyName}</strong>
-          <span>{draft.publisherAddress || identity.address}</span>
-          <span>Tel. No.: {draft.publisherPhone || identity.phone}</span>
-          <span>E-mail: {draft.publisherEmail || identity.email}; Website: {draft.publisherWebsite || identity.website}</span>
-          <span>Regd. Office: {draft.registeredOffice || defaultRegisteredOffice}</span>
-          <span>Website: www.celnet.in; CIN No.: {draft.cin || defaultCin}</span>
-        </div>
-      ),
-    },
-  ];
 
   return (
     <section className="pdf-page cover-page" data-export-group="internal" data-page-title="Journal Name with volume issue page">
       <div className="page-rule" />
-      <DraggablePageCanvas items={page2Items} layout={draft.pageLayouts.page2} interactive={interactive} onLayoutChange={onLayoutChange} />
+      <p className="cover-issn">ISSN: {journal.eIssn || "2582-2888"}</p>
+      <p className="cover-printer">Printed by : {draft.coverPrinter || defaultCoverPrinter}</p>
+      <h1>{titleCaseName(journal.name)}</h1>
+      <p className="issue-line">Volume {volume} | Issue {issue}</p>
+      <p className="cover-meta">{monthRange} | {year}</p>
+      <div className="cover-footer">
+        <div className="publisher-logo-row">
+          <PublisherLogo mode={identity.logoMode} side="publisher" />
+          <PublisherLogo mode={identity.logoMode} side="company" />
+        </div>
+        <b>{identity.publisherName}</b>
+        <strong>{identity.companyName}</strong>
+        <span>{draft.publisherAddress || identity.address}</span>
+        <span>Tel. No.: {draft.publisherPhone || identity.phone}</span>
+        <span>E-mail: {draft.publisherEmail || identity.email}; Website: {draft.publisherWebsite || identity.website}</span>
+        <span>Regd. Office: {draft.registeredOffice || defaultRegisteredOffice}</span>
+        <span>Website: www.celnet.in; CIN No.: {draft.cin || defaultCin}</span>
+      </div>
       <PageNumber value={1} />
     </section>
   );
@@ -808,25 +784,12 @@ function generatePaymentText(journal: Journal, draft: BinderDraft): string {
   ].join("\n");
 }
 
-function PaymentPage({
-  journal,
-  draft,
-  interactive = false,
-  onLayoutChange,
-}: {
-  journal: Journal;
-  draft: BinderDraft;
-  interactive?: boolean;
-  onLayoutChange?: (layout: BinderDraft["pageLayouts"]["page3"]) => void;
-}) {
+function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const override = draft.paymentOverride?.trim();
   if (override) {
-    const overrideItems: Array<{ id: PaymentElementId; className: string; content: ReactNode }> = [
-      { id: "override", className: "page3-block page3-override", content: <div className="payment-override">{draft.paymentOverride}</div> },
-    ];
     return (
       <section className="pdf-page payment-reference-page" data-export-group="internal">
-        <DraggablePageCanvas items={overrideItems} layout={draft.pageLayouts.page3} interactive={interactive} onLayoutChange={onLayoutChange} />
+        <div className="payment-override">{draft.paymentOverride}</div>
         <PageNumber value={2} />
       </section>
     );
@@ -839,425 +802,298 @@ function PaymentPage({
   const paymentPublisherName = isJournalsPub ? "Journals Pub" : identity.publisherName;
   const legalPhone = isJournalsPub ? "+91 120-4781200" : isLaw ? "+91 120-4781211" : identity.phone;
   const subscriptionYear = draft.issueYear || defaultIssueYear;
-  const page3Items: Array<{ id: PaymentElementId; className: string; content: ReactNode }> = [
-    {
-      id: "intro",
-      className: "page3-block page3-intro",
-      content: (
-        <p>
-          {isLaw
-            ? "Law Journals (a division of Consortium e-Learning Network Private Ltd.) is the Publisher of Journal. Statements and opinions expressed in the Journal reflect the views of the author(s) and are not the opinion of Law Journals unless so stated."
-            : isJournalsPub
-            ? "Journals Pub (a division of Dhruv Infosystems Private Ltd.) having its Marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of the Journals. Statements and opinions expressed in the Journal reflect the views of the Author(s) and are not the opinion of Journals Pub unless so stated."
-            : isStm
-            ? "STM Journals (an imprint of Consortium e-Learning Network Pvt. Ltd.) having its marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of Journals. The author(s) or editor(s) expressed in the Journal reflect the views of the author(s) and are not the opinion of STM Journals unless so stated."
-            : "MBA Journals (an imprint of Consortium e-Learning Network Pvt. Ltd.) having its marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of Journals. The author(s) or editor(s) expressed in the Journal reflect the views of the author(s) and are not the opinion of MBA Journals unless so stated."}
-        </p>
-      ),
-    },
-    {
-      id: "subscription",
-      className: "page3-block page3-section",
-      content: (
-        <section>
-          <h1>SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, {subscriptionYear})</h1>
-          <p><b>National Subscription</b></p>
-          {isJournalsPub ? (
-            <ul className="checkbox-list">
-              <li>Print: ₹3500 per Journal (Two Print Issues), Single Issue ₹1800.</li>
-              <li>Online: ₹6500 per Journal (Online Access of Current and Back Issues).</li>
-              <li>Print + Online: ₹7315 per Journal (Two Print and Online Access of Current and Back Issues).</li>
-            </ul>
-          ) : (
-            <p>
-              Print: ₹3500 per Journal (Two Print Issues), Single Issue ₹1800.<br />
-              Online: ₹6500 per Journal (Online Access of Current and Back Issues).<br />
-              Print + Online: ₹7315 per Journal (Two Print and Online Access of Current and Back Issues).
-            </p>
-          )}
-          {isJournalsPub ? (
-            <>
-              <p><b>International Subscription</b></p>
-              <ul className="checkbox-list">
-                {subscriptionPlans.map((item) => <li key={item}>{item}</li>)}
-              </ul>
-            </>
-          ) : (
-            <>
-              <p><b>International Subscription</b></p>
-              <ul className="checkbox-list">
-                {subscriptionPlans.map((item) => <li key={item}>{item}</li>)}
-              </ul>
-            </>
-          )}
-          <p>
-            To purchase print compilation of back issues, please send your query at {identity.email}. Subscription must be
-            prepaid. Rates outside of India include delivery. Prices subject to change without notice.
-          </p>
-        </section>
-      ),
-    },
-    {
-      id: "payment",
-      className: "page3-block page3-section",
-      content: (
-        <section>
-          <h2>MODE OF PAYMENT</h2>
-          {isJournalsPub ? (
-            <p>
-              <b>Mode of Payment:</b> At Par Cheque, Demand Draft, and RTGS (payment to be made in favor of
-              Dhruv Infosystems Pvt. Ltd., payable at Delhi/New Delhi).
-            </p>
-          ) : isLaw ? (
-            <>
-              <p><b>Pay Through NEFT/RTGS/Online Transfer</b></p>
-              <p>
-                Account Number: 03942000001153<br />
-                Account Name: Consortium e-Learning Network Pvt. Ltd.<br />
-                Bank Name: HDFC<br />
-                Bank Location: HDFC Bank, Sector-62, Noida, U.P., India<br />
-                IFSC Code: HDFC0002649, Swift Code: HDFCINBBXXX
-              </p>
-              <p>
-                <b>Pay Through Cheque/Demand Draft</b><br />
-                At Par Cheque, Demand Draft, and RTGS (payment to be made in favor of Consortium e-Learning Network Pvt. Ltd.,
-                payable at Delhi/New Delhi).
-              </p>
-              <p>
-                <b>Please Send Demand Draft/Cheque to following address:</b><br />
-                Subscription Department, Law Journals,<br />
-                Consortium e-Learning Network Pvt. Ltd.<br />
-                A-118, Level 1, Sector-63, Noida, 201 301, U.P., India<br />
-                Tel.: 120 4781211, +91 9810078958
-              </p>
-            </>
-          ) : (
-            <>
-              <p><b>Account Type: HDFC/RTGS/Online Transfer</b></p>
-              <p>
-                Account Number: 03942000001153<br />
-                Account Holder: Consortium e-Learning Network Pvt. Ltd.<br />
-                Bank Name: HDFC<br />
-                Bank Address: HDFC Bank, Sector-62, Noida, U.P., India<br />
-                Bank Location: HDFC0002649, Swift Code: HDFCINBBXXX<br />
-                IFSC Code: HDFC0002649
-              </p>
-              <p>
-                <b>Pay Through Cheque/Demand Draft</b><br />
-                A/C Payee Cheque, Demand Draft, and RTGS (payment to be made in favor of Consortium e-Learning Network Pvt. Ltd.,
-                payable at Delhi/New Delhi).
-              </p>
-              <p>
-                <b>Please Send Demand Draft/Cheque to following address:</b><br />
-                Subscription Department, {identity.publisherName},<br />
-                Consortium e-Learning Network Pvt. Ltd.<br />
-                A-118, Level 1, Sector-63, Noida, 201 301, U.P., India<br />
-                Tel.: {identity.phone}
-              </p>
-            </>
-          )}
-        </section>
-      ),
-    },
-    {
-      id: "access",
-      className: "page3-block page3-section",
-      content: (
-        <section>
-          <h2>ONLINE ACCESS POLICY</h2>
-          {isJournalsPub || isLaw ? (
-            <>
-              <p>
-                <b>For Authors</b><br />
-                In order to provide maximum citation and wide publicity to the authors work, {isLaw ? "Law Journals" : "Journals Pub"} also have Open
-                Access Policy, authors who would like to get their work open access can opt for Optional Open Access
-                publication at nominal cost as follows.
-              </p>
-              <p>
-                India: ₹1500 includes single hard copy of Author&apos;s Journal.<br />
-                SAARC and African Countries: $100 includes single hard copy of Author&apos;s Journal.<br />
-                Other Countries: $200 includes single hard copy of Author&apos;s Journal.
-              </p>
-            </>
-          ) : (
-            <>
-              <p>
-                <b>For Authors</b><br />
-                For grant of Open Access publication, maximum citation and wide publicity to the authors work, {identity.publisherName} also
-                have Open Access Policy, authors who would like to get their work open access can opt for Optional Open Access
-                publication at nominal charges.
-              </p>
-              <p>
-                India: ₹1500 includes single hard copy of Author&apos;s Journal.<br />
-                SAARC and African Countries: $100 includes single hard copy of Author&apos;s Journal.<br />
-                Other Countries: $200 including single hard copy of Author&apos;s Journal.
-              </p>
-            </>
-          )}
-          <p><b>For Subscribers</b></p>
-          {isJournalsPub || isLaw ? (
-            <>
-              <ul className="checkbox-list">
-                <li>Online access will be activated within 72 hours of receipt of the payment (working days), subject to receipt of correct information on user details/Static IP address of the subscriber.</li>
-                <li>The access will be blocked</li>
-              </ul>
-              <ul className="subpoint-list">
-                <li>If the user requests for the same and furnishes valid reasons for blocking.</li>
-                <li>Due to technical issue.</li>
-                <li>Misuse of the access rights as per the access policy.</li>
-              </ul>
-            </>
-          ) : (
-            <ul className="checkbox-list">
-              <li>Online access will be activated within 72 hours of receipt of the payment (working days), subject to receipt of correct information on user details/Static IP address of the subscriber.</li>
-              <li>There will be blocking.</li>
-              <li>If the user request for the same and furnishes valid reasons for blocking.</li>
-              <li>Due to technical issue.</li>
-              <li>Misuse of the access rights as per the access policy.</li>
-            </ul>
-          )}
-        </section>
-      ),
-    },
-    {
-      id: "advertising",
-      className: "page3-block page3-section",
-      content: (
-        <section>
-          <h2>ADVERTISING AND COMMERCIAL REPRINT INQUIRIES</h2>
-          {isJournalsPub || isLaw ? (
-            <p>
-              {isLaw ? "Law Journals" : "Journals Pub"} with wide circulation and visibility offer an excellent media for showcasing/promotion of your
-              products/services and the events namely, Conferences, Symposia/Seminars, etc. These journals have very high
-              potential to deliver the message across the targeted audience regularly with each published issue. The
-              advertisements on bulk subscriptions, gift subscriptions or reprint purchases for distribution, etc. are also
-              most welcome.
-            </p>
-          ) : (
-            <p>
-              {identity.publisherName} with wide circulation and visibility offer an excellent media for showcasing/promotion of your
-              products, services and events namely, Conferences, Symposia/Seminars, etc. These Journals have very high potential
-              to deliver the message across the targeted audience regularly with each published issue. The advertisements on bulk
-              subscriptions, gift subscriptions or reprint purchases for distribution, etc. are also most welcome.
-            </p>
-          )}
-        </section>
-      ),
-    },
-    {
-      id: "lost",
-      className: "page3-block page3-section",
-      content: (
-        <section>
-          <h2>LOST ISSUE CLAIMS</h2>
-          <p><i>Please note the following when applying for lost or missing issues:</i></p>
-          <ul className="checkbox-list">
-            <li>Claims for print copies lost will be honored only after 45 days of the dispatch date and before publication of the next issue as per the frequency.</li>
-            <li>Tracking ID for the speed post will be provided to all our subscribers and the claims for the missing Journals will be entertained only with the proofs that will be verified at both the ends.</li>
-            <li>Claims filed due to insufficient information (or no notice) of change of address will not be honored.</li>
-            <li>Change of Address of Dispatch should be intimated to {paymentPublisherName} at least two months prior to the dispatch schedule as per the frequency by mentioning subscriber ID and the subscription ID.</li>
-            <li>Refund requests will not be entertained.</li>
-          </ul>
-        </section>
-      ),
-    },
-    {
-      id: "legal",
-      className: "page3-block page3-section",
-      content: (
-        <section>
-          <h2>{isJournalsPub || isLaw ? "LEGAL DISPUTES" : "LEGAL DISPUTE"}</h2>
-          <p>
-            All the legal disputes are subjected to Delhi Jurisdiction only. If you have any questions, please contact the
-            Publication Management Team at {identity.email}; Tel: {legalPhone}.
-          </p>
-        </section>
-      ),
-    },
-  ];
 
   return (
     <section className="pdf-page payment-reference-page" data-export-group="internal">
-      <DraggablePageCanvas items={page3Items} layout={draft.pageLayouts.page3} interactive={interactive} onLayoutChange={onLayoutChange} />
+      <p>
+        {isLaw
+          ? "Law Journals (a division of Consortium e-Learning Network Private Ltd.) is the Publisher of Journal. Statements and opinions expressed in the Journal reflect the views of the author(s) and are not the opinion of Law Journals unless so stated."
+          : isJournalsPub
+          ? "Journals Pub (a division of Dhruv Infosystems Private Ltd.) having its Marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of the Journals. Statements and opinions expressed in the Journal reflect the views of the Author(s) and are not the opinion of Journals Pub unless so stated."
+          : isStm
+          ? "STM Journals (an imprint of Consortium e-Learning Network Pvt. Ltd.) having its marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of Journals. The author(s) or editor(s) expressed in the Journal reflect the views of the author(s) and are not the opinion of STM Journals unless so stated."
+          : "MBA Journals (an imprint of Consortium e-Learning Network Pvt. Ltd.) having its marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of Journals. The author(s) or editor(s) expressed in the Journal reflect the views of the author(s) and are not the opinion of MBA Journals unless so stated."}
+      </p>
+
+      <h1>SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, {subscriptionYear})</h1>
+      <p><b>National Subscription</b></p>
+      {isJournalsPub ? (
+        <ul className="checkbox-list">
+          <li>Print: ₹3500 per Journal (Two Print Issues), Single Issue ₹1800.</li>
+          <li>Online: ₹6500 per Journal (Online Access of Current and Back Issues).</li>
+          <li>Print + Online: ₹7315 per Journal (Two Print and Online Access of Current and Back Issues).</li>
+        </ul>
+      ) : (
+        <p>
+          Print: ₹3500 per Journal (Two Print Issues), Single Issue ₹1800.<br />
+          Online: ₹6500 per Journal (Online Access of Current and Back Issues).<br />
+          Print + Online: ₹7315 per Journal (Two Print and Online Access of Current and Back Issues).
+        </p>
+      )}
+      {isJournalsPub ? (
+        <>
+          <p><b>International Subscription</b></p>
+          <ul className="checkbox-list">
+            {subscriptionPlans.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+        </>
+      ) : (
+        <>
+          <p>
+            <b>International Subscription</b>
+          </p>
+          <ul className="checkbox-list">
+            {subscriptionPlans.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+        </>
+      )}
+      <p>
+        To purchase print compilation of back issues, please send your query at {identity.email}. Subscription must be
+        prepaid. Rates outside of India include delivery. Prices subject to change without notice.
+      </p>
+
+      <h2>MODE OF PAYMENT</h2>
+      {isJournalsPub ? (
+        <p>
+          <b>Mode of Payment:</b> At Par Cheque, Demand Draft, and RTGS (payment to be made in favor of
+          Dhruv Infosystems Pvt. Ltd., payable at Delhi/New Delhi).
+        </p>
+      ) : isLaw ? (
+        <>
+          <p><b>Pay Through NEFT/RTGS/Online Transfer</b></p>
+          <p>
+            Account Number: 03942000001153<br />
+            Account Name: Consortium e-Learning Network Pvt. Ltd.<br />
+            Bank Name: HDFC<br />
+            Bank Location: HDFC Bank, Sector-62, Noida, U.P., India<br />
+            IFSC Code: HDFC0002649, Swift Code: HDFCINBBXXX
+          </p>
+          <p>
+            <b>Pay Through Cheque/Demand Draft</b><br />
+            At Par Cheque, Demand Draft, and RTGS (payment to be made in favor of Consortium e-Learning Network Pvt. Ltd.,
+            payable at Delhi/New Delhi).
+          </p>
+          <p>
+            <b>Please Send Demand Draft/Cheque to following address:</b><br />
+            Subscription Department, Law Journals,<br />
+            Consortium e-Learning Network Pvt. Ltd.<br />
+            A-118, Level 1, Sector-63, Noida, 201 301, U.P., India<br />
+            Tel.: 120 4781211, +91 9810078958
+          </p>
+        </>
+      ) : (
+        <>
+          <p><b>Account Type: HDFC/RTGS/Online Transfer</b></p>
+          <p>
+            Account Number: 03942000001153<br />
+            Account Holder: Consortium e-Learning Network Pvt. Ltd.<br />
+            Bank Name: HDFC<br />
+            Bank Address: HDFC Bank, Sector-62, Noida, U.P., India<br />
+            Bank Location: HDFC0002649, Swift Code: HDFCINBBXXX<br />
+            IFSC Code: HDFC0002649
+          </p>
+          <p>
+            <b>Pay Through Cheque/Demand Draft</b><br />
+            A/C Payee Cheque, Demand Draft, and RTGS (payment to be made in favor of Consortium e-Learning Network Pvt. Ltd.,
+            payable at Delhi/New Delhi).
+          </p>
+          <p>
+            <b>Please Send Demand Draft/Cheque to following address:</b><br />
+            Subscription Department, {identity.publisherName},<br />
+            Consortium e-Learning Network Pvt. Ltd.<br />
+            A-118, Level 1, Sector-63, Noida, 201 301, U.P., India<br />
+            Tel.: {identity.phone}
+          </p>
+        </>
+      )}
+
+      <h2>ONLINE ACCESS POLICY</h2>
+      {isJournalsPub || isLaw ? (
+        <>
+          <p>
+            <b>For Authors</b><br />
+            In order to provide maximum citation and wide publicity to the authors work, {isLaw ? "Law Journals" : "Journals Pub"} also have Open
+            Access Policy, authors who would like to get their work open access can opt for Optional Open Access
+            publication at nominal cost as follows.
+          </p>
+          <p>
+            India: ₹1500 includes single hard copy of Author&apos;s Journal.<br />
+            SAARC and African Countries: $100 includes single hard copy of Author&apos;s Journal.<br />
+            Other Countries: $200 includes single hard copy of Author&apos;s Journal.
+          </p>
+        </>
+      ) : (
+        <>
+          <p>
+            <b>For Authors</b><br />
+            For grant of Open Access publication, maximum citation and wide publicity to the authors work, {identity.publisherName} also
+            have Open Access Policy, authors who would like to get their work open access can opt for Optional Open Access
+            publication at nominal charges.
+          </p>
+          <p>
+            India: ₹1500 includes single hard copy of Author&apos;s Journal.<br />
+            SAARC and African Countries: $100 includes single hard copy of Author&apos;s Journal.<br />
+            Other Countries: $200 including single hard copy of Author&apos;s Journal.
+          </p>
+        </>
+      )}
+      <p>
+        <b>For Subscribers</b>
+      </p>
+      {isJournalsPub || isLaw ? (
+        <>
+          <ul className="checkbox-list">
+            <li>Online access will be activated within 72 hours of receipt of the payment (working days), subject to receipt of correct information on user details/Static IP address of the subscriber.</li>
+            <li>The access will be blocked</li>
+          </ul>
+          <ul className="subpoint-list">
+            <li>If the user requests for the same and furnishes valid reasons for blocking.</li>
+            <li>Due to technical issue.</li>
+            <li>Misuse of the access rights as per the access policy.</li>
+          </ul>
+        </>
+      ) : (
+        <ul className="checkbox-list">
+          <li>Online access will be activated within 72 hours of receipt of the payment (working days), subject to receipt of correct information on user details/Static IP address of the subscriber.</li>
+          <li>There will be blocking.</li>
+          <li>If the user request for the same and furnishes valid reasons for blocking.</li>
+          <li>Due to technical issue.</li>
+          <li>Misuse of the access rights as per the access policy.</li>
+        </ul>
+      )}
+
+      <h2>ADVERTISING AND COMMERCIAL REPRINT INQUIRIES</h2>
+      {isJournalsPub || isLaw ? (
+        <p>
+          {isLaw ? "Law Journals" : "Journals Pub"} with wide circulation and visibility offer an excellent media for showcasing/promotion of your
+          products/services and the events namely, Conferences, Symposia/Seminars, etc. These journals have very high
+          potential to deliver the message across the targeted audience regularly with each published issue. The
+          advertisements on bulk subscriptions, gift subscriptions or reprint purchases for distribution, etc. are also
+          most welcome.
+        </p>
+      ) : (
+        <p>
+          {identity.publisherName} with wide circulation and visibility offer an excellent media for showcasing/promotion of your
+          products, services and events namely, Conferences, Symposia/Seminars, etc. These Journals have very high potential
+          to deliver the message across the targeted audience regularly with each published issue. The advertisements on bulk
+          subscriptions, gift subscriptions or reprint purchases for distribution, etc. are also most welcome.
+        </p>
+      )}
+
+      <h2>LOST ISSUE CLAIMS</h2>
+      <p><i>Please note the following when applying for lost or missing issues:</i></p>
+      <ul className="checkbox-list">
+        <li>Claims for print copies lost will be honored only after 45 days of the dispatch date and before publication of the next issue as per the frequency.</li>
+        <li>Tracking ID for the speed post will be provided to all our subscribers and the claims for the missing Journals will be entertained only with the proofs that will be verified at both the ends.</li>
+        <li>Claims filed due to insufficient information (or no notice) of change of address will not be honored.</li>
+        <li>Change of Address of Dispatch should be intimated to {paymentPublisherName} at least two months prior to the dispatch schedule as per the frequency by mentioning subscriber ID and the subscription ID.</li>
+        <li>Refund requests will not be entertained.</li>
+      </ul>
+
+      <h2>{isJournalsPub || isLaw ? "LEGAL DISPUTES" : "LEGAL DISPUTE"}</h2>
+      <p>
+        All the legal disputes are subjected to Delhi Jurisdiction only. If you have any questions, please contact the
+        Publication Management Team at {identity.email}; Tel: {legalPhone}.
+      </p>
       <PageNumber value={2} />
     </section>
   );
 }
 
-function JournalDetailsPage({
-  journal,
-  draft,
-  interactive = false,
-  onLayoutChange,
-}: {
-  journal: Journal;
-  draft: BinderDraft;
-  interactive?: boolean;
-  onLayoutChange?: (layout: BinderDraft["pageLayouts"]["page4"]) => void;
-}) {
+function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
   const isLaw = identity.logoMode === "law";
   const scopeItems = (draft.focusScope.length ? draft.focusScope : focusList).slice(0, 12);
   const focusNotes = draft.focusNotes?.length ? draft.focusNotes : defaultFocusNotes;
   const aboutText = draft.about || journal.about;
-  const page4Items: Array<{ id: JournalInfoElementId; className: string; content: ReactNode }> = [
-    {
-      id: "header",
-      className: "page4-block page4-header",
-      content: (
-        <div className="journal-info-head">
-          <PublisherLogo mode={identity.logoMode} side="publisher" />
-          <h1>{titleCaseName(journal.name)}</h1>
-        </div>
-      ),
-    },
-    {
-      id: "intro",
-      className: "page4-block page4-intro",
-      content: isLaw ? (
+
+  return (
+    <section className="pdf-page journal-info-page" data-export-group="internal">
+      <div className="journal-info-head">
+        <PublisherLogo mode={identity.logoMode} side="publisher" />
+        <h1>{titleCaseName(journal.name)}</h1>
+      </div>
+      {isLaw ? (
         <p>
           <b>Law Journals</b>, an imprint of Consortium E-learning Network Private Ltd. is prepared under the support
-          and guidance by our esteemed editorial board members from renowned institutions. {aboutText || "The journal supports legal research, review articles, case studies, and current thought in the legal domain."}
+          and guidance by our esteemed editorial board members from renowned institutions.{" "}
+          {aboutText || "The journal supports legal research, review articles, case studies, and current thought in the legal domain."}
         </p>
       ) : (
         <p>
           <b>{identity.publisherName}</b> is a bouquet of research publications which disseminates knowledge dealing with
-          domains such as Applied Sciences, Medicine, Engineering, Management and Technology. {aboutText || "We encourage research and thinking, and attempt to contribute to a better perception of academic and professional knowledge across research communities."}
+          domains such as Applied Sciences, Medicine, Engineering, Management and Technology.{" "}
+          {aboutText || "We encourage research and thinking, and attempt to contribute to a better perception of academic and professional knowledge across research communities."}
         </p>
-      ),
-    },
-    {
-      id: "objectives",
-      className: "page4-block page4-section",
-      content: (
-        <section>
-          <h2>Objectives</h2>
-          <ul>
-            {(isLaw ? lawObjectives : objectives).map((item) => <li key={item}>{item}</li>)}
-          </ul>
-        </section>
-      ),
-    },
-    {
-      id: "salient",
-      className: "page4-block page4-section",
-      content: (
-        <section>
-          <h2>Salient Features</h2>
-          <ul>
-            {(isLaw ? lawSalientFeatures : salientFeatures).map((item) => <li key={item}>{item}</li>)}
-          </ul>
-        </section>
-      ),
-    },
-    {
-      id: "focusIntro",
-      className: "page4-block page4-focus-intro",
-      content: (
-        <p className="journal-focus-intro">
-          <b>{journal.name.toUpperCase()}</b>, is focused towards the rapid publication in the following areas.
-        </p>
-      ),
-    },
-    {
-      id: "focusList",
-      className: "page4-block page4-section",
-      content: (
-        <section>
-          <h2>Focus and Scope</h2>
-          <ul className="focus-list">
-            {scopeItems.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
-          </ul>
-        </section>
-      ),
-    },
-    {
-      id: "notes",
-      className: "page4-block page4-notes",
-      content: (
-        <div>
-          {focusNotes.map((note, index) => <p key={index}>{note}</p>)}
-        </div>
-      ),
-    },
-  ];
-
-  return (
-    <section className="pdf-page journal-info-page" data-export-group="internal">
-      <DraggablePageCanvas items={page4Items} layout={draft.pageLayouts.page4} interactive={interactive} onLayoutChange={onLayoutChange} />
+      )}
+      <section>
+        <h2>Objectives</h2>
+        <ul>
+          {(isLaw ? lawObjectives : objectives).map((item) => <li key={item}>{item}</li>)}
+        </ul>
+      </section>
+      <section>
+        <h2>Salient Features</h2>
+        <ul>
+          {(isLaw ? lawSalientFeatures : salientFeatures).map((item) => <li key={item}>{item}</li>)}
+        </ul>
+      </section>
+      <p className="journal-focus-intro">
+        <b>{journal.name.toUpperCase()}</b>, is focused towards the rapid publication in the following areas.
+      </p>
+      <section>
+        <h2>Focus and Scope</h2>
+        <ul className="focus-list">
+          {scopeItems.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+        </ul>
+      </section>
+      <div>
+        {focusNotes.map((note, index) => <p key={index}>{note}</p>)}
+      </div>
       <PageNumber value={3} />
     </section>
   );
 }
 
-function TeamPage({
-  journal,
-  draft,
-  interactive = false,
-  onLayoutChange,
-}: {
-  journal: Journal;
-  draft: BinderDraft;
-  interactive?: boolean;
-  onLayoutChange?: (layout: BinderDraft["pageLayouts"]["page5"]) => void;
-}) {
+function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
   const isLaw = identity.logoMode === "law";
-  const page5Items: Array<{ id: TeamElementId; className: string; content: ReactNode }> = [
-    { id: "title", className: "page5-block page5-title", content: <h1>Publication and Management Team</h1> },
-    { id: "featured", className: "page5-block page5-featured", content: <ManagementProfile person={draft.managementHead} featured /> },
-    { id: "band", className: "page5-block page5-band", content: <div className="management-band">Members</div> },
-    {
-      id: "grid",
-      className: "page5-block page5-grid",
-      content: (
-        <div className="management-photo-grid">
-          {draft.managementMembers.map((member, index) => (
-            <ManagementProfile key={index} person={member} />
-          ))}
-        </div>
-      ),
-    },
-    {
-      id: "roster",
-      className: "page5-block page5-roster",
-      content: isLaw ? (
+
+  return (
+    <section className="pdf-page management-page" data-export-group="internal">
+      <div className="page-rule" />
+      <h1>Publication and Management Team</h1>
+      <ManagementProfile person={draft.managementHead} featured />
+      <div className="management-band">Members</div>
+      <div className="management-photo-grid">
+        {draft.managementMembers.map((member, index) => (
+          <ManagementProfile key={index} person={member} />
+        ))}
+      </div>
+      {isLaw ? (
         <section className="law-journal-roster">
           <h2>Law Journals</h2>
           <div>
             {lawJournalNames.map((name) => <span key={name}>{name}</span>)}
           </div>
         </section>
-      ) : null,
-    },
-    {
-      id: "contacts",
-      className: "page5-block page5-contacts",
-      content: (
-        <div className="management-contact-boxes">
-          <div>
-            <b>For any query related to Dispatch and Online Access, please contact</b>
-            <span>Mr. Asan Kumar</span>
-            <span>Tel.: +91 120 4781225</span>
-            <span>E-mail: asank@celnet.in</span>
-            <strong>Website: {identity.website}</strong>
-          </div>
-          <div>
-            <b>For any query related to Sales and Marketing, please contact</b>
-            <span>Subscription Manager</span>
-            <span>Tel.: {isLaw ? "+91 120-4781211" : "+91 120-4781201"}, +91 9810078958</span>
-            <span>E-mail: {isLaw ? "subscriptions@stmjournals.com" : "subs@journalspub.com"}</span>
-            <strong>Tel. no.: {identity.phone}</strong>
-          </div>
+      ) : null}
+      <div className="management-contact-boxes">
+        <div>
+          <b>For any query related to Dispatch and Online Access, please contact</b>
+          <span>Mr. Asan Kumar</span>
+          <span>Tel.: +91 120 4781225</span>
+          <span>E-mail: asank@celnet.in</span>
+          <strong>Website: {identity.website}</strong>
         </div>
-      ),
-    },
-  ];
-
-  return (
-    <section className="pdf-page management-page" data-export-group="internal">
-      <div className="page-rule" />
-      <DraggablePageCanvas items={page5Items.filter((item) => item.content !== null)} layout={draft.pageLayouts.page5} interactive={interactive} onLayoutChange={onLayoutChange} />
+        <div>
+          <b>For any query related to Sales and Marketing, please contact</b>
+          <span>Subscription Manager</span>
+          <span>Tel.: {isLaw ? "+91 120-4781211" : "+91 120-4781201"}, +91 9810078958</span>
+          <span>E-mail: {isLaw ? "subscriptions@stmjournals.com" : "subs@journalspub.com"}</span>
+          <strong>Tel. no.: {identity.phone}</strong>
+        </div>
+      </div>
       <PageNumber value={4} />
     </section>
   );
@@ -1278,78 +1114,43 @@ function ManagementProfile({ person, featured = false }: { person: ManagementPer
   );
 }
 
-function ManuscriptEnginePage({
-  journal,
-  draft,
-  interactive = false,
-  onLayoutChange,
-}: {
-  journal: Journal;
-  draft: BinderDraft;
-  interactive?: boolean;
-  onLayoutChange?: (layout: BinderDraft["pageLayouts"]["page6"]) => void;
-}) {
+function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const url = journal.website || "https://journals.stmjournals.com/open-access/nolegein-journal-of-leadership-and-strategic-management/";
-  const page6Items: Array<{ id: ManuscriptElementId; className: string; content: ReactNode }> = [
-    { id: "header", className: "page6-block page6-header", content: <PdfHeader journal={journal} label="Manuscript Engine" showLogo={false} showLabel={false} /> },
-    { id: "title", className: "page6-block page6-title", content: <h1>Manuscript Engine</h1> },
-    {
-      id: "lead",
-      className: "page6-block page6-lead",
-      content: (
-        <p className="lead-text">
-          Authors can submit manuscripts, track review progress, view decisions, and communicate with the editorial office through the journal manuscript engine.
-        </p>
-      ),
-    },
-    {
-      id: "engine",
-      className: "page6-block page6-engine",
-      content: (
-        <div className="engine-panel">
-          <div>
-            <QrCode size={34} />
-            <Image
-              className="qr-image"
-              src={logoAssets.manuscriptQr.src}
-              alt={logoAssets.manuscriptQr.alt}
-              width={logoAssets.manuscriptQr.width}
-              height={logoAssets.manuscriptQr.height}
-              unoptimized
-            />
-            <span>Scan to open manuscript page</span>
-          </div>
-          <ol>
-            <li>Create or log in to the author account.</li>
-            <li>Select the journal and manuscript article type.</li>
-            <li>Upload manuscript, author declaration, and required files.</li>
-            <li>Confirm submission and track the peer-review workflow.</li>
-          </ol>
-        </div>
-      ),
-    },
-    { id: "url", className: "page6-block page6-url", content: <p className="url-line">{url}</p> },
-    { id: "notice", className: "page6-block page6-notice", content: <p className="manuscript-notice">{draft.manuscriptNotice}</p> },
-  ];
   return (
     <section className="pdf-page details-page manuscript-page" data-export-group="internal">
-      <DraggablePageCanvas items={page6Items} layout={draft.pageLayouts.page6} interactive={interactive} onLayoutChange={onLayoutChange} />
+      <PdfHeader journal={journal} label="Manuscript Engine" showLogo={false} showLabel={false} />
+      <h1>Manuscript Engine</h1>
+      <p className="lead-text">
+        Authors can submit manuscripts, track review progress, view decisions, and communicate with the editorial office through the journal manuscript engine.
+      </p>
+      <div className="engine-panel">
+        <div>
+          <QrCode size={34} />
+          <Image
+            className="qr-image"
+            src={logoAssets.manuscriptQr.src}
+            alt={logoAssets.manuscriptQr.alt}
+            width={logoAssets.manuscriptQr.width}
+            height={logoAssets.manuscriptQr.height}
+            unoptimized
+          />
+          <span>Scan to open manuscript page</span>
+        </div>
+        <ol>
+          <li>Create or log in to the author account.</li>
+          <li>Select the journal and manuscript article type.</li>
+          <li>Upload manuscript, author declaration, and required files.</li>
+          <li>Confirm submission and track the peer-review workflow.</li>
+        </ol>
+      </div>
+      <p className="url-line">{url}</p>
+      <p className="manuscript-notice">{draft.manuscriptNotice}</p>
       <PageNumber value={5} />
     </section>
   );
 }
 
-function EditorialPage({
-  journal,
-  draft,
-  interactive = false,
-  onLayoutChange,
-}: {
-  journal: Journal;
-  draft: BinderDraft;
-  interactive?: boolean;
-  onLayoutChange?: (layout: BinderDraft["pageLayouts"]["page7"]) => void;
-}) {
+function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const members = draft.editorialBoard;
   const chief = members.find((member) => {
     const role = member.role.toLowerCase();
@@ -1383,139 +1184,83 @@ function EditorialPage({
       </div>
     </section>
   ) : null;
-  const page7Items: Array<{ id: EditorialElementId; className: string; content: ReactNode }> = [
-    { id: "title", className: "page7-block page7-title", content: <h1>{titleCaseName(journal.name)}</h1> },
-    { id: "subtitle", className: "page7-block page7-subtitle", content: <h2>Editorial Board Members</h2> },
-    { id: "chief", className: "page7-block page7-section", content: chiefBlock },
-    { id: "associate", className: "page7-block page7-section", content: associateBlock },
-    { id: "editors", className: "page7-block page7-section", content: editorsBlock },
-    { id: "empty", className: "page7-block page7-empty", content: <p className="editorial-empty">No editorial board members have been added for this journal yet.</p> },
-  ];
 
   return (
     <section className="pdf-page editorial-page" data-export-group="internal">
       <div className="page-rule" />
-      <DraggablePageCanvas
-        items={page7Items.filter((item) => {
-          if (item.id === "title" || item.id === "subtitle") return true;
-          if (item.id === "empty") return members.length === 0;
-          return members.length > 0 && item.content !== null;
-        })}
-        layout={draft.pageLayouts.page7}
-        interactive={interactive}
-        onLayoutChange={onLayoutChange}
-      />
+      <h1>{titleCaseName(journal.name)}</h1>
+      <h2>Editorial Board Members</h2>
+      {members.length === 0 ? <p className="editorial-empty">No editorial board members have been added for this journal yet.</p> : null}
+      {members.length > 0 ? chiefBlock : null}
+      {members.length > 0 ? associateBlock : null}
+      {members.length > 0 ? editorsBlock : null}
       <PageNumber value={6} />
     </section>
   );
 }
 
-function DirectorPage({
-  journal,
-  draft,
-  interactive = false,
-  onLayoutChange,
-}: {
-  journal: Journal;
-  draft: BinderDraft;
-  interactive?: boolean;
-  onLayoutChange?: (layout: BinderDraft["pageLayouts"]["page8"]) => void;
-}) {
+function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const defaultParagraphs = defaultDirectorDesk(journal).paragraphs;
   const paragraphs = defaultParagraphs
     .map((paragraph, index) => draft.directorParagraphs?.[index]?.trim() || paragraph)
     .filter((paragraph) => paragraph.trim());
-  const page8Items: Array<{ id: DirectorElementId; className: string; content: ReactNode }> = [
-    { id: "title", className: "page8-block page8-title", content: <h1>{draft.directorTitle}</h1> },
-    {
-      id: "letter",
-      className: "page8-block page8-letter",
-      content: (
-        <div className="director-letter">
-          <div className="director-intro">
-            <Image
-              className="portrait"
-              src={logoAssets.director.src}
-              alt={logoAssets.director.alt}
-              width={logoAssets.director.width}
-              height={logoAssets.director.height}
-              unoptimized
-            />
-            <div className="director-intro-copy">
-              <p className="dear-line"><b>Dear Readers,</b></p>
-              <p className="director-first-paragraph">{paragraphs[0].replaceAll("{journal}", titleCaseName(journal.name))}</p>
-            </div>
-          </div>
-          {paragraphs.slice(1).map((paragraph, index) => (
-            <p key={index}>{paragraph.replaceAll("{journal}", titleCaseName(journal.name))}</p>
-          ))}
-        </div>
-      ),
-    },
-    {
-      id: "signature",
-      className: "page8-block page8-signature",
-      content: (
-        <div className="signature">
-          <Image
-            src={logoAssets.signature.src}
-            alt={logoAssets.signature.alt}
-            width={logoAssets.signature.width}
-            height={logoAssets.signature.height}
-            unoptimized
-          />
-          <span>{draft.directorName}</span>
-          <b>{draft.directorRole}</b>
-        </div>
-      ),
-    },
-  ];
 
   return (
     <section className="pdf-page director-page" data-export-group="internal">
       <div className="page-rule" />
-      <DraggablePageCanvas items={page8Items} layout={draft.pageLayouts.page8} interactive={interactive} onLayoutChange={onLayoutChange} />
+      <h1>{draft.directorTitle}</h1>
+      <div className="director-letter">
+        <div className="director-intro">
+          <Image
+            className="portrait"
+            src={logoAssets.director.src}
+            alt={logoAssets.director.alt}
+            width={logoAssets.director.width}
+            height={logoAssets.director.height}
+            unoptimized
+          />
+          <div className="director-intro-copy">
+            <p className="dear-line"><b>Dear Readers,</b></p>
+            <p className="director-first-paragraph">{paragraphs[0].replaceAll("{journal}", titleCaseName(journal.name))}</p>
+          </div>
+        </div>
+        {paragraphs.slice(1).map((paragraph, index) => (
+          <p key={index}>{paragraph.replaceAll("{journal}", titleCaseName(journal.name))}</p>
+        ))}
+      </div>
+      <div className="signature">
+        <Image
+          src={logoAssets.signature.src}
+          alt={logoAssets.signature.alt}
+          width={logoAssets.signature.width}
+          height={logoAssets.signature.height}
+          unoptimized
+        />
+        <span>{draft.directorName}</span>
+        <b>{draft.directorRole}</b>
+      </div>
       <PageNumber value={7} />
     </section>
   );
 }
 
-function ContentPage({
-  journal,
-  draft,
-  interactive = false,
-  onLayoutChange,
-}: {
-  journal: Journal;
-  draft: BinderDraft;
-  interactive?: boolean;
-  onLayoutChange?: (layout: BinderDraft["pageLayouts"]["page9"]) => void;
-}) {
+function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const rows = draft.contentRows.length ? draft.contentRows : contents;
-  const page9Items: Array<{ id: ContentElementId; className: string; content: ReactNode }> = [
-    { id: "header", className: "page9-block page9-header", content: <ContentHeader journal={journal} draft={draft} /> },
-    { id: "title", className: "page9-block page9-title", content: <h1>Contents</h1> },
-    {
-      id: "table",
-      className: "page9-block page9-table",
-      content: (
-        <table className="contents-table">
-          <tbody>
-            {rows.map((row, index) => (
-              <tr key={`${row.title}-${index}`}>
-                <td><b>{row.title}</b><span>{row.author}</span></td>
-                <td>{row.page}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ),
-    },
-  ];
 
   return (
     <section className="pdf-page content-page" data-export-group="internal">
-      <DraggablePageCanvas items={page9Items} layout={draft.pageLayouts.page9} interactive={interactive} onLayoutChange={onLayoutChange} />
+      <ContentHeader journal={journal} draft={draft} />
+      <h1>Contents</h1>
+      <table className="contents-table">
+        <tbody>
+          {rows.map((row, index) => (
+            <tr key={`${row.title}-${index}`}>
+              <td><b>{row.title}</b><span>{row.author}</span></td>
+              <td>{row.page}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
       <PageNumber value={8} />
     </section>
   );
@@ -1537,16 +1282,12 @@ function BinderPage({
   draft,
   interactiveCover = false,
   onFrontCoverLayoutChange,
-  interactivePageBlocks = false,
-  onPageLayoutChange,
 }: {
   page: number;
   journal: Journal;
   draft: BinderDraft;
   interactiveCover?: boolean;
   onFrontCoverLayoutChange?: (layout: BinderDraft["frontCoverLayout"]) => void;
-  interactivePageBlocks?: boolean;
-  onPageLayoutChange?: (page: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9, layout: BinderDraft["pageLayouts"][keyof BinderDraft["pageLayouts"]]) => void;
 }) {
   const currentJournal = draftJournal(journal, draft);
 
@@ -1561,77 +1302,21 @@ function BinderPage({
         />
       );
     case 2:
-      return (
-        <CoverPage
-          journal={currentJournal}
-          draft={draft}
-          interactive={interactivePageBlocks}
-          onLayoutChange={(layout) => onPageLayoutChange?.(2, layout)}
-        />
-      );
+      return <CoverPage journal={currentJournal} draft={draft} />;
     case 3:
-      return (
-        <PaymentPage
-          journal={currentJournal}
-          draft={draft}
-          interactive={interactivePageBlocks}
-          onLayoutChange={(layout) => onPageLayoutChange?.(3, layout)}
-        />
-      );
+      return <PaymentPage journal={currentJournal} draft={draft} />;
     case 4:
-      return (
-        <JournalDetailsPage
-          journal={currentJournal}
-          draft={draft}
-          interactive={interactivePageBlocks}
-          onLayoutChange={(layout) => onPageLayoutChange?.(4, layout)}
-        />
-      );
+      return <JournalDetailsPage journal={currentJournal} draft={draft} />;
     case 5:
-      return (
-        <TeamPage
-          journal={currentJournal}
-          draft={draft}
-          interactive={interactivePageBlocks}
-          onLayoutChange={(layout) => onPageLayoutChange?.(5, layout)}
-        />
-      );
+      return <TeamPage journal={currentJournal} draft={draft} />;
     case 6:
-      return (
-        <ManuscriptEnginePage
-          journal={currentJournal}
-          draft={draft}
-          interactive={interactivePageBlocks}
-          onLayoutChange={(layout) => onPageLayoutChange?.(6, layout)}
-        />
-      );
+      return <ManuscriptEnginePage journal={currentJournal} draft={draft} />;
     case 7:
-      return (
-        <EditorialPage
-          journal={currentJournal}
-          draft={draft}
-          interactive={interactivePageBlocks}
-          onLayoutChange={(layout) => onPageLayoutChange?.(7, layout)}
-        />
-      );
+      return <EditorialPage journal={currentJournal} draft={draft} />;
     case 8:
-      return (
-        <DirectorPage
-          journal={currentJournal}
-          draft={draft}
-          interactive={interactivePageBlocks}
-          onLayoutChange={(layout) => onPageLayoutChange?.(8, layout)}
-        />
-      );
+      return <DirectorPage journal={currentJournal} draft={draft} />;
     case 9:
-      return (
-        <ContentPage
-          journal={currentJournal}
-          draft={draft}
-          interactive={interactivePageBlocks}
-          onLayoutChange={(layout) => onPageLayoutChange?.(9, layout)}
-        />
-      );
+      return <ContentPage journal={currentJournal} draft={draft} />;
     default:
       return <CoverSpreadPage journal={currentJournal} draft={draft} />;
   }
@@ -2119,7 +1804,7 @@ function SectionEditor({
       {activePage === 5 ? (
         <div className="editor-repeater">
           <div className="editor-note">
-            The featured card, members band, members grid, and contact box can be repositioned directly on the canvas for page 5.
+            Update the team details here. Page 5 now uses a fixed layout in the PDF preview.
           </div>
           <div className="management-edit-head">
             <span>Management head</span>
@@ -2158,7 +1843,7 @@ function SectionEditor({
       {activePage === 6 ? (
         <>
           <div className="editor-note">
-            Page 6 blocks like the header, engine panel, URL line, and notice box can be dragged in the canvas while this page is active.
+            Update the manuscript engine text here. Page 6 now uses a fixed layout in the PDF preview.
           </div>
           <label>
             <span>Manuscript submission notification</span>
@@ -2173,7 +1858,7 @@ function SectionEditor({
       {activePage === 7 ? (
         <div className="editor-repeater">
           <div className="editor-note">
-            Editorial sections can be repositioned as draggable blocks on page 7. Edit the content here, then place the sections where you want on the live canvas.
+            Edit the editorial content here. Page 7 now uses a fixed layout in the PDF preview.
           </div>
           <div className="editor-row-head">
             <span>Editorial Board Members ({draft.editorialBoard.length})</span>
@@ -2211,7 +1896,7 @@ function SectionEditor({
       {activePage === 8 ? (
         <>
           <div className="editor-note">
-            The Director&apos;s Desk title, full letter block, and signature can all be repositioned directly on the canvas for page 8.
+            Edit the full Director&apos;s Desk content here. Page 8 now uses a fixed layout, and you can still add or remove paragraphs.
           </div>
           <label>
             <span>Director desk letter title</span>
@@ -2249,7 +1934,7 @@ function SectionEditor({
       {activePage === 9 ? (
         <>
           <div className="editor-note">
-            The contents header, title, and article table can be dragged as separate blocks on page 9.
+            Update the contents rows here. Page 9 now uses a fixed layout in the PDF preview.
           </div>
           <div className="editor-note">
             If current issue or archive data is not available from API, fill these static rows manually. Saved rows are reused for this journal.
@@ -2616,21 +2301,12 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                     journal={primaryJournal}
                     draft={primaryDraft}
                     interactiveCover={activePage === 1}
-                    interactivePageBlocks={[2, 3, 4, 5, 6, 7, 8, 9].includes(activePage)}
                     onFrontCoverLayoutChange={(frontCoverLayout) =>
                       startTransition(() => {
-                        updateDraft(primaryJournal.id, { ...primaryDraft, frontCoverLayout });
-                      })
-                    }
-                    onPageLayoutChange={(page, layout) =>
-                      startTransition(() => {
-                        const key = `page${page}` as keyof BinderDraft["pageLayouts"];
                         updateDraft(primaryJournal.id, {
                           ...primaryDraft,
-                          pageLayouts: {
-                            ...primaryDraft.pageLayouts,
-                            [key]: layout,
-                          },
+                          frontCoverLayout,
+                          frontCoverLayoutCustomized: true,
                         });
                       })
                     }
@@ -2654,6 +2330,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                   updateDraft(primaryJournal.id, {
                     ...primaryDraft,
                     frontCoverLayout: defaultFrontCoverLayout,
+                    frontCoverLayoutCustomized: false,
                   })
                 }
               />
