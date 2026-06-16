@@ -1320,48 +1320,103 @@ button {
 
 .front-cover-dynamic-layer {
   --front-cover-header-bottom: 27.6%;
-  --front-cover-inset-x: 3.8%;
   color: #fff;
   font-family: "Arial Narrow", Arial, sans-serif;
   inset: 0;
+  overflow: hidden;
   position: absolute;
   z-index: 1;
 }
 
-.front-cover-dynamic-layer h1,
-.front-cover-abbreviation,
-.front-cover-issn,
-.front-cover-issue,
-.front-cover-month,
-.front-cover-footer {
+.front-cover-node {
   position: absolute;
+  touch-action: none;
+  z-index: 2;
 }
 
-.front-cover-abbreviation {
-  display: flex;
-  flex-direction: column;
-  left: var(--front-cover-inset-x);
-  min-height: 8.1%;
-  padding: 0;
-  top: 5.1%;
-  width: 25%;
+.front-cover-node.draggable {
+  cursor: grab;
 }
 
-.front-cover-abbreviation b {
+.front-cover-node.dragging {
+  cursor: grabbing;
+  z-index: 4;
+}
+
+.front-cover-node.draggable::after {
+  border: 1px dashed transparent;
+  border-radius: 8px;
+  content: "";
+  inset: -5px;
+  pointer-events: none;
+  position: absolute;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.front-cover-node.draggable:hover::after {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.36);
+}
+
+.front-cover-node.near-guide::after,
+.front-cover-node.dragging::after {
+  background: rgba(7, 89, 157, 0.14);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.alignment-guide {
+  background: rgba(67, 151, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6), 0 0 18px rgba(67, 151, 255, 0.28);
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
+}
+
+.alignment-guide.vertical {
+  transform: translateX(-0.5px);
+  width: 1px;
+}
+
+.alignment-guide.horizontal {
+  height: 1px;
+  transform: translateY(-0.5px);
+}
+
+.alignment-guide.center {
+  background: rgba(255, 220, 84, 0.94);
+  box-shadow: 0 0 0 1px rgba(255, 248, 204, 0.75), 0 0 22px rgba(255, 220, 84, 0.38);
+}
+
+.alignment-guide.margin {
+  background: rgba(126, 240, 223, 0.92);
+}
+
+.alignment-guide.match {
+  background: rgba(67, 151, 255, 0.92);
+}
+
+.alignment-guide.edge {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.front-cover-abbreviation-badge {
   color: #fff200;
   font-size: 25.5pt;
   font-weight: 800;
   letter-spacing: 0;
   line-height: 0.9;
-  margin-bottom: 1mm;
+  max-width: 28%;
+  white-space: nowrap;
 }
 
-.front-cover-abbreviation span {
+.front-cover-meta-line {
   color: #fff;
   font-family: Tahoma, Arial, sans-serif;
   font-size: 7.2pt;
   font-weight: 400;
   line-height: 1.08;
+  max-width: 24%;
+  white-space: nowrap;
 }
 
 .front-cover-issn {
@@ -1370,40 +1425,20 @@ button {
   font-weight: 400;
   line-height: 1.1;
   padding: 0;
-  right: var(--front-cover-inset-x);
   text-align: right;
-  top: 5.2%;
-  width: 24%;
-}
-
-.front-cover-issue {
-  align-items: flex-end;
-  display: flex;
-  flex-direction: column;
-  font-family: Tahoma, Arial, sans-serif;
-  font-size: 11.6pt;
-  font-weight: 400;
-  gap: 0.35mm;
-  line-height: 1.01;
-  padding: 0;
-  right: var(--front-cover-inset-x);
-  text-align: right;
-  top: 9%;
-  width: 30%;
+  white-space: nowrap;
 }
 
 .front-cover-title {
   color: #fff;
   font-size: 24.8pt;
   font-weight: 650;
-  left: 4.8%;
   line-height: 1.01;
   margin: 0;
   min-height: 10.5%;
   padding: 0;
-  right: 20%;
   text-wrap: balance;
-  top: 14.8%;
+  width: 75.2%;
 }
 
 .front-cover-title.balanced {
@@ -1421,16 +1456,29 @@ button {
   line-height: 0.99;
 }
 
+.front-cover-issue-line,
+.front-cover-website-line {
+  font-family: Tahoma, Arial, sans-serif;
+  font-size: 11.6pt;
+  font-weight: 400;
+  line-height: 1.01;
+  padding: 0;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.front-cover-website-line {
+  font-size: 10.4pt;
+}
+
 .front-cover-month {
   font-family: Tahoma, Arial, sans-serif;
   font-size: 9.6pt;
   font-weight: 700;
   line-height: 1.1;
   padding: 0;
-  right: var(--front-cover-inset-x);
   text-align: right;
-  top: 23.95%;
-  width: 14%;
+  white-space: nowrap;
 }
 
 .front-cover-dynamic-layer::before {
@@ -1444,18 +1492,6 @@ button {
   z-index: -1;
 }
 
-.front-cover-footer {
-  align-items: center;
-  background: transparent;
-  bottom: 0;
-  display: flex;
-  justify-content: space-between;
-  left: 0;
-  min-height: 17.6%;
-  padding: 3.2mm 14.5mm 4.8mm 14.5mm;
-  right: 0;
-}
-
 .front-cover-embedded-footer-mask {
   background: #fff;
   bottom: 0;
@@ -1466,35 +1502,62 @@ button {
   z-index: 0;
 }
 
-.front-cover-footer .publisher-logo {
+.front-cover-footer-item {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 18mm;
+  min-width: 30mm;
+}
+
+.front-cover-footer-item.draggable:empty::before {
+  background: rgba(7, 89, 157, 0.12);
+  border: 1px dashed rgba(7, 89, 157, 0.45);
+  border-radius: 8px;
+  color: rgba(7, 89, 157, 0.86);
+  content: "Drop logo";
+  font-family: Tahoma, Arial, sans-serif;
+  font-size: 8pt;
+  font-weight: 700;
+  padding: 10px 12px;
+}
+
+.front-cover-footer-left .publisher-logo,
+.front-cover-footer-right .publisher-logo {
   min-height: 16.5mm;
   min-width: 28mm;
 }
 
-.front-cover-footer-spacer {
+.front-cover-footer-left .front-cover-footer-spacer {
   display: block;
   min-height: 16.5mm;
   min-width: 28mm;
 }
 
-.front-cover-footer .publisher-logo.image-logo {
+.front-cover-footer-left .publisher-logo.image-logo,
+.front-cover-footer-right .publisher-logo.image-logo {
   background: #fff;
   min-height: 16.5mm;
   min-width: 28mm;
 }
 
-.front-cover-footer .publisher-logo.image-logo img {
+.front-cover-footer-left .publisher-logo.image-logo img,
+.front-cover-footer-right .publisher-logo.image-logo img {
   max-height: 16mm;
   max-width: 28mm;
 }
 
-.front-cover-footer .publisher-logo.image-logo.stm-logo img {
+.front-cover-footer-left .publisher-logo.image-logo.stm-logo img,
+.front-cover-footer-right .publisher-logo.image-logo.stm-logo img {
   max-height: 17.5mm;
 }
 
-.front-cover-footer .publisher-logo.image-logo.journalspub-logo img,
-.front-cover-footer .publisher-logo.image-logo.law-logo img,
-.front-cover-footer .publisher-logo.image-logo.mba-logo img {
+.front-cover-footer-left .publisher-logo.image-logo.journalspub-logo img,
+.front-cover-footer-left .publisher-logo.image-logo.law-logo img,
+.front-cover-footer-left .publisher-logo.image-logo.mba-logo img,
+.front-cover-footer-right .publisher-logo.image-logo.journalspub-logo img,
+.front-cover-footer-right .publisher-logo.image-logo.law-logo img,
+.front-cover-footer-right .publisher-logo.image-logo.mba-logo img {
   max-height: 15.5mm;
 }
 
@@ -2313,16 +2376,16 @@ button {
 .director-page {
   color: #222;
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 9.5pt;
-  line-height: 1.3;
-  padding: 14mm 18mm 12mm;
+  font-size: 10.1pt;
+  line-height: 1.34;
+  padding: 13mm 18mm 11mm;
 }
 
 .director-page h1 {
   color: #222;
-  font-size: 24pt;
+  font-size: 25pt;
   font-weight: 800;
-  margin: 7mm 0 6.5mm;
+  margin: 6.5mm 0 6mm;
   text-align: center;
 }
 
@@ -2332,7 +2395,7 @@ button {
 }
 
 .director-page p {
-  margin: 0 0 4mm;
+  margin: 0 0 4.4mm;
   text-align: justify;
 }
 
@@ -2347,8 +2410,8 @@ button {
 }
 
 .dear-line {
-  margin-bottom: 2.5mm !important;
-  padding-top: 11mm;
+  margin-bottom: 2.8mm !important;
+  padding-top: 10.5mm;
 }
 
 .director-first-paragraph::first-letter {
@@ -2360,8 +2423,8 @@ button {
 }
 
 .signature {
-  bottom: 17mm;
-  font-size: 9.6pt;
+  bottom: 15mm;
+  font-size: 10pt;
   left: 20mm;
   position: absolute;
 }
@@ -2375,7 +2438,7 @@ button {
 
 .signature span {
   display: block;
-  font-size: 8.4pt;
+  font-size: 8.8pt;
   font-weight: 700;
   margin-bottom: 0.5mm;
 }

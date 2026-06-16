@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import {
   ArrowLeft,
@@ -12,6 +12,7 @@ import {
   QrCode,
   SlidersHorizontal,
 } from "lucide-react";
+import FrontCoverCanvas from "@/components/FrontCoverCanvas";
 import { dynamicKey, journalLookupKeys } from "@/lib/lookup";
 import type { DynamicBinderData, EditorialMember } from "@/lib/formidable";
 import type { Journal } from "@/lib/journals";
@@ -27,6 +28,7 @@ import {
 } from "@/lib/binder-format";
 import {
   type BinderDraft,
+  defaultFrontCoverLayout,
   type ManagementPerson,
   type ContentRow,
   boardMembers,
@@ -45,6 +47,7 @@ import {
   defaultFocusNotes,
   defaultManuscriptNotice,
   logoAssets,
+  normalizeFrontCoverLayout,
 } from "@/lib/binder-content";
 
 type Props = {
@@ -155,6 +158,7 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     backCoverImage: defaultBackCoverImage(),
     journalLogoImage: "",
     footerRightLogoImage: "",
+    frontCoverLayout: defaultFrontCoverLayout,
     journalWebsite: defaultCoverWebsite(journal),
     issueVolume: defaultIssueVolume,
     issueNumber: defaultIssueNumber,
@@ -212,6 +216,7 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
     backCoverImage: draft.backCoverImage || defaultBackCoverImage(),
     journalLogoImage: draft.journalLogoImage ?? "",
     footerRightLogoImage: draft.footerRightLogoImage ?? "",
+    frontCoverLayout: normalizeFrontCoverLayout(draft.frontCoverLayout),
     journalAbbreviation: draft.journalAbbreviation || journal.abbreviation || journal.shortName,
     journalWebsite: normalizeCoverWebsite(draft.journalWebsite, journal),
     directorTitle: draft.directorTitle?.trim() || directorDesk.title,
@@ -635,7 +640,17 @@ function DigitalLibraryBackCover({ draft }: { draft: BinderDraft }) {
   );
 }
 
-function JournalFrontCover({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+function JournalFrontCover({
+  journal,
+  draft,
+  interactive = false,
+  onLayoutChange,
+}: {
+  journal: Journal;
+  draft: BinderDraft;
+  interactive?: boolean;
+  onLayoutChange?: (layout: BinderDraft["frontCoverLayout"]) => void;
+}) {
   const volume = draft.issueVolume || defaultIssueVolume;
   const issue = draft.issueNumber || defaultIssueNumber;
   const monthRange = draft.issueMonthRange || defaultIssueMonthRange;
@@ -649,34 +664,42 @@ function JournalFrontCover({ journal, draft }: { journal: Journal; draft: Binder
   return (
     <article className="journal-front-cover">
       <CoverBitmap src={coverImage} alt={journal.name} className="cover-panel-image" />
-      <div className="front-cover-dynamic-layer">
-        {shouldMaskEmbeddedFooter ? <div className="front-cover-embedded-footer-mask" aria-hidden="true" /> : null}
-        <div className="front-cover-abbreviation">
-          <b>{abbreviation.toUpperCase()}</b>
-          <span>SJIF: {journal.impactFactor || "Not set"}</span>
-          <span>ICV: {cleanIcv(journal.icv) || "Not set"}</span>
-        </div>
-        <span className="front-cover-issn">ISSN: {journal.eIssn || "Not set"}</span>
-        <div className="front-cover-issue">
-          <span>Volume {volume}&nbsp; No. {issue}&nbsp; {year}</span>
-          <span>{website.replace(/^https?:\/\//i, "")}</span>
-        </div>
-        <h1 className={frontCoverTitleClass(coverTitle)}>{coverTitle}</h1>
-        <span className="front-cover-month">{monthRange.replace("-", "–")}</span>
-        <div className="front-cover-footer">
-          <FrontCoverPublisherMark draft={draft} />
-          <FrontCoverExcellenceMark journal={journal} draft={draft} />
-        </div>
-      </div>
+      <FrontCoverCanvas
+        abbreviation={abbreviation}
+        sjif={draft.sjif || journal.impactFactor || ""}
+        icv={cleanIcv(draft.icv || journal.icv)}
+        eIssn={draft.eIssn || journal.eIssn || ""}
+        issueLine={`Volume ${volume}  No. ${issue}  ${year}`}
+        website={website.replace(/^https?:\/\//i, "")}
+        title={coverTitle}
+        titleClassName={frontCoverTitleClass(coverTitle)}
+        monthRange={monthRange.replace("-", "–")}
+        layout={draft.frontCoverLayout}
+        interactive={interactive}
+        showEmbeddedFooterMask={shouldMaskEmbeddedFooter}
+        publisherMark={<FrontCoverPublisherMark draft={draft} />}
+        excellenceMark={<FrontCoverExcellenceMark journal={journal} draft={draft} />}
+        onLayoutChange={onLayoutChange}
+      />
     </article>
   );
 }
 
-function CoverSpreadPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+function CoverSpreadPage({
+  journal,
+  draft,
+  interactive = false,
+  onLayoutChange,
+}: {
+  journal: Journal;
+  draft: BinderDraft;
+  interactive?: boolean;
+  onLayoutChange?: (layout: BinderDraft["frontCoverLayout"]) => void;
+}) {
   return (
     <section className="pdf-page cover-spread-page" data-export-group="cover" data-page-title="Digital library back and journal front cover">
       <DigitalLibraryBackCover draft={draft} />
-      <JournalFrontCover journal={journal} draft={draft} />
+      <JournalFrontCover journal={journal} draft={draft} interactive={interactive} onLayoutChange={onLayoutChange} />
     </section>
   );
 }
@@ -1167,9 +1190,10 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
 }
 
 function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
-  const paragraphs = hasDirectorContent(draft.directorParagraphs)
-    ? draft.directorParagraphs
-    : defaultDirectorDesk(journal).paragraphs;
+  const defaultParagraphs = defaultDirectorDesk(journal).paragraphs;
+  const paragraphs = defaultParagraphs
+    .map((paragraph, index) => draft.directorParagraphs?.[index]?.trim() || paragraph)
+    .filter((paragraph) => paragraph.trim());
 
   return (
     <section className="pdf-page director-page" data-export-group="internal">
@@ -1238,12 +1262,31 @@ function EditorialMemberLine({ member }: { member: EditorialMember }) {
   );
 }
 
-function BinderPage({ page, journal, draft }: { page: number; journal: Journal; draft: BinderDraft }) {
+function BinderPage({
+  page,
+  journal,
+  draft,
+  interactiveCover = false,
+  onFrontCoverLayoutChange,
+}: {
+  page: number;
+  journal: Journal;
+  draft: BinderDraft;
+  interactiveCover?: boolean;
+  onFrontCoverLayoutChange?: (layout: BinderDraft["frontCoverLayout"]) => void;
+}) {
   const currentJournal = draftJournal(journal, draft);
 
   switch (page) {
     case 1:
-      return <CoverSpreadPage journal={currentJournal} draft={draft} />;
+      return (
+        <CoverSpreadPage
+          journal={currentJournal}
+          draft={draft}
+          interactive={interactiveCover}
+          onLayoutChange={onFrontCoverLayoutChange}
+        />
+      );
     case 2:
       return <CoverPage journal={currentJournal} draft={draft} />;
     case 3:
@@ -1286,6 +1329,7 @@ function SectionEditor({
   exportingMode,
   exportError,
   onExport,
+  onResetFrontCoverLayout,
 }: {
   journal: Journal;
   draft: BinderDraft;
@@ -1297,6 +1341,7 @@ function SectionEditor({
   exportingMode: ExportMode | null;
   exportError: ExportError;
   onExport: (mode: ExportMode) => void;
+  onResetFrontCoverLayout: () => void;
 }) {
   const apiKeys = journalLookupKeys(journal);
   const hasDetails = apiKeys.some((key) => dynamicData.detailsByKey[key]);
@@ -1481,7 +1526,13 @@ function SectionEditor({
         <>
           <div className="editor-row-head">
             <span>First page dynamic data</span>
-            <button type="button" onClick={useDynamicPageOneData}>Reload CSV Data</button>
+            <div className="editor-row-actions">
+              <button type="button" onClick={useDynamicPageOneData}>Reload CSV Data</button>
+              <button type="button" onClick={onResetFrontCoverLayout}>Reset Drag Layout</button>
+            </div>
+          </div>
+          <div className="editor-note">
+            Drag each text line and logo slot directly on the live canvas. The guides now react to nearby edges, centers, margins, and neighboring items so subelements can be placed much more precisely.
           </div>
           <label>
             <span>Journal title</span>
@@ -2192,7 +2243,17 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                 {dashboardMode === "preview" ? (
                   <PageSet journal={primaryJournal} draft={primaryDraft} />
                 ) : (
-                  <BinderPage page={activePage} journal={primaryJournal} draft={primaryDraft} />
+                  <BinderPage
+                    page={activePage}
+                    journal={primaryJournal}
+                    draft={primaryDraft}
+                    interactiveCover={activePage === 1}
+                    onFrontCoverLayoutChange={(frontCoverLayout) =>
+                      startTransition(() => {
+                        updateDraft(primaryJournal.id, { ...primaryDraft, frontCoverLayout });
+                      })
+                    }
+                  />
                 )}
               </div>
             </section>
@@ -2208,6 +2269,12 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                 exportingMode={exportJob?.mode ?? null}
                 exportError={exportError}
                 onExport={runExport}
+                onResetFrontCoverLayout={() =>
+                  updateDraft(primaryJournal.id, {
+                    ...primaryDraft,
+                    frontCoverLayout: defaultFrontCoverLayout,
+                  })
+                }
               />
             ) : (
               <section className="export-panel">

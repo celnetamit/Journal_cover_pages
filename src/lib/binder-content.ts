@@ -10,6 +10,7 @@ export type BinderDraft = {
   backCoverImage: string;
   journalLogoImage: string;
   footerRightLogoImage: string;
+  frontCoverLayout: FrontCoverLayout;
   journalWebsite: string;
   issueVolume: string;
   issueNumber: string;
@@ -38,6 +39,106 @@ export type BinderDraft = {
   // Page 3 (subscription/legal) full-text override — blank = use generated content.
   paymentOverride: string;
 };
+
+export type CoverElementId =
+  | "abbreviationBadge"
+  | "sjifLine"
+  | "icvLine"
+  | "issn"
+  | "issueLine"
+  | "websiteLine"
+  | "title"
+  | "month"
+  | "footerLeft"
+  | "footerRight";
+
+export type CoverElementLayout = {
+  x: number;
+  y: number;
+};
+
+export type FrontCoverLayout = Record<CoverElementId, CoverElementLayout>;
+
+export const defaultFrontCoverLayout: FrontCoverLayout = {
+  abbreviationBadge: { x: 3.8, y: 5.1 },
+  sjifLine: { x: 3.9, y: 11.2 },
+  icvLine: { x: 3.9, y: 13.35 },
+  issn: { x: 72.2, y: 5.2 },
+  issueLine: { x: 66.2, y: 9 },
+  websiteLine: { x: 66.2, y: 12.45 },
+  title: { x: 4.8, y: 14.8 },
+  month: { x: 82.2, y: 23.95 },
+  footerLeft: { x: 4, y: 84.4 },
+  footerRight: { x: 78.8, y: 84.2 },
+};
+
+type LegacyFrontCoverLayout = Partial<
+  Record<
+    | "abbreviation"
+    | "issue"
+    | "footer",
+    Partial<CoverElementLayout>
+  >
+>;
+
+export function normalizeFrontCoverLayout(
+  layout:
+    | Partial<Record<CoverElementId, Partial<CoverElementLayout>>>
+    | (Partial<Record<CoverElementId, Partial<CoverElementLayout>>> & LegacyFrontCoverLayout)
+    | undefined,
+): FrontCoverLayout {
+  const legacy = layout as LegacyFrontCoverLayout | undefined;
+  const abbreviationBase = layout?.abbreviationBadge || legacy?.abbreviation;
+  const sjifBase = layout?.sjifLine || legacy?.abbreviation;
+  const icvBase = layout?.icvLine || legacy?.abbreviation;
+  const issueBase = layout?.issueLine || legacy?.issue;
+  const websiteBase = layout?.websiteLine || legacy?.issue;
+  const footerLeftBase = layout?.footerLeft || legacy?.footer;
+  const footerRightBase = layout?.footerRight || legacy?.footer;
+
+  return {
+    abbreviationBadge: {
+      ...defaultFrontCoverLayout.abbreviationBadge,
+      ...(abbreviationBase || {}),
+    },
+    sjifLine: {
+      ...defaultFrontCoverLayout.sjifLine,
+      ...(sjifBase || {}),
+    },
+    icvLine: {
+      ...defaultFrontCoverLayout.icvLine,
+      ...(icvBase || {}),
+    },
+    issn: {
+      ...defaultFrontCoverLayout.issn,
+      ...(layout?.issn || {}),
+    },
+    issueLine: {
+      ...defaultFrontCoverLayout.issueLine,
+      ...(issueBase || {}),
+    },
+    websiteLine: {
+      ...defaultFrontCoverLayout.websiteLine,
+      ...(websiteBase || {}),
+    },
+    title: {
+      ...defaultFrontCoverLayout.title,
+      ...(layout?.title || {}),
+    },
+    month: {
+      ...defaultFrontCoverLayout.month,
+      ...(layout?.month || {}),
+    },
+    footerLeft: {
+      ...defaultFrontCoverLayout.footerLeft,
+      ...(footerLeftBase || {}),
+    },
+    footerRight: {
+      ...defaultFrontCoverLayout.footerRight,
+      ...(footerRightBase || {}),
+    },
+  };
+}
 
 export type ManagementPerson = {
   name: string;
