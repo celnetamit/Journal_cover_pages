@@ -1116,7 +1116,7 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
       identity.email,
       ...(isLaw ? lawJournalNames : []),
     ].join(" ").length,
-    1200,
+    1500,
   );
 
   return (
