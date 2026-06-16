@@ -1200,16 +1200,20 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
       <div className="page-rule" />
       <h1>{draft.directorTitle}</h1>
       <div className="director-letter">
-        <Image
-          className="portrait"
-          src={logoAssets.director.src}
-          alt={logoAssets.director.alt}
-          width={logoAssets.director.width}
-          height={logoAssets.director.height}
-          unoptimized
-        />
-        <p className="dear-line"><b>Dear Readers,</b></p>
-        <p className="director-first-paragraph">{paragraphs[0].replaceAll("{journal}", titleCaseName(journal.name))}</p>
+        <div className="director-intro">
+          <Image
+            className="portrait"
+            src={logoAssets.director.src}
+            alt={logoAssets.director.alt}
+            width={logoAssets.director.width}
+            height={logoAssets.director.height}
+            unoptimized
+          />
+          <div className="director-intro-copy">
+            <p className="dear-line"><b>Dear Readers,</b></p>
+            <p className="director-first-paragraph">{paragraphs[0].replaceAll("{journal}", titleCaseName(journal.name))}</p>
+          </div>
+        </div>
         {paragraphs.slice(1).map((paragraph, index) => (
           <p key={index}>{paragraph.replaceAll("{journal}", titleCaseName(journal.name))}</p>
         ))}
