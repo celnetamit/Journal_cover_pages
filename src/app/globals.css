@@ -1318,6 +1318,47 @@ button {
   width: 100%;
 }
 
+.page-dnd-canvas {
+  inset: 0;
+  position: absolute;
+}
+
+.page-dnd-item {
+  position: absolute;
+  touch-action: none;
+  z-index: 2;
+}
+
+.page-dnd-item.draggable {
+  cursor: grab;
+}
+
+.page-dnd-item.dragging {
+  cursor: grabbing;
+  z-index: 4;
+}
+
+.page-dnd-item.draggable::after {
+  border: 1px dashed transparent;
+  border-radius: 8px;
+  content: "";
+  inset: -5px;
+  pointer-events: none;
+  position: absolute;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.page-dnd-item.draggable:hover::after {
+  background: rgba(7, 89, 157, 0.05);
+  border-color: rgba(7, 89, 157, 0.2);
+}
+
+.page-dnd-item.near-guide::after,
+.page-dnd-item.dragging::after {
+  background: rgba(7, 89, 157, 0.12);
+  border-color: rgba(7, 89, 157, 0.48);
+}
+
 .front-cover-dynamic-layer {
   --front-cover-header-bottom: 27.6%;
   color: #fff;
@@ -1834,12 +1875,152 @@ button {
   padding: 14mm 15mm 12mm;
 }
 
+.page4-block,
+.page5-block,
+.page6-block,
+.page7-block,
+.page2-block,
+.page3-block,
+.page8-block,
+.page9-block {
+  left: 0;
+}
+
+.page2-issn {
+  width: 25%;
+}
+
+.page2-printer {
+  width: 13%;
+}
+
+.page2-title {
+  width: 69%;
+}
+
+.page2-issue,
+.page2-meta {
+  width: 38%;
+}
+
+.page2-footer {
+  width: 82%;
+}
+
+.page2-cover-issn,
+.page2-cover-printer,
+.page2-cover-title,
+.page2-issue-line,
+.page2-cover-meta {
+  margin: 0;
+}
+
+.page2-cover-issn {
+  font-size: 9.4pt;
+  letter-spacing: 1px;
+  text-align: right;
+}
+
+.page2-cover-printer {
+  font-size: 13pt;
+  transform: rotate(-90deg);
+  transform-origin: left top;
+  white-space: nowrap;
+}
+
+.page2-cover-title {
+  font-size: 24.5pt;
+  font-weight: 800;
+  line-height: 1.08;
+  text-align: center;
+}
+
+.page2-issue-line,
+.page2-cover-meta {
+  color: #101828;
+  font-size: 12.6pt;
+  font-weight: 700;
+  text-align: center;
+}
+
+.page2-cover-meta {
+  color: #222;
+}
+
+.page2-cover-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8mm;
+}
+
+.page2-cover-footer b {
+  color: #222;
+  font-size: 17pt;
+  letter-spacing: 1px;
+  line-height: 1.05;
+}
+
+.page2-cover-footer strong {
+  color: #222;
+  font-size: 13pt;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.page2-cover-footer span {
+  color: #444;
+  font-size: 8.8pt;
+  line-height: 1.15;
+}
+
+.page3-override,
+.page3-intro,
+.page3-section {
+  width: 84%;
+}
+
+.page4-header,
+.page4-intro,
+.page4-section,
+.page4-focus-intro,
+.page4-notes {
+  width: 82.8%;
+}
+
+.page4-notes {
+  width: 80.8%;
+}
+
 .management-page h1 {
   color: #222;
   font-size: 19pt;
   font-weight: 800;
   margin: 7mm 0 3.8mm;
   text-align: center;
+}
+
+.page5-title {
+  width: 72%;
+}
+
+.page5-featured {
+  width: 42mm;
+}
+
+.page5-band {
+  width: 85%;
+}
+
+.page5-grid {
+  width: 84%;
+}
+
+.page5-roster {
+  width: 74%;
+}
+
+.page5-contacts {
+  width: 85.5%;
 }
 
 .management-profile {
@@ -1970,15 +2151,11 @@ button {
 .management-contact-boxes {
   background: #e5e5e5;
   border: 1px solid #222;
-  bottom: 15mm;
   display: grid;
   font-size: 6.7pt;
   gap: 6mm;
   grid-template-columns: 1fr 1fr;
-  left: 15mm;
   padding: 4mm 5mm;
-  position: absolute;
-  right: 15mm;
 }
 
 .management-contact-boxes div {
@@ -2010,6 +2187,41 @@ button {
   grid-template-columns: 55mm 1fr;
   margin: 8mm 0;
   padding: 6mm;
+}
+
+.page6-header,
+.page6-title,
+.page6-lead,
+.page6-engine,
+.page6-url {
+  width: 82.8%;
+}
+
+.page6-notice {
+  width: 72.5%;
+}
+
+.page8-title {
+  padding-top: 3mm;
+  width: 72%;
+}
+
+.page8-intro,
+.page8-body {
+  width: 84%;
+}
+
+.page8-signature {
+  width: 35%;
+}
+
+.page9-header,
+.page9-table {
+  width: 84%;
+}
+
+.page9-title {
+  width: 30%;
 }
 
 .engine-panel > div {
@@ -2071,15 +2283,11 @@ button {
 
 .manuscript-notice {
   border: 1px solid #111;
-  bottom: 17mm;
   font-size: 8.4pt;
   font-weight: 700;
-  left: 24mm;
   line-height: 1.35;
   margin: 0;
   padding: 4mm;
-  position: absolute;
-  right: 24mm;
   text-align: center;
 }
 
@@ -2462,6 +2670,13 @@ button {
   font-family: Arial, Helvetica, sans-serif;
   padding: 14mm 18mm 12mm;
   text-align: center;
+}
+
+.page7-title,
+.page7-subtitle,
+.page7-section,
+.page7-empty {
+  width: 82.8%;
 }
 
 .editorial-page h1 {

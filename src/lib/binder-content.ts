@@ -11,6 +11,7 @@ export type BinderDraft = {
   journalLogoImage: string;
   footerRightLogoImage: string;
   frontCoverLayout: FrontCoverLayout;
+  pageLayouts: BinderPageLayouts;
   journalWebsite: string;
   issueVolume: string;
   issueNumber: string;
@@ -59,6 +60,94 @@ export type CoverElementLayout = {
 
 export type FrontCoverLayout = Record<CoverElementId, CoverElementLayout>;
 
+export type GenericPageElementLayout = {
+  x: number;
+  y: number;
+};
+
+export type JournalInfoElementId =
+  | "header"
+  | "intro"
+  | "objectives"
+  | "salient"
+  | "focusIntro"
+  | "focusList"
+  | "notes";
+
+export type TeamElementId =
+  | "title"
+  | "featured"
+  | "band"
+  | "grid"
+  | "roster"
+  | "contacts";
+
+export type ManuscriptElementId =
+  | "header"
+  | "title"
+  | "lead"
+  | "engine"
+  | "url"
+  | "notice";
+
+export type EditorialElementId =
+  | "title"
+  | "subtitle"
+  | "chief"
+  | "associate"
+  | "editors"
+  | "empty";
+
+export type JournalInfoPageLayout = Record<JournalInfoElementId, GenericPageElementLayout>;
+export type TeamPageLayout = Record<TeamElementId, GenericPageElementLayout>;
+export type ManuscriptPageLayout = Record<ManuscriptElementId, GenericPageElementLayout>;
+export type EditorialPageLayout = Record<EditorialElementId, GenericPageElementLayout>;
+
+export type BinderPageLayouts = {
+  page2: CoverTitlePageLayout;
+  page3: PaymentPageLayout;
+  page4: JournalInfoPageLayout;
+  page5: TeamPageLayout;
+  page6: ManuscriptPageLayout;
+  page7: EditorialPageLayout;
+  page8: DirectorPageLayout;
+  page9: ContentPageLayout;
+};
+
+export type CoverTitleElementId =
+  | "issn"
+  | "printer"
+  | "title"
+  | "issue"
+  | "meta"
+  | "footer";
+
+export type PaymentElementId =
+  | "override"
+  | "intro"
+  | "subscription"
+  | "payment"
+  | "access"
+  | "advertising"
+  | "lost"
+  | "legal";
+
+export type DirectorElementId =
+  | "title"
+  | "intro"
+  | "body"
+  | "signature";
+
+export type ContentElementId =
+  | "header"
+  | "title"
+  | "table";
+
+export type CoverTitlePageLayout = Record<CoverTitleElementId, GenericPageElementLayout>;
+export type PaymentPageLayout = Record<PaymentElementId, GenericPageElementLayout>;
+export type DirectorPageLayout = Record<DirectorElementId, GenericPageElementLayout>;
+export type ContentPageLayout = Record<ContentElementId, GenericPageElementLayout>;
+
 export const defaultFrontCoverLayout: FrontCoverLayout = {
   abbreviationBadge: { x: 3.8, y: 5.1 },
   sjifLine: { x: 3.9, y: 11.2 },
@@ -70,6 +159,71 @@ export const defaultFrontCoverLayout: FrontCoverLayout = {
   month: { x: 82.2, y: 23.95 },
   footerLeft: { x: 4, y: 84.4 },
   footerRight: { x: 78.8, y: 84.2 },
+};
+
+export const defaultBinderPageLayouts: BinderPageLayouts = {
+  page2: {
+    issn: { x: 70.5, y: 8.8 },
+    printer: { x: 3.8, y: 66.4 },
+    title: { x: 14.8, y: 18.2 },
+    issue: { x: 32.8, y: 34.8 },
+    meta: { x: 37.5, y: 40.4 },
+    footer: { x: 8.8, y: 60.8 },
+  },
+  page3: {
+    override: { x: 8.2, y: 8.2 },
+    intro: { x: 8.2, y: 8.2 },
+    subscription: { x: 8.2, y: 18.5 },
+    payment: { x: 8.2, y: 40.5 },
+    access: { x: 8.2, y: 61.5 },
+    advertising: { x: 8.2, y: 78.8 },
+    lost: { x: 8.2, y: 86.8 },
+    legal: { x: 8.2, y: 95.2 },
+  },
+  page4: {
+    header: { x: 8.6, y: 8.2 },
+    intro: { x: 8.6, y: 18.6 },
+    objectives: { x: 8.6, y: 29.6 },
+    salient: { x: 8.6, y: 48.2 },
+    focusIntro: { x: 8.6, y: 66.2 },
+    focusList: { x: 8.6, y: 71.8 },
+    notes: { x: 8.6, y: 84.1 },
+  },
+  page5: {
+    title: { x: 13.6, y: 7.2 },
+    featured: { x: 39.5, y: 16.3 },
+    band: { x: 7.2, y: 34.4 },
+    grid: { x: 7.2, y: 41.8 },
+    roster: { x: 13.4, y: 73.2 },
+    contacts: { x: 7.2, y: 82.2 },
+  },
+  page6: {
+    header: { x: 8.6, y: 8.1 },
+    title: { x: 8.6, y: 22.8 },
+    lead: { x: 8.6, y: 29.4 },
+    engine: { x: 8.6, y: 38.2 },
+    url: { x: 8.6, y: 67.8 },
+    notice: { x: 11.4, y: 77.9 },
+  },
+  page7: {
+    title: { x: 8.6, y: 8.1 },
+    subtitle: { x: 8.6, y: 20.5 },
+    chief: { x: 8.6, y: 31.1 },
+    associate: { x: 8.6, y: 45.6 },
+    editors: { x: 8.6, y: 60.5 },
+    empty: { x: 8.6, y: 31.1 },
+  },
+  page8: {
+    title: { x: 13.8, y: 7.2 },
+    intro: { x: 8.2, y: 17.6 },
+    body: { x: 8.2, y: 48.8 },
+    signature: { x: 10.2, y: 82.8 },
+  },
+  page9: {
+    header: { x: 8.4, y: 8.2 },
+    title: { x: 38.8, y: 20.5 },
+    table: { x: 8.4, y: 28.4 },
+  },
 };
 
 type LegacyFrontCoverLayout = Partial<
@@ -137,6 +291,42 @@ export function normalizeFrontCoverLayout(
       ...defaultFrontCoverLayout.footerRight,
       ...(footerRightBase || {}),
     },
+  };
+}
+
+function normalizeGenericRecord<T extends string>(
+  defaults: Record<T, GenericPageElementLayout>,
+  layout: Partial<Record<T, Partial<GenericPageElementLayout>>> | undefined,
+): Record<T, GenericPageElementLayout> {
+  return Object.fromEntries(
+    Object.entries(defaults).map(([key, rawValue]) => [
+      key,
+      { ...(rawValue as GenericPageElementLayout), ...(layout?.[key as T] || {}) },
+    ]),
+  ) as Record<T, GenericPageElementLayout>;
+}
+
+export function normalizeBinderPageLayouts(
+  layouts: Partial<{
+    page2: Partial<Record<CoverTitleElementId, Partial<GenericPageElementLayout>>>;
+    page3: Partial<Record<PaymentElementId, Partial<GenericPageElementLayout>>>;
+    page4: Partial<Record<JournalInfoElementId, Partial<GenericPageElementLayout>>>;
+    page5: Partial<Record<TeamElementId, Partial<GenericPageElementLayout>>>;
+    page6: Partial<Record<ManuscriptElementId, Partial<GenericPageElementLayout>>>;
+    page7: Partial<Record<EditorialElementId, Partial<GenericPageElementLayout>>>;
+    page8: Partial<Record<DirectorElementId, Partial<GenericPageElementLayout>>>;
+    page9: Partial<Record<ContentElementId, Partial<GenericPageElementLayout>>>;
+  }> | undefined,
+): BinderPageLayouts {
+  return {
+    page2: normalizeGenericRecord(defaultBinderPageLayouts.page2, layouts?.page2),
+    page3: normalizeGenericRecord(defaultBinderPageLayouts.page3, layouts?.page3),
+    page4: normalizeGenericRecord(defaultBinderPageLayouts.page4, layouts?.page4),
+    page5: normalizeGenericRecord(defaultBinderPageLayouts.page5, layouts?.page5),
+    page6: normalizeGenericRecord(defaultBinderPageLayouts.page6, layouts?.page6),
+    page7: normalizeGenericRecord(defaultBinderPageLayouts.page7, layouts?.page7),
+    page8: normalizeGenericRecord(defaultBinderPageLayouts.page8, layouts?.page8),
+    page9: normalizeGenericRecord(defaultBinderPageLayouts.page9, layouts?.page9),
   };
 }
 
