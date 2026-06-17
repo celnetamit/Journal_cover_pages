@@ -1905,6 +1905,11 @@ function SectionEditor({
           <div className="editor-note">
             Update the team details here. Page 5 now uses a fixed layout in the PDF preview.
           </div>
+          <div className="editor-note">
+            Pick people via the dropdowns, or{" "}
+            <a href={`/journals/${journal.id}/edit`} className="board-team-link">manage this journal&apos;s Board &amp; Team</a>{" "}
+            (Profiles + roles, shared across all issues).
+          </div>
           <div className="management-edit-head">
             <span>Management head (chairman)</span>
             {profiles.length > 0 ? (
@@ -1980,6 +1985,11 @@ function SectionEditor({
         <div className="editor-repeater">
           <div className="editor-note">
             Edit the editorial content here. Page 7 now uses a fixed layout in the PDF preview.
+          </div>
+          <div className="editor-note">
+            Edit per-issue here, or{" "}
+            <a href={`/journals/${journal.id}/edit`} className="board-team-link">manage this journal&apos;s Board &amp; Team</a>{" "}
+            (Profiles + roles, shared across all issues).
           </div>
           <div className="editor-row-head">
             <span>Editorial Board Members ({draft.editorialBoard.length})</span>
