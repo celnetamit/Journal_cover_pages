@@ -12,8 +12,17 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Generate the Prisma client, then build the Next.js app.
-RUN npx prisma generate && npm run build
+# Generate the Prisma client and build the app, then drop dev-only dependencies
+# (typescript, eslint, vitest, tailwind, @types) so the runtime image — which
+# copies this node_modules for `prisma migrate deploy` + the optional seed —
+# stays small and the image export step is fast.
+RUN npx prisma generate \
+  && npm run build \
+  && npm prune --omit=dev --ignore-scripts \
+  # Drop build-only artifacts that the production server never loads at runtime:
+  # @next/swc (compiler binaries), typescript, and caches. This shrinks the image
+  # and speeds up the layer export.
+  && rm -rf node_modules/@next/swc-* node_modules/typescript node_modules/.cache .next/cache
 
 FROM node:22-alpine AS runner
 WORKDIR /app
