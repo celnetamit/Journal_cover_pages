@@ -1,0 +1,313 @@
+// Prisma schema for the dynamic journal binder app.
+// Datasource URL is configured in prisma.config.ts (Prisma 7 convention).
+// Image fields are plain String URLs that hold either a remote/legacy URL or a
+// local "/api/assets/{id}" pointer; uploaded image bytes live in the Asset table.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum JournalRole {
+  EDITOR_IN_CHIEF
+  EDITORIAL_BOARD
+  MANAGING_EDITOR
+  ADVISOR
+  REVIEWER
+  MANAGEMENT_HEAD
+  MANAGEMENT_MEMBER
+}
+
+enum SubscriptionMode {
+  PRINT
+  ONLINE
+  PRINT_ONLINE
+}
+
+enum BinderType {
+  REGULAR
+  SPECIAL
+}
+
+enum JournalFrequency {
+  ANNUAL
+  BIANNUAL
+  TRIANNUAL
+  QUARTERLY
+  BIMONTHLY
+  MONTHLY
+  OTHER
+}
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  role         UserRole @default(VIEWER)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  uploadedAssets Asset[]
+  editedBinders  Binder[]
+}
+
+// ---------------------------------------------------------------------------
+// People & organisations (defined once, reused everywhere)
+// ---------------------------------------------------------------------------
+
+model Profile {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  photoUrl    String?
+  designation String?
+  biography   String?
+  affiliation String?
+  department  String?
+  address     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships         JournalMember[]
+  directorOfCompanies Company[]       @relation("CompanyDirector")
+  managedDomains      Domain[]        @relation("DomainManager")
+  managedJournals     Journal[]       @relation("JournalManager")
+
+  @@index([email])
+  @@index([name])
+}
+
+model Company {
+  id                String   @id @default(cuid())
+  name              String   @unique
+  email             String?
+  phone             String?
+  website           String?
+  logoUrl           String?
+  registeredAddress String?
+  salesAddress      String?
+  cin               String?
+  gst               String?
+  bankAccountName   String?
+  bankAccountNo     String?
+  bankIfsc          String?
+  bankName          String?
+  bankBranch        String?
+  bankSwift         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  directorId String?
+  director   Profile? @relation("CompanyDirector", fields: [directorId], references: [id], onDelete: SetNull)
+
+  publishers Publisher[]
+}
+
+model Publisher {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  journals Journal[]
+}
+
+model Domain {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  managerId String?
+  manager   Profile? @relation("DomainManager", fields: [managerId], references: [id], onDelete: SetNull)
+
+  journals Journal[]
+}
+
+// ---------------------------------------------------------------------------
+// Subscriptions (global plans + optional per-journal price override)
+// ---------------------------------------------------------------------------
+
+model Subscription {
+  id        String           @id @default(cuid())
+  name      String           @unique
+  mode      SubscriptionMode
+  priceUsd  Float?
+  priceInr  Float?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  journalOverrides JournalSubscription[]
+}
+
+model JournalSubscription {
+  id             String  @id @default(cuid())
+  journalId      String
+  subscriptionId String
+  priceUsd       Float?
+  priceInr       Float?
+
+  journal      Journal      @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([journalId, subscriptionId])
+}
+
+// ---------------------------------------------------------------------------
+// Journal (catalog) + the people attached to it
+// ---------------------------------------------------------------------------
+
+model Journal {
+  id           String  @id @default(cuid())
+  legacyId     String? @unique // original CSV ID/Key, for seeding + lookups
+  slug         String  @unique
+  name         String
+  abbreviation String
+  shortName    String?
+  website      String?
+
+  issnPrint  String?
+  issnOnline String?
+  sjif       String?
+  icv        String?
+  doi        String?
+
+  impactFactor      String?
+  indexing          String[]
+  indexingLogoUrl   String?
+  codeN             String?
+  startedSince      String?
+  typeOfPublication String?
+  access            String?
+  language          String?
+  issuesPerYear     Int?
+  frequency         JournalFrequency @default(OTHER)
+  frequencyLabel    String?
+
+  coverFrontUrl String?
+  coverBackUrl  String?
+  logoUrl       String?
+
+  about            String?
+  focusScope       String[]
+  objectives       String[]
+  salientFeatures  String[]
+  keywords         String[]
+  manuscriptNotice String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  domainId    String?
+  domain      Domain?    @relation(fields: [domainId], references: [id], onDelete: SetNull)
+  publisherId String?
+  publisher   Publisher? @relation(fields: [publisherId], references: [id], onDelete: SetNull)
+  managerId   String?
+  manager     Profile?   @relation("JournalManager", fields: [managerId], references: [id], onDelete: SetNull)
+
+  members       JournalMember[]
+  binders       Binder[]
+  subscriptions JournalSubscription[]
+
+  @@index([abbreviation])
+}
+
+model JournalMember {
+  id        String      @id @default(cuid())
+  journalId String
+  profileId String
+  role      JournalRole
+  order     Int         @default(0)
+
+  journal Journal @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([journalId, profileId, role])
+  @@index([journalId])
+}
+
+// ---------------------------------------------------------------------------
+// Binder = the editable per-issue document (inherits journal defaults)
+// ---------------------------------------------------------------------------
+
+model Binder {
+  id        String     @id @default(cuid())
+  journalId String
+  volume    String?
+  issue     String?
+  year      Int?
+  type      BinderType @default(REGULAR)
+
+  monthRange         String?
+  directorParagraphs String[]
+
+  // Per-issue free-form overrides + cover/page layout positions (JSONB).
+  overrides Json?
+  layout    Json?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+
+  journal   Journal   @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  updatedBy User?     @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  articles  Article[]
+
+  @@unique([journalId, volume, issue, year])
+  @@index([journalId])
+}
+
+model Article {
+  id        String  @id @default(cuid())
+  binderId  String
+  title     String
+  authors   String?
+  startPage String?
+  order     Int     @default(0)
+
+  binder Binder @relation(fields: [binderId], references: [id], onDelete: Cascade)
+
+  @@index([binderId])
+}
+
+// ---------------------------------------------------------------------------
+// Uploaded image storage (bytes in Postgres)
+// ---------------------------------------------------------------------------
+
+model Asset {
+  id        String   @id @default(cuid())
+  data      Bytes
+  mimeType  String
+  byteSize  Int
+  width     Int?
+  height    Int?
+  createdAt DateTime @default(now())
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+}

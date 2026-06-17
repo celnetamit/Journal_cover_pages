@@ -52,15 +52,29 @@ import {
   normalizeFrontCoverLayout,
 } from "@/lib/binder-content";
 
+type StoredDraft = {
+  draft: BinderDraft;
+  updatedAt: string;
+  updatedByName: string | null;
+};
+
+type ConflictState = {
+  journalId: string;
+  draft: BinderDraft;
+  updatedAt: string;
+  updatedByName: string | null;
+};
+
 type Props = {
   journals: Journal[];
   defaultJournalId: string;
   dynamicData: DynamicBinderData;
+  serverDrafts: Record<string, StoredDraft>;
+  canEdit: boolean;
 };
 
 
 
-const draftStorageKey = "journal-cover-page-drafts";
 const defaultIssueVolume = "13";
 const defaultIssueNumber = "1";
 const defaultIssueMonthRange = "January-April";
@@ -300,13 +314,19 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
   };
 }
 
-function initialDrafts(journals: Journal[], dynamicData: DynamicBinderData) {
-  const savedDrafts = loadSavedDrafts();
-
+function initialDrafts(
+  journals: Journal[],
+  dynamicData: DynamicBinderData,
+  serverDrafts: Record<string, StoredDraft>,
+) {
   return Object.fromEntries(
     journals.map((journal) => [
       journal.id,
-      normalizeDraftForJournal(journal, savedDrafts[journal.id] || draftFromDynamic(journal, dynamicData), dynamicData),
+      normalizeDraftForJournal(
+        journal,
+        serverDrafts[journal.id]?.draft || draftFromDynamic(journal, dynamicData),
+        dynamicData,
+      ),
     ]),
   );
 }
@@ -389,27 +409,6 @@ function pageEditorTitle(page: number) {
   ];
 
   return titles[page - 1] || "Page controls";
-}
-
-function loadSavedDrafts() {
-  if (typeof window === "undefined") return {};
-
-  try {
-    return JSON.parse(window.localStorage.getItem(draftStorageKey) || "{}") as Record<string, BinderDraft>;
-  } catch {
-    return {};
-  }
-}
-
-function saveDraftsToStorage(drafts: Record<string, BinderDraft>): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    window.localStorage.setItem(draftStorageKey, JSON.stringify(drafts));
-    return true;
-  } catch {
-    // Most often QuotaExceededError: uploaded images are stored as large base64 data URLs.
-    return false;
-  }
 }
 
 
@@ -1522,24 +1521,37 @@ function SectionEditor({
     });
   }
 
-  function readPhoto(file: File | undefined, callback: (photo: string) => void) {
+  // Upload an image to the server (stored in the DB) and hand back its serve URL
+  // (/api/assets/{id}) — replaces the old base64 data-URL approach.
+  async function readPhoto(file: File | undefined, callback: (photo: string) => void) {
     if (!file) return;
-    const maxBytes = 5 * 1024 * 1024;
+    const maxBytes = 8 * 1024 * 1024;
     if (!file.type.startsWith("image/")) {
       setUploadError(`"${file.name}" is not an image file. Choose a PNG, JPG, or WEBP.`);
       return;
     }
     if (file.size > maxBytes) {
-      setUploadError(`"${file.name}" is ${(file.size / 1048576).toFixed(1)} MB — please use an image under 5 MB.`);
+      setUploadError(`"${file.name}" is ${(file.size / 1048576).toFixed(1)} MB — please use an image under 8 MB.`);
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
+    try {
       setUploadError("");
-      callback(String(reader.result || ""));
-    };
-    reader.onerror = () => setUploadError(`Could not read "${file.name}". Please try a different file.`);
-    reader.readAsDataURL(file);
+      const form = new FormData();
+      form.append("file", file);
+      const response = await fetch("/api/assets", { method: "POST", body: form });
+      if (response.status === 403) {
+        setUploadError("Read-only access — uploads are disabled.");
+        return;
+      }
+      if (!response.ok) {
+        setUploadError(`Could not upload "${file.name}". Please try again.`);
+        return;
+      }
+      const data = (await response.json()) as { url: string };
+      callback(data.url);
+    } catch {
+      setUploadError(`Could not upload "${file.name}". Please try again.`);
+    }
   }
 
   function useDynamicPageOneData() {
@@ -2031,9 +2043,14 @@ function SectionEditor({
   );
 }
 
-export default function JournalDashboard({ journals, defaultJournalId, dynamicData }: Props) {
+export default function JournalDashboard({ journals, defaultJournalId, dynamicData, serverDrafts, canEdit }: Props) {
   const [selectedId, setSelectedId] = useState(defaultJournalId);
-  const [drafts, setDrafts] = useState<Record<string, BinderDraft>>(() => initialDrafts(journals, dynamicData));
+  const [drafts, setDrafts] = useState<Record<string, BinderDraft>>(() => initialDrafts(journals, dynamicData, serverDrafts));
+  const [updatedAtById, setUpdatedAtById] = useState<Record<string, string>>(() =>
+    Object.fromEntries(Object.entries(serverDrafts).map(([id, value]) => [id, value.updatedAt])),
+  );
+  const [dirtyIds, setDirtyIds] = useState<Set<string>>(() => new Set());
+  const [conflict, setConflict] = useState<ConflictState | null>(null);
   const [activePage, setActivePage] = useState(1);
   const [dashboardMode, setDashboardMode] = useState<"templates" | "preview">("templates");
   const [saveStatus, setSaveStatus] = useState("");
@@ -2043,8 +2060,8 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   const [bookSnapshot, setBookSnapshot] = useState<BookSnapshot>(null);
   const [batchIds, setBatchIds] = useState<string[]>([]);
   const [importStatus, setImportStatus] = useState("");
-  const [dirty, setDirty] = useState(false);
   const [comboOpen, setComboOpen] = useState(false);
+  const dirty = dirtyIds.size > 0;
   const primaryJournal = journals.find((journal) => journal.id === selectedId) || journals[0];
   const selectedJournals = primaryJournal ? [primaryJournal] : [];
   const primaryDraft = primaryJournal ? drafts[primaryJournal.id] || draftFromDynamic(primaryJournal, dynamicData) : null;
@@ -2089,45 +2106,117 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     }
   }
 
+  function markDirty(journalId: string) {
+    setDirtyIds((prev) => {
+      const next = new Set(prev);
+      next.add(journalId);
+      return next;
+    });
+  }
+
+  function clearDirty(journalId: string) {
+    setDirtyIds((prev) => {
+      if (!prev.has(journalId)) return prev;
+      const next = new Set(prev);
+      next.delete(journalId);
+      return next;
+    });
+  }
+
   function updateDraft(journalId: string, draft: BinderDraft) {
     setDrafts((current) => ({ ...current, [journalId]: draft }));
-    setDirty(true);
+    if (canEdit) markDirty(journalId);
   }
 
-  function saveCurrentDraft() {
-    if (!primaryJournal || !primaryDraft) return;
-    const nextDrafts = { ...loadSavedDrafts(), ...drafts, [primaryJournal.id]: primaryDraft };
-    const saved = saveDraftsToStorage(nextDrafts);
-    setDrafts((current) => ({ ...current, [primaryJournal.id]: primaryDraft }));
-    if (saved) setDirty(false);
-    setSaveStatus(
-      saved
-        ? `Saved details for ${primaryJournal.abbreviation || primaryJournal.name}`
-        : "Could not save — browser storage is full. Remove uploaded images or clear saved drafts, then try again.",
-    );
-    window.setTimeout(() => setSaveStatus(""), saved ? 2500 : 6000);
+  // Persist one journal's draft to the server. Returns true on success; sets a
+  // status message and (on 409) a conflict banner otherwise.
+  async function persistDraft(journalId: string): Promise<boolean> {
+    const draft = drafts[journalId];
+    if (!draft) return false;
+    try {
+      const response = await fetch(`/api/journals/${journalId}/binder`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ draft, baseUpdatedAt: updatedAtById[journalId] }),
+      });
+      if (response.status === 403) {
+        setSaveStatus("Read-only access — changes are not saved.");
+        return false;
+      }
+      if (response.status === 409) {
+        const data = (await response.json()) as ConflictState;
+        setConflict({ ...data, journalId });
+        setSaveStatus(`Edited by ${data.updatedByName ?? "someone else"} since you opened this.`);
+        return false;
+      }
+      if (!response.ok) {
+        setSaveStatus("Save failed — please try again.");
+        return false;
+      }
+      const data = (await response.json()) as { updatedAt: string };
+      setUpdatedAtById((prev) => ({ ...prev, [journalId]: data.updatedAt }));
+      clearDirty(journalId);
+      return true;
+    } catch {
+      setSaveStatus("Save failed — you appear to be offline.");
+      return false;
+    }
   }
 
-  // U4 — debounced autosave: persist all drafts ~1.5s after the last edit.
+  async function saveCurrentDraft() {
+    if (!primaryJournal || !canEdit) return;
+    const ok = await persistDraft(primaryJournal.id);
+    if (ok) {
+      setSaveStatus(`Saved details for ${primaryJournal.abbreviation || primaryJournal.name}`);
+      window.setTimeout(() => setSaveStatus(""), 2500);
+    } else {
+      window.setTimeout(() => setSaveStatus(""), 6000);
+    }
+  }
+
+  // Resolve a save conflict: either take the server's version or overwrite with
+  // the local version on the next save (adopting the server timestamp as base).
+  function resolveConflict(takeServer: boolean) {
+    if (!conflict) return;
+    const { journalId, draft: serverDraft, updatedAt } = conflict;
+    if (takeServer) {
+      const journal = journals.find((item) => item.id === journalId);
+      const normalized = journal
+        ? normalizeDraftForJournal(journal, serverDraft, dynamicData)
+        : serverDraft;
+      setDrafts((current) => ({ ...current, [journalId]: normalized }));
+      clearDirty(journalId);
+      setSaveStatus("Loaded the latest version.");
+    } else {
+      markDirty(journalId);
+      setSaveStatus("Your version will overwrite on the next save.");
+    }
+    setUpdatedAtById((prev) => ({ ...prev, [journalId]: updatedAt }));
+    setConflict(null);
+    window.setTimeout(() => setSaveStatus(""), 3000);
+  }
+
+  // U4 — debounced autosave: persist all dirty drafts ~1.5s after the last edit.
   useEffect(() => {
-    if (!dirty) return;
-    const timer = window.setTimeout(() => {
-      const saved = saveDraftsToStorage({ ...loadSavedDrafts(), ...drafts });
-      if (saved) {
-        setDirty(false);
+    if (!canEdit || dirtyIds.size === 0) return;
+    const timer = window.setTimeout(async () => {
+      let allOk = true;
+      for (const id of Array.from(dirtyIds)) {
+        const ok = await persistDraft(id);
+        allOk = allOk && ok;
+      }
+      if (allOk) {
         setSaveStatus("Auto-saved");
         window.setTimeout(() => setSaveStatus(""), 1500);
-      } else {
-        setSaveStatus("Auto-save failed — storage full. Use Export Drafts to back up your work.");
-        window.setTimeout(() => setSaveStatus(""), 6000);
       }
     }, 1500);
     return () => window.clearTimeout(timer);
-  }, [dirty, drafts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirtyIds, drafts, canEdit]);
 
-  // W3 — download all drafts (in-memory + saved) as a JSON backup file.
+  // W3 — download all drafts as a JSON backup file.
   function exportDraftsJson() {
-    const data = { ...loadSavedDrafts(), ...drafts };
+    const data = { ...drafts };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -2158,10 +2247,19 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
         if (count === 0) {
           setImportStatus("No matching journals found in that file.");
         } else {
-          const merged = { ...drafts, ...additions };
-          setDrafts(merged);
-          saveDraftsToStorage(merged);
-          setImportStatus(`Imported ${count} draft${count === 1 ? "" : "s"}.`);
+          setDrafts((current) => ({ ...current, ...additions }));
+          if (canEdit) {
+            setDirtyIds((prev) => {
+              const next = new Set(prev);
+              for (const id of Object.keys(additions)) next.add(id);
+              return next;
+            });
+          }
+          setImportStatus(
+            canEdit
+              ? `Imported ${count} draft${count === 1 ? "" : "s"} — saving…`
+              : `Imported ${count} draft${count === 1 ? "" : "s"} (read-only, not saved).`,
+          );
         }
       } catch {
         setImportStatus("Could not import — the file is not valid drafts JSON.");
@@ -2268,9 +2366,18 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
           <span>Active Journal</span>
           <b>{primaryJournal ? titleCaseName(primaryJournal.name) : "No journal selected"}</b>
           <small>ISSN: {primaryDraft?.eIssn || primaryJournal?.eIssn || "Not set"}</small>
-          <small className={dirty ? "save-state is-dirty" : "save-state is-saved"}>
-            {dirty ? "● Unsaved changes" : "✓ All changes saved"}
+          <small className={!canEdit ? "save-state" : dirty ? "save-state is-dirty" : "save-state is-saved"}>
+            {!canEdit ? "🔒 Read-only" : dirty ? "● Unsaved changes" : "✓ All changes saved"}
           </small>
+          {conflict && conflict.journalId === primaryJournal?.id && (
+            <div className="save-conflict" role="alert">
+              <span>Edited by {conflict.updatedByName ?? "someone else"} since you opened this.</span>
+              <div className="save-conflict-actions">
+                <button type="button" onClick={() => resolveConflict(true)}>Load latest</button>
+                <button type="button" onClick={() => resolveConflict(false)}>Keep mine</button>
+              </div>
+            </div>
+          )}
           <div className="journal-select-label">
             <span>Select journal</span>
             <div className="journal-combobox">

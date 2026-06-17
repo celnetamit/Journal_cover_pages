@@ -1,0 +1,40 @@
+# Production-style local smoke test: builds the app image and runs it against a
+# throwaway Postgres, mirroring the Coolify setup (managed Postgres + env vars).
+# Not for real deployment — Coolify builds the Dockerfile and provides Postgres.
+#
+#   docker compose -f docker-compose.prod.yml up --build
+#   open http://localhost:3010/login   (admin@example.com / admin12345)
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: appdb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d appdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - journal_prod_pgdata:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://app:app@db:5432/appdb?schema=public"
+      AUTH_SECRET: "local-prod-test-secret-change-me-please-32+chars"
+      ADMIN_EMAIL: "admin@example.com"
+      ADMIN_PASSWORD: "admin12345"
+      ADMIN_NAME: "Administrator"
+      RUN_SEED: "true"
+    ports:
+      - "3010:3000"
+
+volumes:
+  journal_prod_pgdata:

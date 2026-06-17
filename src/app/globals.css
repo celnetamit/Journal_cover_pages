@@ -129,6 +129,34 @@ button {
   color: #21633c;
 }
 
+.save-conflict {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fef3c7;
+  border: 1px solid #f1c453;
+  color: #7a4e0a;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.save-conflict-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.save-conflict-actions button {
+  border: 1px solid #d39b2b;
+  background: #fff;
+  color: #7a4e0a;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .journal-select-label {
   display: grid;
   gap: 6px;
