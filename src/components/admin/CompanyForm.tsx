@@ -1,0 +1,48 @@
+"use client";
+
+import { EntityForm, Text, Area, ImageField, Select, type FormState, type Option } from "@/components/forms/Fields";
+
+type Values = {
+  name: string; email: string; phone: string; website: string; logoUrl: string;
+  registeredAddress: string; salesAddress: string; cin: string; gst: string;
+  bankAccountName: string; bankAccountNo: string; bankIfsc: string;
+  bankName: string; bankBranch: string; bankSwift: string; directorId: string;
+};
+
+export default function CompanyForm({ action, values, profiles, submitLabel }: {
+  action: (prev: FormState, fd: FormData) => Promise<FormState>;
+  values?: Partial<Values>;
+  profiles: Option[];
+  submitLabel: string;
+}) {
+  return (
+    <EntityForm action={action} submitLabel={submitLabel} cancelHref="/admin/companies">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Text name="name" label="Company name" defaultValue={values?.name} required />
+        <Text name="website" label="Website" defaultValue={values?.website} />
+        <Text name="email" label="Email" type="email" defaultValue={values?.email} />
+        <Text name="phone" label="Phone" defaultValue={values?.phone} />
+        <Text name="cin" label="CIN" defaultValue={values?.cin} />
+        <Text name="gst" label="GST" defaultValue={values?.gst} />
+      </div>
+      <ImageField name="logoUrl" label="Logo" defaultValue={values?.logoUrl} />
+      <Select name="directorId" label="Director (profile)" defaultValue={values?.directorId} options={profiles} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Area name="registeredAddress" label="Registered address" defaultValue={values?.registeredAddress} rows={2} />
+        <Area name="salesAddress" label="Sales address" defaultValue={values?.salesAddress} rows={2} />
+      </div>
+
+      <fieldset className="rounded-xl border border-slate-200 p-4">
+        <legend className="px-2 text-sm font-medium text-slate-700">Bank details</legend>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Text name="bankAccountName" label="Account name" defaultValue={values?.bankAccountName} />
+          <Text name="bankAccountNo" label="Account number" defaultValue={values?.bankAccountNo} />
+          <Text name="bankName" label="Bank" defaultValue={values?.bankName} />
+          <Text name="bankBranch" label="Branch" defaultValue={values?.bankBranch} />
+          <Text name="bankIfsc" label="IFSC" defaultValue={values?.bankIfsc} />
+          <Text name="bankSwift" label="SWIFT" defaultValue={values?.bankSwift} />
+        </div>
+      </fieldset>
+    </EntityForm>
+  );
+}

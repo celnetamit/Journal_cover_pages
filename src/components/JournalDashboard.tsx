@@ -53,7 +53,19 @@ import {
 } from "@/lib/binder-content";
 
 type StoredDraft = {
+  binderId: string;
   draft: BinderDraft;
+  updatedAt: string;
+  updatedByName: string | null;
+};
+
+type BinderSummary = {
+  id: string;
+  volume: string | null;
+  issue: string | null;
+  year: number | null;
+  type: string;
+  monthRange: string | null;
   updatedAt: string;
   updatedByName: string | null;
 };
@@ -2049,6 +2061,11 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   const [updatedAtById, setUpdatedAtById] = useState<Record<string, string>>(() =>
     Object.fromEntries(Object.entries(serverDrafts).map(([id, value]) => [id, value.updatedAt])),
   );
+  // Which saved binder (issue) each journal's draft maps to; null = unsaved new issue.
+  const [activeBinderId, setActiveBinderId] = useState<Record<string, string | null>>(() =>
+    Object.fromEntries(Object.entries(serverDrafts).map(([id, value]) => [id, value.binderId])),
+  );
+  const [bindersByJournal, setBindersByJournal] = useState<Record<string, BinderSummary[]>>({});
   const [dirtyIds, setDirtyIds] = useState<Set<string>>(() => new Set());
   const [conflict, setConflict] = useState<ConflictState | null>(null);
   const [activePage, setActivePage] = useState(1);
@@ -2104,6 +2121,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
         [id]: normalizeDraftForJournal(journal, current[id] || draftFromDynamic(journal, dynamicData), dynamicData),
       }));
     }
+    void loadBinders(id);
   }
 
   function markDirty(journalId: string) {
@@ -2137,7 +2155,11 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
       const response = await fetch(`/api/journals/${journalId}/binder`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ draft, baseUpdatedAt: updatedAtById[journalId] }),
+        body: JSON.stringify({
+          draft,
+          baseUpdatedAt: updatedAtById[journalId],
+          binderId: activeBinderId[journalId] ?? undefined,
+        }),
       });
       if (response.status === 403) {
         setSaveStatus("Read-only access — changes are not saved.");
@@ -2149,13 +2171,20 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
         setSaveStatus(`Edited by ${data.updatedByName ?? "someone else"} since you opened this.`);
         return false;
       }
+      if (response.status === 422) {
+        const data = (await response.json()) as { message?: string };
+        setSaveStatus(data.message ?? "Could not save this issue.");
+        return false;
+      }
       if (!response.ok) {
         setSaveStatus("Save failed — please try again.");
         return false;
       }
-      const data = (await response.json()) as { updatedAt: string };
+      const data = (await response.json()) as { binderId: string; updatedAt: string };
       setUpdatedAtById((prev) => ({ ...prev, [journalId]: data.updatedAt }));
+      setActiveBinderId((prev) => ({ ...prev, [journalId]: data.binderId }));
       clearDirty(journalId);
+      void loadBinders(journalId);
       return true;
     } catch {
       setSaveStatus("Save failed — you appear to be offline.");
@@ -2195,6 +2224,90 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     setConflict(null);
     window.setTimeout(() => setSaveStatus(""), 3000);
   }
+
+  // --- Issue (binder) picker -------------------------------------------------
+
+  async function loadBinders(journalId: string): Promise<BinderSummary[]> {
+    try {
+      const res = await fetch(`/api/journals/${journalId}/binder`);
+      if (!res.ok) return [];
+      const data = (await res.json()) as { binders: BinderSummary[] };
+      setBindersByJournal((prev) => ({ ...prev, [journalId]: data.binders }));
+      return data.binders;
+    } catch {
+      return [];
+    }
+  }
+
+  // Load an existing saved issue into the editor.
+  async function selectBinder(journalId: string, binderId: string) {
+    try {
+      const res = await fetch(`/api/binders/${binderId}`);
+      if (!res.ok) {
+        setSaveStatus("Could not load that issue.");
+        return;
+      }
+      const data = (await res.json()) as StoredDraft;
+      const journal = journals.find((item) => item.id === journalId);
+      const normalized = journal ? normalizeDraftForJournal(journal, data.draft, dynamicData) : data.draft;
+      setDrafts((prev) => ({ ...prev, [journalId]: normalized }));
+      setActiveBinderId((prev) => ({ ...prev, [journalId]: data.binderId }));
+      setUpdatedAtById((prev) => ({ ...prev, [journalId]: data.updatedAt }));
+      clearDirty(journalId);
+      setConflict(null);
+      setActivePage(1);
+    } catch {
+      setSaveStatus("Could not load that issue.");
+    }
+  }
+
+  // Start a fresh, unsaved issue from the journal defaults.
+  function newIssue(journalId: string) {
+    const journal = journals.find((item) => item.id === journalId);
+    if (!journal) return;
+    const existing = bindersByJournal[journalId] ?? [];
+    const maxIssue = existing.reduce((m, b) => Math.max(m, Number.parseInt(b.issue ?? "", 10) || 0), 0);
+    const fresh = normalizeDraftForJournal(journal, draftFromDynamic(journal, dynamicData), dynamicData);
+    const next = maxIssue ? { ...fresh, issueNumber: String(maxIssue + 1) } : fresh;
+    setDrafts((prev) => ({ ...prev, [journalId]: next }));
+    setActiveBinderId((prev) => ({ ...prev, [journalId]: null }));
+    setUpdatedAtById((prev) => {
+      const copy = { ...prev };
+      delete copy[journalId];
+      return copy;
+    });
+    clearDirty(journalId);
+    setConflict(null);
+    setActivePage(1);
+    setSaveStatus("New issue — edit and save to create it.");
+    window.setTimeout(() => setSaveStatus(""), 2500);
+  }
+
+  async function deleteActiveBinder(journalId: string) {
+    const binderId = activeBinderId[journalId];
+    if (!binderId || !canEdit) return;
+    if (!window.confirm("Delete this issue permanently?")) return;
+    try {
+      const res = await fetch(`/api/binders/${binderId}`, { method: "DELETE" });
+      if (!res.ok) {
+        setSaveStatus(res.status === 403 ? "Read-only access." : "Could not delete the issue.");
+        return;
+      }
+      const remaining = await loadBinders(journalId);
+      if (remaining.length) await selectBinder(journalId, remaining[0].id);
+      else newIssue(journalId);
+      setSaveStatus("Issue deleted.");
+      window.setTimeout(() => setSaveStatus(""), 2000);
+    } catch {
+      setSaveStatus("Could not delete the issue.");
+    }
+  }
+
+  // Load the issue list for the initially-selected journal.
+  useEffect(() => {
+    void loadBinders(selectedId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // U4 — debounced autosave: persist all dirty drafts ~1.5s after the last edit.
   useEffect(() => {
@@ -2375,6 +2488,35 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
               <div className="save-conflict-actions">
                 <button type="button" onClick={() => resolveConflict(true)}>Load latest</button>
                 <button type="button" onClick={() => resolveConflict(false)}>Keep mine</button>
+              </div>
+            </div>
+          )}
+          {primaryJournal && (
+            <div className="issue-picker">
+              <span>Issue</span>
+              <div className="issue-picker-row">
+                <select
+                  value={activeBinderId[primaryJournal.id] ?? "__new__"}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (value === "__new__") newIssue(primaryJournal.id);
+                    else selectBinder(primaryJournal.id, value);
+                  }}
+                >
+                  {(bindersByJournal[primaryJournal.id] ?? []).map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {`Vol ${b.volume || "—"} · No ${b.issue || "—"} · ${b.year ?? "—"}${b.type === "SPECIAL" ? " · Special" : ""}`}
+                    </option>
+                  ))}
+                  <option value="__new__">
+                    {activeBinderId[primaryJournal.id] == null ? "✳ New issue (unsaved)" : "＋ New issue…"}
+                  </option>
+                </select>
+                {canEdit && activeBinderId[primaryJournal.id] != null && (
+                  <button type="button" className="secondary-action" onClick={() => deleteActiveBinder(primaryJournal.id)}>
+                    Delete
+                  </button>
+                )}
               </div>
             </div>
           )}

@@ -20,3 +20,13 @@ export async function getJournalFormOptions(): Promise<{
     profiles: profiles.map((p) => ({ id: p.id, label: p.email ? `${p.name} (${p.email})` : p.name })),
   };
 }
+
+export async function getProfileOptions(): Promise<Option[]> {
+  const profiles = await prisma.profile.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, email: true } });
+  return profiles.map((p) => ({ id: p.id, label: p.email ? `${p.name} (${p.email})` : p.name }));
+}
+
+export async function getCompanyOptions(): Promise<Option[]> {
+  const companies = await prisma.company.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } });
+  return companies.map((c) => ({ id: c.id, label: c.name }));
+}

@@ -16,9 +16,14 @@ export default async function AppHeader() {
       </Link>
       <nav className="flex items-center gap-4">
         {canEdit(session.role) && (
-          <Link href="/journals" className="text-slate-600 hover:text-slate-900">
-            Journals
-          </Link>
+          <>
+            <Link href="/journals" className="text-slate-600 hover:text-slate-900">
+              Journals
+            </Link>
+            <Link href="/admin" className="text-slate-600 hover:text-slate-900">
+              Setup
+            </Link>
+          </>
         )}
         {isAdmin(session.role) && (
           <Link href="/admin/users" className="text-slate-600 hover:text-slate-900">
