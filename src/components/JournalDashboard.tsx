@@ -19,6 +19,7 @@ import type { Journal } from "@/lib/journals";
 import { proxiedImage } from "@/lib/image";
 import type { LegalInfo } from "@/lib/legal-data";
 import Page3Editor from "@/components/Page3Editor";
+import SaveFocusToJournal from "@/components/SaveFocusToJournal";
 import { exportBookToPdf, type ExportMode } from "@/lib/pdf-export";
 import {
   cleanIcv,
@@ -1884,6 +1885,10 @@ function SectionEditor({
               }
             />
           </label>
+          <SaveFocusToJournal journalId={journal.id} about={draft.about} focusScope={draft.focusScope} />
+          <div className="editor-note">
+            Per-issue edits autosave to this issue. <b>Save About &amp; Focus to journal</b> promotes them to the journal record (the default for all issues).
+          </div>
           <div className="editor-row-head">
             <span>Additional focus and scope text</span>
           </div>

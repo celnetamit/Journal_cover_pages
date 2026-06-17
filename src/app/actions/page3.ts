@@ -51,6 +51,20 @@ export async function saveJournalCompany(companyId: string, _prev: Page3State, f
   return { ok: true };
 }
 
+// Promote the current Focus & Scope (about + focus list) from Page 4 to the
+// shared Journal record (the default for all issues + the dynamic data).
+export async function saveJournalFocus(journalId: string, _prev: Page3State, fd: FormData): Promise<Page3State> {
+  await requireRole("EDITOR");
+  const about = str(fd.get("about"));
+  const focusScope = str(fd.get("focusScope"))
+    .split(/\r?\n/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+  await prisma.journal.update({ where: { id: journalId }, data: { about: about || null, focusScope } });
+  revalidatePath("/");
+  return { ok: true };
+}
+
 // Update the journal's per-plan subscription prices (JournalSubscription
 // overrides) from the Page 3 editor. Plan ids are read from the usd_/inr_ keys.
 export async function saveJournalPrices(journalId: string, _prev: Page3State, fd: FormData): Promise<Page3State> {
