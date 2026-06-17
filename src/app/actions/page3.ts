@@ -1,0 +1,78 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
+import { requireRole } from "@/lib/auth/session";
+
+export type Page3State = { ok?: boolean; error?: string } | undefined;
+
+const str = (v: FormDataEntryValue | null) => (typeof v === "string" ? v.trim() : "");
+const nul = (v: FormDataEntryValue | null) => {
+  const t = str(v);
+  return t.length ? t : null;
+};
+const num = (v: FormDataEntryValue | null) => {
+  const t = str(v);
+  return t && Number.isFinite(Number(t)) ? Number(t) : null;
+};
+
+// Update the journal's Company (shared across all journals/issues under it) from
+// the Page 3 editor.
+export async function saveJournalCompany(companyId: string, _prev: Page3State, fd: FormData): Promise<Page3State> {
+  await requireRole("EDITOR");
+  if (!companyId) return { error: "No company is linked to this journal." };
+  if (!str(fd.get("name"))) return { error: "Company name is required." };
+  try {
+    await prisma.company.update({
+      where: { id: companyId },
+      data: {
+        name: str(fd.get("name")),
+        registeredAddress: nul(fd.get("registeredAddress")),
+        salesAddress: nul(fd.get("salesAddress")),
+        phone: nul(fd.get("phone")),
+        email: nul(fd.get("email")),
+        cin: nul(fd.get("cin")),
+        gst: nul(fd.get("gst")),
+        bankAccountName: nul(fd.get("bankAccountName")),
+        bankAccountNo: nul(fd.get("bankAccountNo")),
+        bankIfsc: nul(fd.get("bankIfsc")),
+        bankName: nul(fd.get("bankName")),
+        bankBranch: nul(fd.get("bankBranch")),
+        bankSwift: nul(fd.get("bankSwift")),
+      },
+    });
+  } catch (e) {
+    if (typeof e === "object" && e !== null && (e as { code?: string }).code === "P2002") {
+      return { error: "A company with that name already exists." };
+    }
+    throw e;
+  }
+  revalidatePath("/");
+  return { ok: true };
+}
+
+// Update the journal's per-plan subscription prices (JournalSubscription
+// overrides) from the Page 3 editor. Plan ids are read from the usd_/inr_ keys.
+export async function saveJournalPrices(journalId: string, _prev: Page3State, fd: FormData): Promise<Page3State> {
+  await requireRole("EDITOR");
+  const ids = new Set<string>();
+  for (const key of fd.keys()) {
+    const m = /^(?:usd|inr)_(.+)$/.exec(key);
+    if (m) ids.add(m[1]);
+  }
+  for (const id of ids) {
+    const priceUsd = num(fd.get(`usd_${id}`));
+    const priceInr = num(fd.get(`inr_${id}`));
+    if (priceUsd == null && priceInr == null) {
+      await prisma.journalSubscription.deleteMany({ where: { journalId, subscriptionId: id } });
+    } else {
+      await prisma.journalSubscription.upsert({
+        where: { journalId_subscriptionId: { journalId, subscriptionId: id } },
+        update: { priceUsd, priceInr },
+        create: { journalId, subscriptionId: id, priceUsd, priceInr },
+      });
+    }
+  }
+  revalidatePath("/");
+  return { ok: true };
+}

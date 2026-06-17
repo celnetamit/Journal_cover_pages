@@ -1,6 +1,7 @@
 import { requireRole, isAdmin } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import EntityTable from "@/components/admin/EntityTable";
+import { importCsv } from "@/app/actions/import-export";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +20,12 @@ export default async function SubscriptionsPage() {
       columns={["Name", "Mode", "USD", "INR"]}
       canDelete={isAdmin(session.role)}
       newLabel="New plan"
+      exportEntity="subscriptions"
+      importAction={importCsv.bind(null, "subscriptions", "/admin/subscriptions")}
       rows={plans.map((p) => ({
         id: p.id,
         cells: [p.name, MODE_LABEL[p.mode] ?? p.mode, p.priceUsd ?? "—", p.priceInr ?? "—"],
+        search: `${p.name} ${p.mode}`.toLowerCase(),
       }))}
     />
   );

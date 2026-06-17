@@ -13,7 +13,9 @@ export type Journal = {
   website: string;
   indexingLogo: string;
   logo: string;
+  coverBack: string;
   journalLogo: string;
+  publisherLogo: string;
   about: string;
   eIssn: string;
   pIssn: string;
@@ -72,7 +74,9 @@ export function toLegacyJournal(j: DbJournal): Journal {
     website: s(j.website),
     indexingLogo: s(j.indexingLogoUrl),
     logo: s(j.coverFrontUrl),
+    coverBack: s(j.coverBackUrl),
     journalLogo: s(j.logoUrl),
+    publisherLogo: s(j.publisher?.logoUrl),
     about: s(j.about),
     eIssn: s(j.issnOnline),
     pIssn: s(j.issnPrint),

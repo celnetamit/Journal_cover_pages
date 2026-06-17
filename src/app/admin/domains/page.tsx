@@ -1,6 +1,7 @@
 import { requireRole, isAdmin } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import EntityTable from "@/components/admin/EntityTable";
+import { importCsv } from "@/app/actions/import-export";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,13 @@ export default async function DomainsPage() {
       columns={["Name", "Manager", "Journals"]}
       canDelete={isAdmin(session.role)}
       newLabel="New domain"
-      rows={domains.map((d) => ({ id: d.id, cells: [d.name, d.manager?.name ?? "—", d._count.journals] }))}
+      exportEntity="domains"
+      importAction={importCsv.bind(null, "domains", "/admin/domains")}
+      rows={domains.map((d) => ({
+        id: d.id,
+        cells: [d.name, d.manager?.name ?? "—", d._count.journals],
+        search: `${d.name} ${d.manager?.name ?? ""}`.toLowerCase(),
+      }))}
     />
   );
 }

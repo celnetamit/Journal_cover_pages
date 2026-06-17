@@ -46,3 +46,13 @@ export function parseCsv(input: string): string[][] {
 
   return rows;
 }
+
+// Serialize a header row + data rows to RFC-4180 CSV text.
+export function toCsv(headers: string[], rows: (string | number | null | undefined)[][]): string {
+  const escape = (value: string | number | null | undefined) => {
+    const text = value == null ? "" : String(value);
+    return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+  };
+  const lines = [headers, ...rows].map((row) => row.map(escape).join(","));
+  return lines.join("\r\n");
+}

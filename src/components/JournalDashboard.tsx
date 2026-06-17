@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { startTransition, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { createContext, startTransition, useContext, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
 import {
   ArrowLeft,
@@ -16,6 +16,9 @@ import FrontCoverCanvas from "@/components/FrontCoverCanvas";
 import { dynamicKey, journalLookupKeys } from "@/lib/lookup";
 import type { DynamicBinderData, EditorialMember } from "@/lib/formidable";
 import type { Journal } from "@/lib/journals";
+import { proxiedImage } from "@/lib/image";
+import type { LegalInfo } from "@/lib/legal-data";
+import Page3Editor from "@/components/Page3Editor";
 import { exportBookToPdf, type ExportMode } from "@/lib/pdf-export";
 import {
   cleanIcv,
@@ -79,6 +82,10 @@ type ConflictState = {
 
 type ProfilePick = { id: string; name: string; role: string; photo: string };
 
+// Per-journal legal/subscription data for Page 3, provided via context so the
+// page render components can read it without prop-threading through BinderPage.
+const LegalContext = createContext<Record<string, LegalInfo>>({});
+
 type Props = {
   journals: Journal[];
   defaultJournalId: string;
@@ -86,6 +93,7 @@ type Props = {
   serverDrafts: Record<string, StoredDraft>;
   canEdit: boolean;
   profiles: ProfilePick[];
+  legalData: Record<string, LegalInfo>;
 };
 
 
@@ -152,6 +160,9 @@ function normalizeCoverWebsite(value: string | undefined, journal: Journal) {
 }
 
 function defaultCoverImage(journal: Journal) {
+  // Prefer the journal's own cover image from the database (proxied so remote
+  // URLs still export to PDF). Fall back to the curated publisher templates.
+  if (journal.logo) return proxiedImage(journal.logo);
   if ((journal.abbreviation || "").toLowerCase() === "joadms") return "/brand/joadms-pdf-front.png";
   const identity = publisherIdentity(journal);
   if (identity.logoMode === "mba") return "/brand/mba-journals.jpeg";
@@ -233,9 +244,9 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     sjif: journal.impactFactor || "6.017",
     icv: journal.icv.replace(/^ICV\s*:\s*/i, "") || "62.07",
     coverImage: defaultCoverImage(journal),
-    backCoverImage: defaultBackCoverImage(),
-    journalLogoImage: "",
-    footerRightLogoImage: "",
+    backCoverImage: journal.coverBack ? proxiedImage(journal.coverBack) : defaultBackCoverImage(),
+    journalLogoImage: proxiedImage(journal.publisherLogo || journal.journalLogo),
+    footerRightLogoImage: proxiedImage(journal.indexingLogo),
     frontCoverLayout: defaultFrontCoverLayout,
     frontCoverLayoutCustomized: false,
     pageLayouts: defaultBinderPageLayouts,
@@ -293,9 +304,9 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
     sjif: draft.sjif ?? journal.impactFactor ?? "",
     icv: draft.icv ?? journal.icv.replace(/^ICV\s*:\s*/i, "") ?? "",
     coverImage: draft.coverImage && draft.coverImage !== journal.logo ? draft.coverImage : defaultCoverImage(journal),
-    backCoverImage: draft.backCoverImage || defaultBackCoverImage(),
-    journalLogoImage: draft.journalLogoImage ?? "",
-    footerRightLogoImage: draft.footerRightLogoImage ?? "",
+    backCoverImage: draft.backCoverImage || (journal.coverBack ? proxiedImage(journal.coverBack) : defaultBackCoverImage()),
+    journalLogoImage: draft.journalLogoImage || proxiedImage(journal.publisherLogo || journal.journalLogo),
+    footerRightLogoImage: draft.footerRightLogoImage || proxiedImage(journal.indexingLogo),
     frontCoverLayout: draft.frontCoverLayoutCustomized
       ? normalizeFrontCoverLayout(draft.frontCoverLayout)
       : defaultFrontCoverLayout,
@@ -775,10 +786,22 @@ function CoverSpreadPage({
 
 function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
+  const legal = useContext(LegalContext)[journal.id];
   const volume = draft.issueVolume || defaultIssueVolume;
   const issue = draft.issueNumber || defaultIssueNumber;
   const monthRange = draft.issueMonthRange || defaultIssueMonthRange;
   const year = draft.issueYear || defaultIssueYear;
+
+  // Precedence: per-issue draft override → journal's Company (DB) → static default.
+  const publisherName = legal?.publisherName || identity.publisherName;
+  const companyName = legal?.companyName || identity.companyName;
+  const address = draft.publisherAddress || legal?.salesAddress || legal?.registeredAddress || identity.address;
+  const phone = draft.publisherPhone || legal?.phone || identity.phone;
+  const email = draft.publisherEmail || legal?.email || identity.email;
+  const website = draft.publisherWebsite || legal?.website || identity.website;
+  const registeredOffice = draft.registeredOffice || legal?.registeredAddress || defaultRegisteredOffice;
+  const cin = draft.cin || legal?.cin || defaultCin;
+  const gst = legal?.gst;
 
   return (
     <section className="pdf-page cover-page" data-export-group="internal" data-page-title="Journal Name with volume issue page">
@@ -793,13 +816,13 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
           <PublisherLogo mode={identity.logoMode} side="publisher" />
           <PublisherLogo mode={identity.logoMode} side="company" />
         </div>
-        <b>{identity.publisherName}</b>
-        <strong>{identity.companyName}</strong>
-        <span>{draft.publisherAddress || identity.address}</span>
-        <span>Tel. No.: {draft.publisherPhone || identity.phone}</span>
-        <span>E-mail: {draft.publisherEmail || identity.email}; Website: {draft.publisherWebsite || identity.website}</span>
-        <span>Regd. Office: {draft.registeredOffice || defaultRegisteredOffice}</span>
-        <span>Website: www.celnet.in; CIN No.: {draft.cin || defaultCin}</span>
+        <b>{publisherName}</b>
+        <strong>{companyName}</strong>
+        <span>{address}</span>
+        <span>Tel. No.: {phone}</span>
+        <span>E-mail: {email}; Website: {website}</span>
+        <span>Regd. Office: {registeredOffice}</span>
+        <span>CIN No.: {cin}{gst ? `; GST: ${gst}` : ""}</span>
       </div>
       <PageNumber value={1} />
     </section>
@@ -864,6 +887,23 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
   const legalPhone = isJournalsPub ? "+91 120-4781200" : isLaw ? "+91 120-4781211" : identity.phone;
   const subscriptionYear = draft.issueYear || defaultIssueYear;
 
+  // Dynamic legal/subscription data from the DB (publisher → company + the
+  // journal's subscription plans). Each field falls back to the previous static
+  // default when the company/plan data hasn't been filled in.
+  const legal = useContext(LegalContext)[journal.id];
+  const companyName = legal?.companyName || "Consortium e-Learning Network Pvt. Ltd.";
+  const payeeBankName = legal?.bankAccountName || companyName;
+  const bankAccountNo = legal?.bankAccountNo || "03942000001153";
+  const bankName = legal?.bankName || "HDFC";
+  const bankBranch = legal?.bankBranch || "HDFC Bank, Sector-62, Noida, U.P., India";
+  const bankIfsc = legal?.bankIfsc || "HDFC0002649";
+  const bankSwift = legal?.bankSwift || "HDFCINBBXXX";
+  const sendToAddress = legal?.registeredAddress || "A-118, Level 1, Sector-63, Noida, 201 301, U.P., India";
+  const legalPhoneDisplay = legal?.phone || legalPhone;
+  const modeLabel = (m: string) => (m === "PRINT" ? "Print" : m === "ONLINE" ? "Online" : "Print + Online");
+  const inrPlans = (legal?.plans ?? []).filter((p) => p.priceInr != null);
+  const usdPlans = (legal?.plans ?? []).filter((p) => p.priceUsd != null);
+
   return (
     <section className="pdf-page payment-reference-page" data-export-group="internal">
       <p>
@@ -877,12 +917,12 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
       </p>
 
       <h1>SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, {subscriptionYear})</h1>
-      <p><b>National Subscription</b></p>
-      {isJournalsPub ? (
+      <p><b>National Subscription</b> (₹, India)</p>
+      {inrPlans.length ? (
         <ul className="checkbox-list">
-          <li>Print: ₹3500 per Journal (Two Print Issues), Single Issue ₹1800.</li>
-          <li>Online: ₹6500 per Journal (Online Access of Current and Back Issues).</li>
-          <li>Print + Online: ₹7315 per Journal (Two Print and Online Access of Current and Back Issues).</li>
+          {inrPlans.map((p) => (
+            <li key={`inr-${p.name}`}>{p.name} ({modeLabel(p.mode)}): ₹{p.priceInr} per Journal.</li>
+          ))}
         </ul>
       ) : (
         <p>
@@ -891,22 +931,17 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
           Print + Online: ₹7315 per Journal (Two Print and Online Access of Current and Back Issues).
         </p>
       )}
-      {isJournalsPub ? (
-        <>
-          <p><b>International Subscription</b></p>
-          <ul className="checkbox-list">
-            {subscriptionPlans.map((item) => <li key={item}>{item}</li>)}
-          </ul>
-        </>
+      <p><b>International Subscription</b> ($, outside India)</p>
+      {usdPlans.length ? (
+        <ul className="checkbox-list">
+          {usdPlans.map((p) => (
+            <li key={`usd-${p.name}`}>{p.name} ({modeLabel(p.mode)}): ${p.priceUsd} per Journal.</li>
+          ))}
+        </ul>
       ) : (
-        <>
-          <p>
-            <b>International Subscription</b>
-          </p>
-          <ul className="checkbox-list">
-            {subscriptionPlans.map((item) => <li key={item}>{item}</li>)}
-          </ul>
-        </>
+        <ul className="checkbox-list">
+          {subscriptionPlans.map((item) => <li key={item}>{item}</li>)}
+        </ul>
       )}
       <p>
         To purchase print compilation of back issues, please send your query at {identity.email}. Subscription must be
@@ -914,59 +949,31 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
       </p>
 
       <h2>MODE OF PAYMENT</h2>
-      {isJournalsPub ? (
+      <p><b>Pay Through NEFT/RTGS/Online Transfer</b></p>
+      <p>
+        Account Number: {bankAccountNo}<br />
+        Account Name: {payeeBankName}<br />
+        Bank Name: {bankName}<br />
+        Bank Branch: {bankBranch}<br />
+        IFSC Code: {bankIfsc}, Swift Code: {bankSwift}
+      </p>
+      <p>
+        <b>Pay Through Cheque/Demand Draft</b><br />
+        At Par Cheque, Demand Draft, and RTGS (payment to be made in favor of {companyName}, payable at Delhi/New Delhi).
+      </p>
+      <p>
+        <b>Please Send Demand Draft/Cheque to following address:</b><br />
+        Subscription Department, {paymentPublisherName},<br />
+        {companyName}<br />
+        {sendToAddress}<br />
+        Tel.: {legalPhoneDisplay}
+      </p>
+      {legal?.cin || legal?.gst ? (
         <p>
-          <b>Mode of Payment:</b> At Par Cheque, Demand Draft, and RTGS (payment to be made in favor of
-          Dhruv Infosystems Pvt. Ltd., payable at Delhi/New Delhi).
+          {legal?.cin ? <>CIN: {legal.cin}<br /></> : null}
+          {legal?.gst ? <>GST: {legal.gst}</> : null}
         </p>
-      ) : isLaw ? (
-        <>
-          <p><b>Pay Through NEFT/RTGS/Online Transfer</b></p>
-          <p>
-            Account Number: 03942000001153<br />
-            Account Name: Consortium e-Learning Network Pvt. Ltd.<br />
-            Bank Name: HDFC<br />
-            Bank Location: HDFC Bank, Sector-62, Noida, U.P., India<br />
-            IFSC Code: HDFC0002649, Swift Code: HDFCINBBXXX
-          </p>
-          <p>
-            <b>Pay Through Cheque/Demand Draft</b><br />
-            At Par Cheque, Demand Draft, and RTGS (payment to be made in favor of Consortium e-Learning Network Pvt. Ltd.,
-            payable at Delhi/New Delhi).
-          </p>
-          <p>
-            <b>Please Send Demand Draft/Cheque to following address:</b><br />
-            Subscription Department, Law Journals,<br />
-            Consortium e-Learning Network Pvt. Ltd.<br />
-            A-118, Level 1, Sector-63, Noida, 201 301, U.P., India<br />
-            Tel.: 120 4781211, +91 9810078958
-          </p>
-        </>
-      ) : (
-        <>
-          <p><b>Account Type: HDFC/RTGS/Online Transfer</b></p>
-          <p>
-            Account Number: 03942000001153<br />
-            Account Holder: Consortium e-Learning Network Pvt. Ltd.<br />
-            Bank Name: HDFC<br />
-            Bank Address: HDFC Bank, Sector-62, Noida, U.P., India<br />
-            Bank Location: HDFC0002649, Swift Code: HDFCINBBXXX<br />
-            IFSC Code: HDFC0002649
-          </p>
-          <p>
-            <b>Pay Through Cheque/Demand Draft</b><br />
-            A/C Payee Cheque, Demand Draft, and RTGS (payment to be made in favor of Consortium e-Learning Network Pvt. Ltd.,
-            payable at Delhi/New Delhi).
-          </p>
-          <p>
-            <b>Please Send Demand Draft/Cheque to following address:</b><br />
-            Subscription Department, {identity.publisherName},<br />
-            Consortium e-Learning Network Pvt. Ltd.<br />
-            A-118, Level 1, Sector-63, Noida, 201 301, U.P., India<br />
-            Tel.: {identity.phone}
-          </p>
-        </>
-      )}
+      ) : null}
 
       <h2>ONLINE ACCESS POLICY</h2>
       {isJournalsPub || isLaw ? (
@@ -1443,6 +1450,7 @@ function SectionEditor({
   onResetFrontCoverLayout: () => void;
   profiles: ProfilePick[];
 }) {
+  const legalForJournal = useContext(LegalContext)[journal.id];
   const apiKeys = journalLookupKeys(journal);
   const hasDetails = apiKeys.some((key) => dynamicData.detailsByKey[key]);
   const hasFocus = apiKeys.some((key) => dynamicData.focusByKey[key]);
@@ -1830,6 +1838,7 @@ function SectionEditor({
       ) : null}
       {activePage === 3 ? (
         <>
+          <Page3Editor journalId={journal.id} legal={legalForJournal} />
           <div className="editor-note">
             Page 3 now supports draggable section blocks. If you use the full text override, that override becomes one movable block; otherwise the generated legal/subscription sections can be positioned separately.
           </div>
@@ -2123,7 +2132,7 @@ function SectionEditor({
   );
 }
 
-export default function JournalDashboard({ journals, defaultJournalId, dynamicData, serverDrafts, canEdit, profiles }: Props) {
+export default function JournalDashboard({ journals, defaultJournalId, dynamicData, serverDrafts, canEdit, profiles, legalData }: Props) {
   const [selectedId, setSelectedId] = useState(defaultJournalId);
   const [drafts, setDrafts] = useState<Record<string, BinderDraft>>(() => initialDrafts(journals, dynamicData, serverDrafts));
   const [updatedAtById, setUpdatedAtById] = useState<Record<string, string>>(() =>
@@ -2533,6 +2542,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   }, [primaryJournal, primaryDraft, exportJob]);
 
   return (
+    <LegalContext.Provider value={legalData}>
     <main className="app-shell">
       <aside className="dashboard-sidebar">
         <div className="dashboard-menu">
@@ -2790,5 +2800,6 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
         ) : null}
       </section>
     </main>
+    </LegalContext.Provider>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useTransition } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   createUser,
@@ -34,6 +34,13 @@ export default function UserManager({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [query, setQuery] = useState("");
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q
+      ? users.filter((u) => `${u.name ?? ""} ${u.email} ${u.role}`.toLowerCase().includes(q))
+      : users;
+  }, [query, users]);
   const [state, addAction, adding] = useActionState<ActionState, FormData>(createUser, undefined);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -117,6 +124,12 @@ export default function UserManager({
       </form>
 
       {/* User list */}
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search users…"
+        className={`${inputClass} w-full`}
+      />
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
@@ -128,7 +141,7 @@ export default function UserManager({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {users.map((u) => {
+            {filtered.map((u) => {
               const isSelf = u.id === currentUserId;
               return (
                 <tr key={u.id} className={u.active ? "" : "bg-slate-50/60"}>
