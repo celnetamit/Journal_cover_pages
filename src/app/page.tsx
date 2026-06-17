@@ -4,6 +4,7 @@ import { getDynamicBinderData } from "@/lib/formidable";
 import { getJournals, targetJournalName } from "@/lib/journals";
 import { requireSession, canEdit } from "@/lib/auth/session";
 import { loadServerDrafts } from "@/lib/binder-store";
+import { prisma } from "@/lib/prisma";
 
 export default async function Home() {
   const session = await requireSession();
@@ -25,10 +26,21 @@ export default async function Home() {
   }
 
   const target = journals.find((journal) => journal.name === targetJournalName) ?? journals[0];
-  const [dynamicData, serverDrafts] = await Promise.all([
+  const [dynamicData, serverDrafts, profileRows] = await Promise.all([
     getDynamicBinderData(target),
     loadServerDrafts(),
+    prisma.profile.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, designation: true, photoUrl: true },
+    }),
   ]);
+
+  const profiles = profileRows.map((p) => ({
+    id: p.id,
+    name: p.name,
+    role: p.designation ?? "",
+    photo: p.photoUrl ?? "",
+  }));
 
   return (
     <JournalDashboard
@@ -37,6 +49,7 @@ export default async function Home() {
       dynamicData={dynamicData}
       serverDrafts={serverDrafts}
       canEdit={canEdit(session.role)}
+      profiles={profiles}
     />
   );
 }

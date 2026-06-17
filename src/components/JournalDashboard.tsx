@@ -77,12 +77,15 @@ type ConflictState = {
   updatedByName: string | null;
 };
 
+type ProfilePick = { id: string; name: string; role: string; photo: string };
+
 type Props = {
   journals: Journal[];
   defaultJournalId: string;
   dynamicData: DynamicBinderData;
   serverDrafts: Record<string, StoredDraft>;
   canEdit: boolean;
+  profiles: ProfilePick[];
 };
 
 
@@ -1290,7 +1293,7 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
         <div className="director-intro">
           <Image
             className="portrait"
-            src={logoAssets.director.src}
+            src={draft.directorPhotoImage || logoAssets.director.src}
             alt={logoAssets.director.alt}
             width={logoAssets.director.width}
             height={logoAssets.director.height}
@@ -1307,7 +1310,7 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
       </div>
       <div className="signature">
         <Image
-          src={logoAssets.signature.src}
+          src={draft.directorSignatureImage || logoAssets.signature.src}
           alt={logoAssets.signature.alt}
           width={logoAssets.signature.width}
           height={logoAssets.signature.height}
@@ -1425,6 +1428,7 @@ function SectionEditor({
   exportError,
   onExport,
   onResetFrontCoverLayout,
+  profiles,
 }: {
   journal: Journal;
   draft: BinderDraft;
@@ -1437,6 +1441,7 @@ function SectionEditor({
   exportError: ExportError;
   onExport: (mode: ExportMode) => void;
   onResetFrontCoverLayout: () => void;
+  profiles: ProfilePick[];
 }) {
   const apiKeys = journalLookupKeys(journal);
   const hasDetails = apiKeys.some((key) => dynamicData.detailsByKey[key]);
@@ -1887,7 +1892,29 @@ function SectionEditor({
             Update the team details here. Page 5 now uses a fixed layout in the PDF preview.
           </div>
           <div className="management-edit-head">
-            <span>Management head</span>
+            <span>Management head (chairman)</span>
+            {profiles.length > 0 ? (
+              <select
+                className="profile-fill"
+                defaultValue=""
+                onChange={(event) => {
+                  const picked = profiles.find((p) => p.id === event.target.value);
+                  if (picked) {
+                    updateManagementHead({
+                      name: picked.name,
+                      role: picked.role || draft.managementHead.role,
+                      photo: picked.photo || draft.managementHead.photo,
+                    });
+                  }
+                  event.target.value = "";
+                }}
+              >
+                <option value="">Fill from a saved profile…</option>
+                {profiles.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}{p.role ? ` — ${p.role}` : ""}</option>
+                ))}
+              </select>
+            ) : null}
             <div className="management-edit-row">
               <input aria-label="Management head name" placeholder="Name" value={draft.managementHead.name} onChange={(event) => updateManagementHead({ name: event.target.value })} />
               <input aria-label="Management head role" placeholder="Role" value={draft.managementHead.role} onChange={(event) => updateManagementHead({ role: event.target.value })} />
@@ -1982,6 +2009,32 @@ function SectionEditor({
             <span>Director desk letter title</span>
             <input value={draft.directorTitle} onChange={(event) => onChange({ ...draft, directorTitle: event.target.value })} />
           </label>
+          {profiles.length > 0 ? (
+            <label>
+              <span>Fill director from a saved profile</span>
+              <select
+                className="profile-fill"
+                defaultValue=""
+                onChange={(event) => {
+                  const picked = profiles.find((p) => p.id === event.target.value);
+                  if (picked) {
+                    onChange({
+                      ...draft,
+                      directorName: picked.name,
+                      directorRole: picked.role || draft.directorRole,
+                      directorPhotoImage: picked.photo || draft.directorPhotoImage,
+                    });
+                  }
+                  event.target.value = "";
+                }}
+              >
+                <option value="">Fill from a saved profile…</option>
+                {profiles.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}{p.role ? ` — ${p.role}` : ""}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <div className="two-field-grid">
             <label>
               <span>Director name</span>
@@ -1992,6 +2045,21 @@ function SectionEditor({
               <input value={draft.directorRole} onChange={(event) => onChange({ ...draft, directorRole: event.target.value })} />
             </label>
           </div>
+          <div className="two-field-grid">
+            <label className="file-field">
+              <span>Director photo {draft.directorPhotoImage ? "(custom)" : "(default)"}</span>
+              <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (img) => onChange({ ...draft, directorPhotoImage: img }))} />
+            </label>
+            <label className="file-field">
+              <span>Signature {draft.directorSignatureImage ? "(custom)" : "(default)"}</span>
+              <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (img) => onChange({ ...draft, directorSignatureImage: img }))} />
+            </label>
+          </div>
+          {draft.directorPhotoImage || draft.directorSignatureImage ? (
+            <button type="button" onClick={() => onChange({ ...draft, directorPhotoImage: "", directorSignatureImage: "" })}>
+              Reset photo &amp; signature to default
+            </button>
+          ) : null}
           <div className="editor-row-head">
             <span>Letter body paragraphs</span>
           </div>
@@ -2055,7 +2123,7 @@ function SectionEditor({
   );
 }
 
-export default function JournalDashboard({ journals, defaultJournalId, dynamicData, serverDrafts, canEdit }: Props) {
+export default function JournalDashboard({ journals, defaultJournalId, dynamicData, serverDrafts, canEdit, profiles }: Props) {
   const [selectedId, setSelectedId] = useState(defaultJournalId);
   const [drafts, setDrafts] = useState<Record<string, BinderDraft>>(() => initialDrafts(journals, dynamicData, serverDrafts));
   const [updatedAtById, setUpdatedAtById] = useState<Record<string, string>>(() =>
@@ -2632,6 +2700,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                     frontCoverLayoutCustomized: false,
                   })
                 }
+                profiles={profiles}
               />
             ) : (
               <section className="export-panel">

@@ -28,6 +28,9 @@ export type BinderDraft = {
   directorName: string;
   directorRole: string;
   directorParagraphs: string[];
+  // Optional uploaded images for the Director's Desk. Blank = use the default asset.
+  directorPhotoImage?: string;
+  directorSignatureImage?: string;
   manuscriptNotice: string;
   contentRows: ContentRow[];
   // Page 2 (title page) overrides — blank = use the generated publisher default.
