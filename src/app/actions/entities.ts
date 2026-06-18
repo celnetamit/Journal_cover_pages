@@ -99,6 +99,8 @@ export async function createPublisher(_p: FormState, fd: FormData): Promise<Form
         name,
         logoUrl: nul(str(fd.get("logoUrl"))),
         about: nul(str(fd.get("about"))),
+        email: nul(str(fd.get("email"))),
+        phone: nul(str(fd.get("phone"))),
         company: rel(str(fd.get("companyId"))),
       },
     });
@@ -121,6 +123,8 @@ export async function updatePublisher(id: string, _p: FormState, fd: FormData): 
         name,
         logoUrl: nul(str(fd.get("logoUrl"))),
         about: nul(str(fd.get("about"))),
+        email: nul(str(fd.get("email"))),
+        phone: nul(str(fd.get("phone"))),
         company: relOrClear(str(fd.get("companyId"))),
       },
     });
@@ -192,6 +196,10 @@ function companyData(fd: FormData) {
     bankName: nul(str(fd.get("bankName"))),
     bankBranch: nul(str(fd.get("bankBranch"))),
     bankSwift: nul(str(fd.get("bankSwift"))),
+    printedBy: nul(str(fd.get("printedBy"))),
+    openAccessIndia: nul(str(fd.get("openAccessIndia"))),
+    openAccessSaarc: nul(str(fd.get("openAccessSaarc"))),
+    openAccessOther: nul(str(fd.get("openAccessOther"))),
     directorDeskTitle: nul(str(fd.get("directorDeskTitle"))),
     directorDeskParagraphs: textLines(str(fd.get("directorDeskParagraphs"))),
     dispatchContactName: nul(str(fd.get("dispatchContactName"))),
@@ -256,6 +264,7 @@ export async function deleteEntity(formData: FormData): Promise<void> {
 
 const ROLES = [
   "EDITOR_IN_CHIEF",
+  "ASSOCIATE_EDITOR_IN_CHIEF",
   "EDITORIAL_BOARD",
   "MANAGING_EDITOR",
   "ADVISOR",
@@ -312,6 +321,27 @@ export async function addAllowedDomain(_p: FormState, fd: FormData): Promise<For
   }
   revalidatePath("/admin/auth-domains");
   return undefined;
+}
+
+// --- Manuscript engine (global Manuscript-page content) -------------------
+
+export async function saveManuscriptEngine(_p: FormState, fd: FormData): Promise<FormState> {
+  await requireRole("EDITOR");
+  const data = {
+    heading: nul(str(fd.get("heading"))),
+    leadText: nul(str(fd.get("leadText"))),
+    steps: textLines(str(fd.get("steps"))),
+    scanLabel: nul(str(fd.get("scanLabel"))),
+    logoUrl: nul(str(fd.get("logoUrl"))),
+  };
+  await prisma.manuscriptEngine.upsert({
+    where: { id: "singleton" },
+    update: data,
+    create: { id: "singleton", ...data },
+  });
+  revalidatePath("/admin/manuscript-engine");
+  revalidatePath("/");
+  redirect("/admin/manuscript-engine");
 }
 
 export async function removeAllowedDomain(formData: FormData): Promise<void> {

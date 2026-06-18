@@ -24,6 +24,7 @@ enum UserRole {
 
 enum JournalRole {
   EDITOR_IN_CHIEF
+  ASSOCIATE_EDITOR_IN_CHIEF
   EDITORIAL_BOARD
   MANAGING_EDITOR
   ADVISOR
@@ -69,6 +70,18 @@ model User {
 
   uploadedAssets Asset[]
   editedBinders  Binder[]
+}
+
+// Global, shared content for the Manuscript page (the same engine for every
+// journal). Single row, edited once in /admin/manuscript-engine.
+model ManuscriptEngine {
+  id        String   @id @default("singleton")
+  heading   String?
+  leadText  String?
+  steps     String[]
+  scanLabel String?
+  logoUrl   String?
+  updatedAt DateTime @updatedAt
 }
 
 // Email domains permitted to self-onboard via Google sign-in (new accounts are
@@ -129,6 +142,13 @@ model Company {
   directorDeskTitle      String?
   directorDeskParagraphs String[]
 
+  printedBy String? // print vendor shown on the title page ("Printed by")
+
+  // Optional Open Access (APC) charges shown on the subscription page.
+  openAccessIndia String?
+  openAccessSaarc String?
+  openAccessOther String?
+
   // Page 5 contact boxes (shared across the company's journals).
   dispatchContactName  String?
   dispatchContactPhone String?
@@ -151,6 +171,8 @@ model Publisher {
   name      String   @unique
   logoUrl   String?
   about     String? // imprint blurb shown at the top of the journal-details page (Page 3)
+  email     String? // publisher contact email (used in the Legal Disputes line)
+  phone     String? // publisher contact phone (used in the Legal Disputes line)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -244,6 +266,11 @@ model Journal {
   salientFeatures  String[]
   keywords         String[]
   manuscriptNotice String?
+  manuscriptUrl    String? // submission page encoded in the Manuscript page QR code
+
+  // Per-journal Director's Desk content (overrides the Company-level default).
+  directorDeskTitle      String?
+  directorDeskParagraphs String[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

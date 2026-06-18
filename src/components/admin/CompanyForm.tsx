@@ -7,6 +7,8 @@ type Values = {
   registeredAddress: string; salesAddress: string; cin: string; gst: string;
   bankAccountName: string; bankAccountNo: string; bankIfsc: string;
   bankName: string; bankBranch: string; bankSwift: string; directorId: string;
+  printedBy: string;
+  openAccessIndia: string; openAccessSaarc: string; openAccessOther: string;
   directorDeskTitle: string; directorDeskParagraphs: string;
   dispatchContactName: string; dispatchContactPhone: string; dispatchContactEmail: string;
   salesContactName: string; salesContactPhone: string; salesContactEmail: string;
@@ -27,6 +29,7 @@ export default function CompanyForm({ action, values, profiles, submitLabel }: {
         <Text name="phone" label="Phone" defaultValue={values?.phone} />
         <Text name="cin" label="CIN" defaultValue={values?.cin} />
         <Text name="gst" label="GST" defaultValue={values?.gst} />
+        <Text name="printedBy" label="Printed by (print vendor)" defaultValue={values?.printedBy} />
       </div>
       <ImageField name="logoUrl" label="Logo" defaultValue={values?.logoUrl} />
       <Select name="directorId" label="Director (profile)" defaultValue={values?.directorId} options={profiles} />
@@ -43,6 +46,15 @@ export default function CompanyForm({ action, values, profiles, submitLabel }: {
         </p>
         <Text name="directorDeskTitle" label="Heading" defaultValue={values?.directorDeskTitle} placeholder="From the Director's Desk" />
         <Area name="directorDeskParagraphs" label="Message paragraphs" defaultValue={values?.directorDeskParagraphs} rows={6} />
+      </fieldset>
+
+      <fieldset className="rounded-xl border border-slate-200 p-4">
+        <legend className="px-2 text-sm font-medium text-slate-700">Open Access charges (subscription page)</legend>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Text name="openAccessIndia" label="India" defaultValue={values?.openAccessIndia} placeholder="₹1500" />
+          <Text name="openAccessSaarc" label="SAARC & African" defaultValue={values?.openAccessSaarc} placeholder="$100" />
+          <Text name="openAccessOther" label="Other countries" defaultValue={values?.openAccessOther} placeholder="$200" />
+        </div>
       </fieldset>
 
       <fieldset className="rounded-xl border border-slate-200 p-4">

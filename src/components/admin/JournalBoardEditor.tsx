@@ -2,16 +2,30 @@ import Link from "next/link";
 import { addJournalMember, removeJournalMember } from "@/app/actions/entities";
 import type { Option } from "@/components/forms/Fields";
 
-const ROLES: [string, string][] = [
-  ["EDITOR_IN_CHIEF", "Editor-in-Chief"],
-  ["EDITORIAL_BOARD", "Editorial Board"],
-  ["MANAGING_EDITOR", "Managing Editor"],
-  ["ADVISOR", "Advisor"],
-  ["REVIEWER", "Reviewer"],
-  ["MANAGEMENT_HEAD", "Management Head"],
-  ["MANAGEMENT_MEMBER", "Management Member"],
+// Grouped by the binder page the role feeds, so it's clear what each choice maps
+// to. Editorial-page roles split into the page's Editor-in-Chief / Associate /
+// Editors sections by their label; management roles feed the Management page.
+const ROLE_GROUPS: { label: string; roles: [string, string][] }[] = [
+  {
+    label: "Editorial page",
+    roles: [
+      ["EDITOR_IN_CHIEF", "Editor-in-Chief"],
+      ["ASSOCIATE_EDITOR_IN_CHIEF", "Associate Editor-in-Chief"],
+      ["EDITORIAL_BOARD", "Editorial Board"],
+      ["MANAGING_EDITOR", "Managing Editor"],
+      ["ADVISOR", "Advisor"],
+      ["REVIEWER", "Reviewer"],
+    ],
+  },
+  {
+    label: "Management page",
+    roles: [
+      ["MANAGEMENT_HEAD", "Management Head"],
+      ["MANAGEMENT_MEMBER", "Management Member"],
+    ],
+  },
 ];
-const ROLE_LABEL = Object.fromEntries(ROLES);
+const ROLE_LABEL = Object.fromEntries(ROLE_GROUPS.flatMap((g) => g.roles));
 
 export type BoardMember = { id: string; role: string; order: number; profileName: string };
 
@@ -35,7 +49,8 @@ export default function JournalBoardEditor({
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Board &amp; team</h2>
           <p className="text-sm text-slate-500">
-            People shown on the editorial / management / director pages.{" "}
+            Select a profile + role; the role decides the binder page and section it appears in
+            (Editor-in-Chief / Associate / Editors on the Editorial page; Head / Member on the Management page).{" "}
             <Link href="/admin/profiles/new" className="text-slate-700 underline">Add a new profile</Link>
           </p>
         </div>
@@ -86,8 +101,12 @@ export default function JournalBoardEditor({
         <label>
           <span className="block text-xs text-slate-500">Role</span>
           <select name="role" defaultValue="EDITORIAL_BOARD" className={`${control} mt-1`}>
-            {ROLES.map(([value, text]) => (
-              <option key={value} value={value}>{text}</option>
+            {ROLE_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.roles.map(([value, text]) => (
+                  <option key={value} value={value}>{text}</option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>

@@ -5,6 +5,7 @@ import { getJournals, targetJournalName } from "@/lib/journals";
 import { requireSession, canEdit } from "@/lib/auth/session";
 import { loadServerDrafts } from "@/lib/binder-store";
 import { getJournalLegalData } from "@/lib/legal-data";
+import { getManuscriptEngine } from "@/lib/manuscript-engine";
 import { prisma } from "@/lib/prisma";
 
 export default async function Home() {
@@ -27,7 +28,7 @@ export default async function Home() {
   }
 
   const target = journals.find((journal) => journal.name === targetJournalName) ?? journals[0];
-  const [dynamicData, serverDrafts, profileRows, legalData] = await Promise.all([
+  const [dynamicData, serverDrafts, profileRows, legalData, manuscriptEngine] = await Promise.all([
     getDynamicBinderData(target),
     loadServerDrafts(),
     prisma.profile.findMany({
@@ -35,6 +36,7 @@ export default async function Home() {
       select: { id: true, name: true, designation: true, photoUrl: true },
     }),
     getJournalLegalData(),
+    getManuscriptEngine(),
   ]);
 
   const profiles = profileRows.map((p) => ({
@@ -53,6 +55,7 @@ export default async function Home() {
       canEdit={canEdit(session.role)}
       profiles={profiles}
       legalData={legalData}
+      manuscriptEngine={manuscriptEngine}
     />
   );
 }

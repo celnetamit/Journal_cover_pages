@@ -24,6 +24,7 @@ export default async function AdminHubPage() {
     { href: "/admin/publishers", title: "Publishers", count: publishers, desc: "Publisher → company" },
     { href: "/admin/domains", title: "Domains", count: domains, desc: "Subject domains + manager" },
     { href: "/admin/subscriptions", title: "Subscriptions", count: subscriptions, desc: "Global plans + prices" },
+    { href: "/admin/manuscript-engine", title: "Manuscript engine", count: null, desc: "Shared Manuscript-page content + logo" },
     ...(isAdmin(session.role) ? [{ href: "/admin/users", title: "Users", count: users, desc: "Login accounts & roles" }] : []),
     ...(isAdmin(session.role) ? [{ href: "/admin/auth-domains", title: "Sign-in domains", count: allowedDomains, desc: "Domains allowed for Google sign-in" }] : []),
   ];
@@ -41,7 +42,9 @@ export default async function AdminHubPage() {
           >
             <div className="flex items-center justify-between">
               <span className="font-medium text-slate-900">{c.title}</span>
-              <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{c.count}</span>
+              {c.count != null && (
+                <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{c.count}</span>
+              )}
             </div>
             <p className="mt-1 text-sm text-slate-500">{c.desc}</p>
           </Link>

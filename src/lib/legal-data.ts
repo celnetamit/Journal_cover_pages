@@ -7,6 +7,8 @@ export type LegalPlan = { id: string; name: string; mode: string; priceUsd: numb
 export type LegalInfo = {
   companyId: string;
   publisherName: string;
+  publisherEmail: string;
+  publisherPhone: string;
   companyName: string;
   registeredAddress: string;
   salesAddress: string;
@@ -21,6 +23,9 @@ export type LegalInfo = {
   bankName: string;
   bankBranch: string;
   bankSwift: string;
+  openAccessIndia: string;
+  openAccessSaarc: string;
+  openAccessOther: string;
   plans: LegalPlan[];
 };
 
@@ -51,6 +56,8 @@ export async function getJournalLegalData(): Promise<Record<string, LegalInfo>> 
     map[j.id] = {
       companyId: s(c?.id),
       publisherName: s(j.publisher?.name),
+      publisherEmail: s(j.publisher?.email),
+      publisherPhone: s(j.publisher?.phone),
       companyName: s(c?.name),
       registeredAddress: s(c?.registeredAddress),
       salesAddress: s(c?.salesAddress),
@@ -65,6 +72,9 @@ export async function getJournalLegalData(): Promise<Record<string, LegalInfo>> 
       bankName: s(c?.bankName),
       bankBranch: s(c?.bankBranch),
       bankSwift: s(c?.bankSwift),
+      openAccessIndia: s(c?.openAccessIndia),
+      openAccessSaarc: s(c?.openAccessSaarc),
+      openAccessOther: s(c?.openAccessOther),
       plans,
     };
   }

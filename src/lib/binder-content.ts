@@ -507,12 +507,15 @@ export const subscriptionPlans = [
   "Print + Online: $200 (Two Print Issues and Online Access of Current and Back Issues)",
 ];
 
+// Generic, journal-agnostic letter. Tokens ({journal}, {volume}, {domain},
+// {publisher}) are filled at render time, so the default reads correctly for any
+// journal; it can be overridden per-issue or on the Company in Setup.
 export const defaultDirectorParagraphs = [
-  "We would like to present, with great pleasure, the Twelfth volume of a scholarly International Journal of Industrial Biotechnology and Biomaterials. This journal is part of the Applied Sciences, and is devoted to the scope of present Industrial Biotechnology and Biomaterials issues, from theoretical aspects to application-dependent studies and the validation of emerging technologies. This journal was planned and established to represent the growing needs of Industrial Biotechnology and Biomaterials as an emerging and increasingly vital field, now widely recognized as an integral part of scientific and technical investigations. Its mission is to become a voice of Industrial Biotechnology and Biomaterials, addressing researchers and practitioners in this area.",
-  "The core vision of International Journal of Industrial Biotechnology and Biomaterials in JournalsPub is to propagate novel awareness and know-how for the profit of mankind ranging from the academic and professional research societies to industry practitioners in a range of topics in Industrial Biotechnology and Biomaterials in general. JournalsPub acts as a pathfinder for the scientific community to publish their papers at excellently, well-timed & successfully.",
-  "International Journals of Industrial Biotechnology and Biomaterials focuses on original high-quality research in the realm of Bioenergy, biofuels, bio-refining, Biomass and feed stocks, Bio-plastics, biofilms, Bio-based chemicals and enzymes, Fermentation and cell culture, Biocatalysis, Environmental microbiology, Natural products discovery and biosynthesis, Drug delivery mechanisms, Sustainable materials, etc.",
-  "The Journal is intended as a forum for practitioners and researchers to share the techniques of Industrial Biotechnology and Biomaterials and solutions in the area. Many scientists and researchers have contributed to the creation and success of Industrial Biotechnology and Biomaterials. We are very thankful to everybody within that community who supported the idea of creating an innovative platform. We are certain that this issue will be followed by many others, reporting new developments in the field of Industrial Biotechnology and Biomaterials.",
-  "This issue would not have been possible without the great support of the Editorial Board members, and we would like to express our sincere thanks to all of them. We would also like to express our gratitude to the editorial staff of JournalsPub, who supported us at every stage of the project. It is our hope that this fine collection of articles will be a valuable resource for Industrial Biotechnology and Biomaterials readers and will stimulate further research into the vibrant area of Industrial Biotechnology and Biomaterials.",
+  "We are delighted to present, with great pleasure, the {volume} volume of {journal}. Part of the {domain} domain, the journal is devoted to the present scope of its field — from theoretical aspects to application-dependent studies and the validation of emerging technologies. It was established to represent the growing needs of an increasingly vital discipline, now widely recognized as an integral part of scientific and technical investigation, and to become a voice for researchers and practitioners in this area.",
+  "The core vision of {journal}, published by {publisher}, is to propagate novel awareness and know-how for the benefit of all — from academic and professional research societies to industry practitioners across the journal's range of topics. {publisher} acts as a pathfinder for the scientific community to publish their work excellently, in a timely manner, and successfully.",
+  "{journal} focuses on original, high-quality research across the breadth of its scope, welcoming review papers, research papers, case studies and reports on new concepts and developments in the field.",
+  "The journal is intended as a forum for practitioners and researchers to share techniques and solutions in the area. Many scholars have contributed to its creation and success, and we are thankful to everyone in the community who supported the idea of this platform. We are certain this issue will be followed by many others, reporting new developments in the field.",
+  "This issue would not have been possible without the great support of our Editorial Board members, to whom we express our sincere thanks. We are also grateful to the editorial staff of {publisher}, who supported us at every stage. It is our hope that this fine collection of articles will be a valuable resource for our readers and will stimulate further research into this vibrant area.",
 ];
 
 export const lawDirectorParagraphs = [
@@ -526,11 +529,36 @@ export const defaultFocusNotes = [
   "Sections covered by this journal are review papers, research papers, interviews, news, companies/institutions write-ups, short popular articles and case studies.",
   "All contributions to the journal are rigorously refereed and are selected on the basis of quality and originality of the work. The journal publishes the most significant new research papers or any other original contribution in the form of reviews and reports on new concepts in all areas pertaining to its scope and research being done in the world, thus ensuring its scientific priority and significance.",
   "No part of this publication may be reproduced, stored in retrieval or transmitted in any form without written permission to the publisher.",
-  "To cite any of the material contained in this journal, in English or translation, please use the full English reference at the beginning of each article. To reuse any of the material, please contact STM Journals. The author(s) is/are solely responsible for the content of the article(s) published in the STM Journalsplatform. The published articles are not constituted or deemed to constitute any representation of view of the editors or publisher. The data presented therein are correct or sufficient to support the conclusions reached or that the experiment design or methodology is adequate and the information, opinions, views presented in the articles reflect the views of the authors and contributors of the article and not the opinion of publisher or the editorial board.",
+  "To cite any of the material contained in this journal, in English or translation, please use the full English reference at the beginning of each article. To reuse any of the material, please contact {publisher}. The author(s) is/are solely responsible for the content of the article(s) published in the {publisher} platform. The published articles are not constituted or deemed to constitute any representation of view of the editors or publisher. The data presented therein are correct or sufficient to support the conclusions reached or that the experiment design or methodology is adequate and the information, opinions, views presented in the articles reflect the views of the authors and contributors of the article and not the opinion of publisher or the editorial board.",
 ];
 
 export const defaultManuscriptNotice =
   "Manuscript Engine is our specialized platform ensuring a seamless publication flow. Please don't hesitate to reach out to us for any inquiries regarding APID and manuscript submission. You can contact us at info@stmjournals.com.";
+
+// Shared content for the Manuscript page — the same engine for every journal,
+// edited once in /admin/manuscript-engine. Per-journal bits (QR URL, notice)
+// stay on the Journal; these are the global instructional parts + logo.
+export type ManuscriptEngineSettings = {
+  heading: string;
+  leadText: string;
+  steps: string[];
+  scanLabel: string;
+  logoUrl: string;
+};
+
+export const defaultManuscriptEngine: ManuscriptEngineSettings = {
+  heading: "Manuscript Engine",
+  leadText:
+    "Authors can submit manuscripts, track review progress, view decisions, and communicate with the editorial office through the journal manuscript engine.",
+  steps: [
+    "Create or log in to the author account.",
+    "Select the journal and manuscript article type.",
+    "Upload manuscript, author declaration, and required files.",
+    "Confirm submission and track the peer-review workflow.",
+  ],
+  scanLabel: "Scan to open manuscript page",
+  logoUrl: "",
+};
 
 export const logoAssets = {
   dhruv: {

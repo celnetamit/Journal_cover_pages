@@ -52,6 +52,8 @@ import {
   lawDirectorParagraphs,
   defaultFocusNotes,
   defaultManuscriptNotice,
+  defaultManuscriptEngine,
+  type ManuscriptEngineSettings,
   logoAssets,
   normalizeBinderPageLayouts,
   normalizeFrontCoverLayout,
@@ -88,6 +90,9 @@ type ProfilePick = { id: string; name: string; role: string; photo: string };
 // page render components can read it without prop-threading through BinderPage.
 const LegalContext = createContext<Record<string, LegalInfo>>({});
 
+// Shared Manuscript-page content (same for every journal), provided via context.
+const ManuscriptContext = createContext<ManuscriptEngineSettings>(defaultManuscriptEngine);
+
 type Props = {
   journals: Journal[];
   defaultJournalId: string;
@@ -96,6 +101,7 @@ type Props = {
   canEdit: boolean;
   profiles: ProfilePick[];
   legalData: Record<string, LegalInfo>;
+  manuscriptEngine: ManuscriptEngineSettings;
 };
 
 
@@ -114,6 +120,13 @@ const maxFocusScopeKeywords = 10;
 function pageStepperLabel(page: number) {
   if (page === 1) return "Cover Spread";
   if (page === 2) return "Title Page";
+  if (page === 3) return "Subscription";
+  if (page === 4) return "About";
+  if (page === 5) return "Management";
+  if (page === 6) return "Manuscript";
+  if (page === 7) return "Editorial";
+  if (page === 8) return "Director";
+  if (page === 9) return "Contents";
   return `Page ${page}`;
 }
 
@@ -666,7 +679,18 @@ function publisherIdentity(journal: Journal) {
   };
 }
 
-function PublisherLogo({ mode, side }: { mode: string; side: "publisher" | "company" }) {
+function PublisherLogo({ mode, side, src }: { mode: string; side: "publisher" | "company"; src?: string }) {
+  // Prefer the logo uploaded in Setup (Publisher.logoUrl / Company.logoUrl);
+  // fall back to the curated per-brand template image when none is set.
+  if (src) {
+    return (
+      <div className="publisher-logo image-logo db-logo">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={side === "company" ? "Company logo" : "Publisher logo"} crossOrigin="anonymous" />
+      </div>
+    );
+  }
+
   if (side === "company") {
     if (mode === "journalspub") {
       return (
@@ -863,14 +887,14 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
     <section className="pdf-page cover-page" data-export-group="internal" data-page-title="Journal Name with volume issue page">
       <div className="page-rule" />
       <p className="cover-issn">ISSN: {journal.eIssn || "2582-2888"}</p>
-      <p className="cover-printer">Printed by : {draft.coverPrinter || defaultCoverPrinter}</p>
+      <p className="cover-printer">Printed by : {draft.coverPrinter || journal.printedBy || defaultCoverPrinter}</p>
       <h1>{titleCaseName(journal.name)}</h1>
       <p className="issue-line">Volume {volume} | Issue {issue}</p>
       <p className="cover-meta">{monthRange} | {year}</p>
       <div className="cover-footer">
         <div className="publisher-logo-row">
-          <PublisherLogo mode={identity.logoMode} side="publisher" />
-          <PublisherLogo mode={identity.logoMode} side="company" />
+          <PublisherLogo mode={identity.logoMode} side="publisher" src={proxiedImage(journal.publisherLogo)} />
+          <PublisherLogo mode={identity.logoMode} side="company" src={proxiedImage(journal.companyLogo)} />
         </div>
         <b>{publisherName}</b>
         <strong>{companyName}</strong>
@@ -937,7 +961,6 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
 
   const identity = publisherIdentity(journal);
   const isJournalsPub = identity.logoMode === "journalspub";
-  const isStm = identity.logoMode === "stm";
   const isLaw = identity.logoMode === "law";
   const paymentPublisherName = isJournalsPub ? "Journals Pub" : identity.publisherName;
   const legalPhone = isJournalsPub ? "+91 120-4781200" : isLaw ? "+91 120-4781211" : identity.phone;
@@ -956,6 +979,10 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
   const bankSwift = legal?.bankSwift || "HDFCINBBXXX";
   const sendToAddress = legal?.registeredAddress || "A-118, Level 1, Sector-63, Noida, 201 301, U.P., India";
   const legalPhoneDisplay = legal?.phone || legalPhone;
+  const marketingOffice = legal?.registeredAddress || defaultRegisteredOffice;
+  const openAccessIndia = legal?.openAccessIndia || "₹1500";
+  const openAccessSaarc = legal?.openAccessSaarc || "$100";
+  const openAccessOther = legal?.openAccessOther || "$200";
   const modeLabel = (m: string) => (m === "PRINT" ? "Print" : m === "ONLINE" ? "Online" : "Print + Online");
   const inrPlans = (legal?.plans ?? []).filter((p) => p.priceInr != null);
   const usdPlans = (legal?.plans ?? []).filter((p) => p.priceUsd != null);
@@ -964,41 +991,45 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
     <section className="pdf-page payment-reference-page" data-export-group="internal">
       <p>
         {isLaw
-          ? "Law Journals (a division of Consortium e-Learning Network Private Ltd.) is the Publisher of Journal. Statements and opinions expressed in the Journal reflect the views of the author(s) and are not the opinion of Law Journals unless so stated."
+          ? `${paymentPublisherName} (a division of ${companyName}) is the Publisher of Journal. Statements and opinions expressed in the Journal reflect the views of the author(s) and are not the opinion of ${paymentPublisherName} unless so stated.`
           : isJournalsPub
-          ? "Journals Pub (a division of Dhruv Infosystems Private Ltd.) having its Marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of the Journals. Statements and opinions expressed in the Journal reflect the views of the Author(s) and are not the opinion of Journals Pub unless so stated."
-          : isStm
-          ? "STM Journals (an imprint of Consortium e-Learning Network Pvt. Ltd.) having its marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of Journals. The author(s) or editor(s) expressed in the Journal reflect the views of the author(s) and are not the opinion of STM Journals unless so stated."
-          : "MBA Journals (an imprint of Consortium e-Learning Network Pvt. Ltd.) having its marketing office located at Office No. 4, First Floor, CSC Pocket E Market, Mayur Vihar Phase II, New Delhi 110091, India, is the Publisher of Journals. The author(s) or editor(s) expressed in the Journal reflect the views of the author(s) and are not the opinion of MBA Journals unless so stated."}
+          ? `${paymentPublisherName} (a division of ${companyName}) having its Marketing office located at ${marketingOffice}, is the Publisher of the Journals. Statements and opinions expressed in the Journal reflect the views of the Author(s) and are not the opinion of ${paymentPublisherName} unless so stated.`
+          : `${paymentPublisherName} (an imprint of ${companyName}) having its marketing office located at ${marketingOffice}, is the Publisher of Journals. The author(s) or editor(s) expressed in the Journal reflect the views of the author(s) and are not the opinion of ${paymentPublisherName} unless so stated.`}
       </p>
 
       <h1>SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, {subscriptionYear})</h1>
-      <p><b>National Subscription</b> (₹, India)</p>
-      {inrPlans.length ? (
-        <ul className="checkbox-list">
-          {inrPlans.map((p) => (
-            <li key={`inr-${p.name}`}>{p.name} ({modeLabel(p.mode)}): ₹{p.priceInr} per Journal.</li>
-          ))}
-        </ul>
-      ) : (
-        <p>
-          Print: ₹3500 per Journal (Two Print Issues), Single Issue ₹1800.<br />
-          Online: ₹6500 per Journal (Online Access of Current and Back Issues).<br />
-          Print + Online: ₹7315 per Journal (Two Print and Online Access of Current and Back Issues).
-        </p>
-      )}
-      <p><b>International Subscription</b> ($, outside India)</p>
-      {usdPlans.length ? (
-        <ul className="checkbox-list">
-          {usdPlans.map((p) => (
-            <li key={`usd-${p.name}`}>{p.name} ({modeLabel(p.mode)}): ${p.priceUsd} per Journal.</li>
-          ))}
-        </ul>
-      ) : (
-        <ul className="checkbox-list">
-          {subscriptionPlans.map((item) => <li key={item}>{item}</li>)}
-        </ul>
-      )}
+      <div className="subscription-columns">
+        <div className="subscription-column">
+          <p><b>National Subscription</b> (₹, India)</p>
+          {inrPlans.length ? (
+            <ul className="checkbox-list">
+              {inrPlans.map((p) => (
+                <li key={`inr-${p.name}`}>{p.name} ({modeLabel(p.mode)}): ₹{p.priceInr} per Journal.</li>
+              ))}
+            </ul>
+          ) : (
+            <p>
+              Print: ₹3500 per Journal (Two Print Issues), Single Issue ₹1800.<br />
+              Online: ₹6500 per Journal (Online Access of Current and Back Issues).<br />
+              Print + Online: ₹7315 per Journal (Two Print and Online Access of Current and Back Issues).
+            </p>
+          )}
+        </div>
+        <div className="subscription-column">
+          <p><b>International Subscription</b> ($, outside India)</p>
+          {usdPlans.length ? (
+            <ul className="checkbox-list">
+              {usdPlans.map((p) => (
+                <li key={`usd-${p.name}`}>{p.name} ({modeLabel(p.mode)}): ${p.priceUsd} per Journal.</li>
+              ))}
+            </ul>
+          ) : (
+            <ul className="checkbox-list">
+              {subscriptionPlans.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+          )}
+        </div>
+      </div>
       <p>
         To purchase print compilation of back issues, please send your query at {identity.email}. Subscription must be
         prepaid. Rates outside of India include delivery. Prices subject to change without notice.
@@ -1041,9 +1072,9 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
             publication at nominal cost as follows.
           </p>
           <p>
-            India: ₹1500 includes single hard copy of Author&apos;s Journal.<br />
-            SAARC and African Countries: $100 includes single hard copy of Author&apos;s Journal.<br />
-            Other Countries: $200 includes single hard copy of Author&apos;s Journal.
+            India: {openAccessIndia} includes single hard copy of Author&apos;s Journal.<br />
+            SAARC and African Countries: {openAccessSaarc} includes single hard copy of Author&apos;s Journal.<br />
+            Other Countries: {openAccessOther} includes single hard copy of Author&apos;s Journal.
           </p>
         </>
       ) : (
@@ -1055,9 +1086,9 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
             publication at nominal charges.
           </p>
           <p>
-            India: ₹1500 includes single hard copy of Author&apos;s Journal.<br />
-            SAARC and African Countries: $100 includes single hard copy of Author&apos;s Journal.<br />
-            Other Countries: $200 including single hard copy of Author&apos;s Journal.
+            India: {openAccessIndia} includes single hard copy of Author&apos;s Journal.<br />
+            SAARC and African Countries: {openAccessSaarc} includes single hard copy of Author&apos;s Journal.<br />
+            Other Countries: {openAccessOther} including single hard copy of Author&apos;s Journal.
           </p>
         </>
       )}
@@ -1117,7 +1148,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
       <h2>{isJournalsPub || isLaw ? "LEGAL DISPUTES" : "LEGAL DISPUTE"}</h2>
       <p>
         All the legal disputes are subjected to Delhi Jurisdiction only. If you have any questions, please contact the
-        Publication Management Team at {identity.email}; Tel: {legalPhone}.
+        Publication Management Team at {legal?.publisherEmail || identity.email}; Tel: {legal?.publisherPhone || legalPhoneDisplay}.
       </p>
       <PageNumber value={2} />
     </section>
@@ -1145,7 +1176,7 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
   return (
     <section className="pdf-page journal-info-page" data-export-group="internal" style={pageStyle(pageScale)}>
       <div className="journal-info-head">
-        <PublisherLogo mode={identity.logoMode} side="publisher" />
+        <PublisherLogo mode={identity.logoMode} side="publisher" src={proxiedImage(journal.publisherLogo)} />
         <h1>{titleCaseName(journal.name)}</h1>
       </div>
       {publisherAbout ? (
@@ -1188,7 +1219,9 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
         </ul>
       </section>
       <div>
-        {focusNotes.map((note, index) => <p key={index}>{note}</p>)}
+        {focusNotes.map((note, index) => (
+          <p key={index}>{applyBinderTokens(note, journal, draft)}</p>
+        ))}
       </div>
       <PageNumber value={3} />
     </section>
@@ -1273,33 +1306,41 @@ function ManagementProfile({ person, featured = false }: { person: ManagementPer
 }
 
 function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
-  const url = journal.website || "https://journals.stmjournals.com/open-access/nolegein-journal-of-leadership-and-strategic-management/";
-  const pageScale = pageDensityScale(`${url} ${draft.manuscriptNotice}`.length, 340);
+  // Shared content (heading, lead text, steps, logo) comes from the global
+  // Manuscript-engine settings; the QR + URL + notice are per-journal.
+  const engine = useContext(ManuscriptContext);
+  const engineLogo = proxiedImage(engine.logoUrl);
+  // The QR encodes the journal's manuscript-submission URL (falling back to the
+  // journal website); the printed link shows the journal website.
+  const submissionUrl = journal.manuscriptUrl?.trim() || journal.website?.trim() || "";
+  const url = journal.website?.trim() || journal.manuscriptUrl?.trim() || "";
+  const qrSrc = submissionUrl
+    ? `/api/qr?data=${encodeURIComponent(submissionUrl)}`
+    : logoAssets.manuscriptQr.src;
+  const pageScale = pageDensityScale(
+    `${url} ${engine.leadText} ${engine.steps.join(" ")} ${draft.manuscriptNotice}`.length,
+    340,
+  );
   return (
     <section className="pdf-page details-page manuscript-page" data-export-group="internal" style={pageStyle(pageScale)}>
       <PdfHeader journal={journal} label="Manuscript Engine" showLogo={false} showLabel={false} />
-      <h1>Manuscript Engine</h1>
-      <p className="lead-text">
-        Authors can submit manuscripts, track review progress, view decisions, and communicate with the editorial office through the journal manuscript engine.
-      </p>
+      <div className="manuscript-head">
+        {engineLogo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="manuscript-engine-logo" src={engineLogo} alt={engine.heading} crossOrigin="anonymous" />
+        ) : null}
+        <h1>{engine.heading}</h1>
+      </div>
+      <p className="lead-text">{engine.leadText}</p>
       <div className="engine-panel">
         <div>
           <QrCode size={34} />
-          <Image
-            className="qr-image"
-            src={logoAssets.manuscriptQr.src}
-            alt={logoAssets.manuscriptQr.alt}
-            width={logoAssets.manuscriptQr.width}
-            height={logoAssets.manuscriptQr.height}
-            unoptimized
-          />
-          <span>Scan to open manuscript page</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="qr-image" src={qrSrc} alt="Manuscript submission QR code" crossOrigin="anonymous" />
+          <span>{engine.scanLabel}</span>
         </div>
         <ol>
-          <li>Create or log in to the author account.</li>
-          <li>Select the journal and manuscript article type.</li>
-          <li>Upload manuscript, author declaration, and required files.</li>
-          <li>Confirm submission and track the peer-review workflow.</li>
+          {engine.steps.map((step, index) => <li key={index}>{step}</li>)}
         </ol>
       </div>
       <p className="url-line">{url}</p>
@@ -1339,7 +1380,7 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
     <section>
       <h3>Editors</h3>
       <div className="editor-grid">
-        {editors.slice(0, 12).map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)}
+        {editors.map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)}
       </div>
     </section>
   ) : null;
@@ -1365,6 +1406,30 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
   );
 }
 
+const ORDINAL_WORDS = ["", "First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth", "Eleventh", "Twelfth", "Thirteenth", "Fourteenth", "Fifteenth", "Sixteenth", "Seventeenth", "Eighteenth", "Nineteenth", "Twentieth"];
+
+// "13" -> "Thirteenth"; "25" -> "25th"; non-numeric values are returned as-is.
+function ordinalWord(value: string): string {
+  const v = value.trim();
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < 1 || String(n) !== v) return v;
+  if (n <= 20) return ORDINAL_WORDS[n];
+  const suffix =
+    n % 10 === 1 && n % 100 !== 11 ? "st" :
+    n % 10 === 2 && n % 100 !== 12 ? "nd" :
+    n % 10 === 3 && n % 100 !== 13 ? "rd" : "th";
+  return `${n}${suffix}`;
+}
+
+// Tokens usable in director-desk + focus-note text, filled from the journal/issue.
+function applyBinderTokens(text: string, journal: Journal, draft: BinderDraft): string {
+  return text
+    .replaceAll("{journal}", titleCaseName(journal.name))
+    .replaceAll("{volume}", ordinalWord(draft.issueVolume || defaultIssueVolume))
+    .replaceAll("{domain}", journal.domain || "")
+    .replaceAll("{publisher}", publisherIdentity(journal).publisherName);
+}
+
 function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const paragraphs = directorParagraphsForJournal(journal, draft).filter((paragraph) => paragraph.trim());
   const pageScale = pageDensityScale(paragraphs.join(" ").length, 3600);
@@ -1385,11 +1450,11 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
           />
           <div className="director-intro-copy">
             <p className="dear-line"><b>Dear Readers,</b></p>
-            <p className="director-first-paragraph">{paragraphs[0].replaceAll("{journal}", titleCaseName(journal.name))}</p>
+            <p className="director-first-paragraph">{applyBinderTokens(paragraphs[0], journal, draft)}</p>
           </div>
         </div>
         {paragraphs.slice(1).map((paragraph, index) => (
-          <p key={index}>{paragraph.replaceAll("{journal}", titleCaseName(journal.name))}</p>
+          <p key={index}>{applyBinderTokens(paragraph, journal, draft)}</p>
         ))}
       </div>
       <div className="signature">
@@ -1883,7 +1948,7 @@ function SectionEditor({
           </div>
           <label>
             <span>Printed by</span>
-            <input value={draft.coverPrinter || ""} placeholder={defaultCoverPrinter} onChange={(event) => onChange({ ...draft, coverPrinter: event.target.value })} />
+            <input value={draft.coverPrinter || ""} placeholder={journal.printedBy || defaultCoverPrinter} onChange={(event) => onChange({ ...draft, coverPrinter: event.target.value })} />
           </label>
           <label>
             <span>Publisher address</span>
@@ -1967,6 +2032,9 @@ function SectionEditor({
           </div>
           <div className="editor-row-head">
             <span>Additional focus and scope text</span>
+          </div>
+          <div className="editor-note">
+            Use <code>{"{publisher}"}</code> for the publisher name and <code>{"{journal}"}</code> for the journal title — they are filled in automatically.
           </div>
           {focusNotes.map((note, index) => (
             <label key={index}>
@@ -2124,6 +2192,7 @@ function SectionEditor({
         <>
           <div className="editor-note">
             The Director&apos;s Desk keeps the default paragraph set by default. Edit any paragraph below to replace only that paragraph.
+            Use <code>{"{journal}"}</code>, <code>{"{volume}"}</code>, <code>{"{domain}"}</code>, <code>{"{publisher}"}</code> — they are filled in automatically.
           </div>
           <label>
             <span>Director desk letter title</span>
@@ -2243,7 +2312,7 @@ function SectionEditor({
   );
 }
 
-export default function JournalDashboard({ journals, defaultJournalId, dynamicData, serverDrafts, canEdit, profiles, legalData }: Props) {
+export default function JournalDashboard({ journals, defaultJournalId, dynamicData, serverDrafts, canEdit, profiles, legalData, manuscriptEngine }: Props) {
   const [selectedId, setSelectedId] = useState(defaultJournalId);
   const [drafts, setDrafts] = useState<Record<string, BinderDraft>>(() => initialDrafts(journals, dynamicData, serverDrafts));
   const [updatedAtById, setUpdatedAtById] = useState<Record<string, string>>(() =>
@@ -2654,6 +2723,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
 
   return (
     <LegalContext.Provider value={legalData}>
+    <ManuscriptContext.Provider value={manuscriptEngine}>
     <main className="app-shell">
       <aside className="dashboard-sidebar">
         <div className="dashboard-menu">
@@ -2911,6 +2981,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
         ) : null}
       </section>
     </main>
+    </ManuscriptContext.Provider>
     </LegalContext.Provider>
   );
 }

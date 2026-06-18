@@ -18,6 +18,9 @@ export type JournalFormValues = {
   impactFactor: string;
   about: string;
   manuscriptNotice: string;
+  manuscriptUrl: string;
+  directorDeskTitle: string;
+  directorDeskParagraphs: string;
   frequency: string;
   frequencyLabel: string;
   issuesPerYear: string;
@@ -108,6 +111,7 @@ export default function JournalForm({
         <Text name="shortName" label="Short name" defaultValue={v.shortName} />
         <Text name="slug" label="Slug (blank = auto)" defaultValue={v.slug} />
         <Text name="website" label="Website" defaultValue={v.website} />
+        <Text name="manuscriptUrl" label="Manuscript submission URL (QR)" defaultValue={v.manuscriptUrl} />
         <Text name="doi" label="DOI" defaultValue={v.doi} />
         <Text name="issnPrint" label="ISSN (print)" defaultValue={v.issnPrint} />
         <Text name="issnOnline" label="ISSN (online)" defaultValue={v.issnOnline} />
@@ -148,12 +152,14 @@ export default function JournalForm({
       <section className="space-y-4">
         <Area name="about" label="About" defaultValue={v.about} rows={4} />
         <Area name="focusScope" label="Focus & scope" defaultValue={v.focusScope} rows={5} hint="One item per line" />
-        <Area name="focusNotes" label="Focus notes (Page 3 paragraphs)" defaultValue={v.focusNotes} rows={4} hint="One paragraph per line" />
+        <Area name="focusNotes" label="Focus notes (About page paragraphs)" defaultValue={v.focusNotes} rows={4} hint="One paragraph per line. Use {publisher} / {journal} for auto-filled names." />
         <Area name="objectives" label="Objectives" defaultValue={v.objectives} rows={4} hint="One item per line" />
         <Area name="salientFeatures" label="Salient features" defaultValue={v.salientFeatures} rows={4} hint="One item per line" />
         <Area name="keywords" label="Keywords" defaultValue={v.keywords} rows={2} hint="Comma-separated" />
         <Area name="indexing" label="Indexing" defaultValue={v.indexing} rows={2} hint="Comma-separated" />
         <Area name="manuscriptNotice" label="Manuscript notice" defaultValue={v.manuscriptNotice} rows={3} />
+        <Area name="directorDeskTitle" label="Director's Desk heading" defaultValue={v.directorDeskTitle} rows={1} hint="Blank = use the Company/brand default" />
+        <Area name="directorDeskParagraphs" label="Director's Desk letter" defaultValue={v.directorDeskParagraphs} rows={8} hint="One paragraph per line. Tokens: {journal} {volume} {domain} {publisher}. Blank = Company default." />
       </section>
 
       {state?.error && (

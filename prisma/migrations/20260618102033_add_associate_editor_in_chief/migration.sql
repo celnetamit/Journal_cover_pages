@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "JournalRole" ADD VALUE 'ASSOCIATE_EDITOR_IN_CHIEF';

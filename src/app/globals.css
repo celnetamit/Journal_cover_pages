@@ -1948,6 +1948,16 @@ button {
   text-align: justify;
 }
 
+.payment-reference-page .subscription-columns {
+  column-gap: 8mm;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.payment-reference-page .subscription-columns .subscription-column > p:first-child {
+  margin-top: 0;
+}
+
 .payment-reference-page .checkbox-list {
   list-style: none;
   margin: 0 0 1.2mm;
@@ -2371,6 +2381,25 @@ button {
   line-height: calc(1.45 * var(--page-scale));
 }
 
+.manuscript-page .manuscript-head {
+  align-items: center;
+  display: flex;
+  gap: calc(5mm * var(--page-scale));
+  margin-bottom: calc(6mm * var(--page-scale));
+}
+
+.manuscript-page .manuscript-head h1 {
+  margin-bottom: 0;
+}
+
+.manuscript-page .manuscript-engine-logo {
+  height: auto;
+  max-height: calc(20mm * var(--page-scale));
+  max-width: calc(55mm * var(--page-scale));
+  object-fit: contain;
+  width: auto;
+}
+
 .manuscript-page h1 {
   font-size: calc(19pt * var(--page-scale));
   margin-bottom: calc(6mm * var(--page-scale));
@@ -2610,6 +2639,14 @@ button {
   max-width: 100%;
   object-fit: contain;
   width: auto;
+}
+
+.publisher-logo.image-logo.db-logo {
+  min-width: 45mm;
+}
+
+.publisher-logo.image-logo.db-logo img {
+  max-height: 30mm;
 }
 
 .publisher-logo.image-logo.dhruv-logo {

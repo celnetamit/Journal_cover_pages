@@ -74,6 +74,7 @@ export function emptyDynamicBinderData(errors: string[] = []): DynamicBinderData
 
 const JOURNAL_ROLE_LABELS: Record<string, string> = {
   EDITOR_IN_CHIEF: "Editor-in-Chief",
+  ASSOCIATE_EDITOR_IN_CHIEF: "Associate Editor-in-Chief",
   EDITORIAL_BOARD: "Editorial Board Member",
   MANAGING_EDITOR: "Managing Editor",
   ADVISOR: "Advisor",
@@ -85,6 +86,7 @@ const JOURNAL_ROLE_LABELS: Record<string, string> = {
 // Roles that appear on the editorial board page (management roles are excluded).
 const EDITORIAL_ROLES = new Set([
   "EDITOR_IN_CHIEF",
+  "ASSOCIATE_EDITOR_IN_CHIEF",
   "EDITORIAL_BOARD",
   "MANAGING_EDITOR",
   "ADVISOR",

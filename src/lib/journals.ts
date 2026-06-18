@@ -16,11 +16,13 @@ export type Journal = {
   coverBack: string;
   journalLogo: string;
   publisherLogo: string;
+  companyLogo: string;
   about: string;
   publisherAbout: string;
   objectives: string[];
   salientFeatures: string[];
   manuscriptNotice: string;
+  manuscriptUrl: string;
   focusNotes: string[];
   // Director's Desk — shared via the journal's Company (+ its director Profile).
   directorName: string;
@@ -53,6 +55,7 @@ export type Journal = {
   address: string;
   salesAddress: string;
   companyWebsite: string;
+  printedBy: string;
   publisherEmail: string;
   publisherPhone: string;
   editorName: string;
@@ -98,18 +101,20 @@ export function toLegacyJournal(j: DbJournal): Journal {
     coverBack: s(j.coverBackUrl),
     journalLogo: s(j.logoUrl),
     publisherLogo: s(j.publisher?.logoUrl),
+    companyLogo: s(company?.logoUrl),
     about: s(j.about),
     publisherAbout: s(j.publisher?.about),
     objectives: j.objectives,
     salientFeatures: j.salientFeatures,
     manuscriptNotice: s(j.manuscriptNotice),
+    manuscriptUrl: s(j.manuscriptUrl),
     focusNotes: j.focusNotes,
     directorName: s(company?.director?.name),
     directorRole: s(company?.director?.designation),
     directorPhoto: s(company?.director?.photoUrl),
     directorSignature: s(company?.director?.signatureUrl),
-    directorDeskTitle: s(company?.directorDeskTitle),
-    directorDeskParagraphs: company?.directorDeskParagraphs ?? [],
+    directorDeskTitle: s(j.directorDeskTitle) || s(company?.directorDeskTitle),
+    directorDeskParagraphs: j.directorDeskParagraphs.length ? j.directorDeskParagraphs : (company?.directorDeskParagraphs ?? []),
     dispatchContactName: s(company?.dispatchContactName),
     dispatchContactPhone: s(company?.dispatchContactPhone),
     dispatchContactEmail: s(company?.dispatchContactEmail),
@@ -133,6 +138,7 @@ export function toLegacyJournal(j: DbJournal): Journal {
     address: s(company?.registeredAddress),
     salesAddress: s(company?.salesAddress),
     companyWebsite: s(company?.website),
+    printedBy: s(company?.printedBy),
     publisherEmail: s(company?.email),
     publisherPhone: s(company?.phone),
     editorName: j.manager?.name || DEFAULT_EDITOR_NAME,
