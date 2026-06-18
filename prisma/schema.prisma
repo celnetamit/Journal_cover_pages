@@ -89,6 +89,7 @@ model Profile {
   name        String
   email       String?
   photoUrl    String?
+  signatureUrl String? // handwritten signature image, used on the Director's Desk page
   designation String?
   biography   String?
   affiliation String?
@@ -123,6 +124,19 @@ model Company {
   bankName          String?
   bankBranch        String?
   bankSwift         String?
+
+  // Director's Desk page (the message is signed by the company director below).
+  directorDeskTitle      String?
+  directorDeskParagraphs String[]
+
+  // Page 5 contact boxes (shared across the company's journals).
+  dispatchContactName  String?
+  dispatchContactPhone String?
+  dispatchContactEmail String?
+  salesContactName     String?
+  salesContactPhone    String?
+  salesContactEmail    String?
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -225,6 +239,7 @@ model Journal {
 
   about            String?
   focusScope       String[]
+  focusNotes       String[]
   objectives       String[]
   salientFeatures  String[]
   keywords         String[]

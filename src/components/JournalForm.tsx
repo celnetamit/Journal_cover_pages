@@ -32,6 +32,7 @@ export type JournalFormValues = {
   publisherId: string;
   managerId: string;
   focusScope: string;
+  focusNotes: string;
   objectives: string;
   salientFeatures: string;
   keywords: string;
@@ -147,6 +148,7 @@ export default function JournalForm({
       <section className="space-y-4">
         <Area name="about" label="About" defaultValue={v.about} rows={4} />
         <Area name="focusScope" label="Focus & scope" defaultValue={v.focusScope} rows={5} hint="One item per line" />
+        <Area name="focusNotes" label="Focus notes (Page 3 paragraphs)" defaultValue={v.focusNotes} rows={4} hint="One paragraph per line" />
         <Area name="objectives" label="Objectives" defaultValue={v.objectives} rows={4} hint="One item per line" />
         <Area name="salientFeatures" label="Salient features" defaultValue={v.salientFeatures} rows={4} hint="One item per line" />
         <Area name="keywords" label="Keywords" defaultValue={v.keywords} rows={2} hint="Comma-separated" />

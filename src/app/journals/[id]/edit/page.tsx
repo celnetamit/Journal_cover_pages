@@ -65,6 +65,7 @@ export default async function EditJournalPage({ params }: { params: Promise<{ id
     publisherId: journal.publisherId ?? "",
     managerId: journal.managerId ?? "",
     focusScope: journal.focusScope.join("\n"),
+    focusNotes: journal.focusNotes.join("\n"),
     objectives: journal.objectives.join("\n"),
     salientFeatures: journal.salientFeatures.join("\n"),
     keywords: journal.keywords.join(", "),

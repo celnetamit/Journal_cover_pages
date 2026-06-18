@@ -10,6 +10,7 @@ export type FormState = { error?: string } | undefined;
 
 const str = (v: FormDataEntryValue | null) => (typeof v === "string" ? v.trim() : "");
 const nul = (v: string) => (v.length ? v : null);
+const textLines = (v: string) => v.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
 const rel = (id: string) => (id ? { connect: { id } } : undefined);
 const relOrClear = (id: string) => (id ? { connect: { id } } : { disconnect: true });
 
@@ -31,6 +32,7 @@ function profileData(fd: FormData) {
     address: nul(str(fd.get("address"))),
     biography: nul(str(fd.get("biography"))),
     photoUrl: nul(str(fd.get("photoUrl"))),
+    signatureUrl: nul(str(fd.get("signatureUrl"))),
   };
 }
 
@@ -190,6 +192,14 @@ function companyData(fd: FormData) {
     bankName: nul(str(fd.get("bankName"))),
     bankBranch: nul(str(fd.get("bankBranch"))),
     bankSwift: nul(str(fd.get("bankSwift"))),
+    directorDeskTitle: nul(str(fd.get("directorDeskTitle"))),
+    directorDeskParagraphs: textLines(str(fd.get("directorDeskParagraphs"))),
+    dispatchContactName: nul(str(fd.get("dispatchContactName"))),
+    dispatchContactPhone: nul(str(fd.get("dispatchContactPhone"))),
+    dispatchContactEmail: nul(str(fd.get("dispatchContactEmail"))),
+    salesContactName: nul(str(fd.get("salesContactName"))),
+    salesContactPhone: nul(str(fd.get("salesContactPhone"))),
+    salesContactEmail: nul(str(fd.get("salesContactEmail"))),
   };
 }
 

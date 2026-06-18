@@ -64,10 +64,10 @@ async function nameResolver(model: "domain" | "publisher" | "company") {
 export const ENTITY_SPECS: Record<EntityKey, Spec> = {
   profiles: {
     filename: "profiles.csv",
-    headers: ["name", "email", "designation", "department", "affiliation", "address", "photoUrl", "biography"],
+    headers: ["name", "email", "designation", "department", "affiliation", "address", "photoUrl", "signatureUrl", "biography"],
     async exportRows() {
       const rows = await prisma.profile.findMany({ orderBy: { name: "asc" } });
-      return rows.map((p) => [p.name, p.email ?? "", p.designation ?? "", p.department ?? "", p.affiliation ?? "", p.address ?? "", p.photoUrl ?? "", p.biography ?? ""]);
+      return rows.map((p) => [p.name, p.email ?? "", p.designation ?? "", p.department ?? "", p.affiliation ?? "", p.address ?? "", p.photoUrl ?? "", p.signatureUrl ?? "", p.biography ?? ""]);
     },
     async importRecords(records) {
       const out = emptySummary();
@@ -82,6 +82,7 @@ export const ENTITY_SPECS: Record<EntityKey, Spec> = {
           affiliation: nul(r.affiliation),
           address: nul(r.address),
           photoUrl: nul(r.photoUrl),
+          signatureUrl: nul(r.signatureUrl),
           biography: nul(r.biography),
         };
         const existing = data.email
@@ -167,10 +168,10 @@ export const ENTITY_SPECS: Record<EntityKey, Spec> = {
 
   companies: {
     filename: "companies.csv",
-    headers: ["name", "email", "phone", "website", "cin", "gst", "registeredAddress", "salesAddress", "bankAccountName", "bankAccountNo", "bankIfsc", "bankName", "bankBranch", "bankSwift", "director"],
+    headers: ["name", "email", "phone", "website", "cin", "gst", "registeredAddress", "salesAddress", "bankAccountName", "bankAccountNo", "bankIfsc", "bankName", "bankBranch", "bankSwift", "directorDeskTitle", "directorDeskParagraphs", "dispatchContactName", "dispatchContactPhone", "dispatchContactEmail", "salesContactName", "salesContactPhone", "salesContactEmail", "director"],
     async exportRows() {
       const rows = await prisma.company.findMany({ orderBy: { name: "asc" }, include: { director: true } });
-      return rows.map((c) => [c.name, c.email ?? "", c.phone ?? "", c.website ?? "", c.cin ?? "", c.gst ?? "", c.registeredAddress ?? "", c.salesAddress ?? "", c.bankAccountName ?? "", c.bankAccountNo ?? "", c.bankIfsc ?? "", c.bankName ?? "", c.bankBranch ?? "", c.bankSwift ?? "", c.director?.email || c.director?.name || ""]);
+      return rows.map((c) => [c.name, c.email ?? "", c.phone ?? "", c.website ?? "", c.cin ?? "", c.gst ?? "", c.registeredAddress ?? "", c.salesAddress ?? "", c.bankAccountName ?? "", c.bankAccountNo ?? "", c.bankIfsc ?? "", c.bankName ?? "", c.bankBranch ?? "", c.bankSwift ?? "", c.directorDeskTitle ?? "", list(c.directorDeskParagraphs), c.dispatchContactName ?? "", c.dispatchContactPhone ?? "", c.dispatchContactEmail ?? "", c.salesContactName ?? "", c.salesContactPhone ?? "", c.salesContactEmail ?? "", c.director?.email || c.director?.name || ""]);
     },
     async importRecords(records) {
       const out = emptySummary();
@@ -184,6 +185,9 @@ export const ENTITY_SPECS: Record<EntityKey, Spec> = {
           registeredAddress: nul(r.registeredAddress), salesAddress: nul(r.salesAddress),
           bankAccountName: nul(r.bankAccountName), bankAccountNo: nul(r.bankAccountNo), bankIfsc: nul(r.bankIfsc),
           bankName: nul(r.bankName), bankBranch: nul(r.bankBranch), bankSwift: nul(r.bankSwift), directorId,
+          directorDeskTitle: nul(r.directorDeskTitle), directorDeskParagraphs: unlist(r.directorDeskParagraphs),
+          dispatchContactName: nul(r.dispatchContactName), dispatchContactPhone: nul(r.dispatchContactPhone), dispatchContactEmail: nul(r.dispatchContactEmail),
+          salesContactName: nul(r.salesContactName), salesContactPhone: nul(r.salesContactPhone), salesContactEmail: nul(r.salesContactEmail),
         };
         const existing = await prisma.company.findUnique({ where: { name } });
         if (existing) { await prisma.company.update({ where: { name }, data }); out.updated++; }
@@ -196,13 +200,13 @@ export const ENTITY_SPECS: Record<EntityKey, Spec> = {
 
   journals: {
     filename: "journals.csv",
-    headers: ["slug", "name", "abbreviation", "shortName", "website", "issnPrint", "issnOnline", "sjif", "icv", "doi", "impactFactor", "frequency", "issuesPerYear", "about", "focusScope", "keywords", "indexing", "domain", "publisher", "manager"],
+    headers: ["slug", "name", "abbreviation", "shortName", "website", "issnPrint", "issnOnline", "sjif", "icv", "doi", "impactFactor", "frequency", "issuesPerYear", "about", "focusScope", "focusNotes", "keywords", "indexing", "domain", "publisher", "manager"],
     async exportRows() {
       const rows = await prisma.journal.findMany({ orderBy: { name: "asc" }, include: { domain: true, publisher: true, manager: true } });
       return rows.map((j) => [
         j.slug, j.name, j.abbreviation, j.shortName ?? "", j.website ?? "", j.issnPrint ?? "", j.issnOnline ?? "",
         j.sjif ?? "", j.icv ?? "", j.doi ?? "", j.impactFactor ?? "", j.frequency, j.issuesPerYear != null ? String(j.issuesPerYear) : "",
-        j.about ?? "", list(j.focusScope), list(j.keywords), list(j.indexing),
+        j.about ?? "", list(j.focusScope), list(j.focusNotes), list(j.keywords), list(j.indexing),
         j.domain?.name ?? "", j.publisher?.name ?? "", j.manager?.email || j.manager?.name || "",
       ]);
     },
@@ -224,7 +228,7 @@ export const ENTITY_SPECS: Record<EntityKey, Spec> = {
           shortName: nul(r.shortName), website: nul(r.website), issnPrint: nul(r.issnPrint), issnOnline: nul(r.issnOnline),
           sjif: nul(r.sjif), icv: nul(r.icv), doi: nul(r.doi), impactFactor: nul(r.impactFactor),
           frequency, issuesPerYear: num(r.issuesPerYear), about: nul(r.about),
-          focusScope: unlist(r.focusScope), keywords: unlist(r.keywords), indexing: unlist(r.indexing),
+          focusScope: unlist(r.focusScope), focusNotes: unlist(r.focusNotes), keywords: unlist(r.keywords), indexing: unlist(r.indexing),
           domainId: r.domain ? resolveDomain(r.domain) : null,
           publisherId: r.publisher ? resolvePublisher(r.publisher) : null,
           managerId: r.manager ? resolveProfile(r.manager) : null,

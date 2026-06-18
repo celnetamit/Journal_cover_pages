@@ -18,6 +18,24 @@ export type Journal = {
   publisherLogo: string;
   about: string;
   publisherAbout: string;
+  objectives: string[];
+  salientFeatures: string[];
+  manuscriptNotice: string;
+  focusNotes: string[];
+  // Director's Desk — shared via the journal's Company (+ its director Profile).
+  directorName: string;
+  directorRole: string;
+  directorPhoto: string;
+  directorSignature: string;
+  directorDeskTitle: string;
+  directorDeskParagraphs: string[];
+  // Page 5 contact boxes — shared via the Company.
+  dispatchContactName: string;
+  dispatchContactPhone: string;
+  dispatchContactEmail: string;
+  salesContactName: string;
+  salesContactPhone: string;
+  salesContactEmail: string;
   eIssn: string;
   pIssn: string;
   impactFactor: string;
@@ -49,7 +67,7 @@ const DEFAULT_EDITOR_EMAIL = "info@mbajournals.in";
 // Query shape for the relations we flatten into the legacy Journal.
 const journalInclude = {
   domain: true,
-  publisher: { include: { company: true } },
+  publisher: { include: { company: { include: { director: true } } } },
   manager: true,
 } as const;
 
@@ -82,6 +100,22 @@ export function toLegacyJournal(j: DbJournal): Journal {
     publisherLogo: s(j.publisher?.logoUrl),
     about: s(j.about),
     publisherAbout: s(j.publisher?.about),
+    objectives: j.objectives,
+    salientFeatures: j.salientFeatures,
+    manuscriptNotice: s(j.manuscriptNotice),
+    focusNotes: j.focusNotes,
+    directorName: s(company?.director?.name),
+    directorRole: s(company?.director?.designation),
+    directorPhoto: s(company?.director?.photoUrl),
+    directorSignature: s(company?.director?.signatureUrl),
+    directorDeskTitle: s(company?.directorDeskTitle),
+    directorDeskParagraphs: company?.directorDeskParagraphs ?? [],
+    dispatchContactName: s(company?.dispatchContactName),
+    dispatchContactPhone: s(company?.dispatchContactPhone),
+    dispatchContactEmail: s(company?.dispatchContactEmail),
+    salesContactName: s(company?.salesContactName),
+    salesContactPhone: s(company?.salesContactPhone),
+    salesContactEmail: s(company?.salesContactEmail),
     eIssn: s(j.issnOnline),
     pIssn: s(j.issnPrint),
     impactFactor: s(j.impactFactor),

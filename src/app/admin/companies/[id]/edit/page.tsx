@@ -35,6 +35,14 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ id
           bankBranch: c.bankBranch ?? "",
           bankSwift: c.bankSwift ?? "",
           directorId: c.directorId ?? "",
+          directorDeskTitle: c.directorDeskTitle ?? "",
+          directorDeskParagraphs: c.directorDeskParagraphs.join("\n"),
+          dispatchContactName: c.dispatchContactName ?? "",
+          dispatchContactPhone: c.dispatchContactPhone ?? "",
+          dispatchContactEmail: c.dispatchContactEmail ?? "",
+          salesContactName: c.salesContactName ?? "",
+          salesContactPhone: c.salesContactPhone ?? "",
+          salesContactEmail: c.salesContactEmail ?? "",
         }}
         profiles={profiles}
         submitLabel="Save changes"

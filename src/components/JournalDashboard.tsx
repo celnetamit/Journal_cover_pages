@@ -224,12 +224,40 @@ function defaultDirectorDesk(journal: Journal) {
   };
 }
 
+// Director's Desk content sourced from the journal's Company (+ its director
+// Profile), falling back to the built-in defaults when a field is blank.
+function effectiveDirectorDesk(journal: Journal) {
+  const base = defaultDirectorDesk(journal);
+  return {
+    title: journal.directorDeskTitle?.trim() || base.title,
+    name: journal.directorName?.trim() || base.name,
+    role: journal.directorRole?.trim() || base.role,
+    paragraphs: journal.directorDeskParagraphs.length ? journal.directorDeskParagraphs : base.paragraphs,
+    photo: journal.directorPhoto?.trim() || "",
+    signature: journal.directorSignature?.trim() || "",
+  };
+}
+
+// Page 5 contact boxes sourced from the journal's Company, falling back to the
+// built-in defaults per field.
+function effectivePage5Contacts(journal: Journal) {
+  const d = defaultPage5Contacts(isLawJournal(journal));
+  return {
+    dispatchContactName: journal.dispatchContactName?.trim() || d.dispatchContactName,
+    dispatchContactPhone: journal.dispatchContactPhone?.trim() || d.dispatchContactPhone,
+    dispatchContactEmail: journal.dispatchContactEmail?.trim() || d.dispatchContactEmail,
+    salesContactName: journal.salesContactName?.trim() || d.salesContactName,
+    salesContactPhone: journal.salesContactPhone?.trim() || d.salesContactPhone,
+    salesContactEmail: journal.salesContactEmail?.trim() || d.salesContactEmail,
+  };
+}
+
 function hasDirectorContent(paragraphs: string[] | undefined) {
   return (paragraphs || []).some((paragraph) => paragraph.trim());
 }
 
 function directorParagraphsForJournal(journal: Journal, draft: BinderDraft) {
-  const defaults = defaultDirectorDesk(journal).paragraphs;
+  const defaults = effectiveDirectorDesk(journal).paragraphs;
   return defaults.map((paragraph, index) => draft.directorParagraphs?.[index]?.trim() || paragraph);
 }
 
@@ -238,8 +266,8 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
   const focus = findDynamicValue(journal, dynamicData.focusByKey);
   const editorialBoard = findDynamicValue(journal, dynamicData.editorialByKey) || [];
   const management = findDynamicValue(journal, dynamicData.managementByKey);
-  const directorDesk = defaultDirectorDesk(journal);
-  const contacts = defaultPage5Contacts(isLawJournal(journal));
+  const directorDesk = effectiveDirectorDesk(journal);
+  const contacts = effectivePage5Contacts(journal);
 
   return {
     journalTitle: details?.name || journal.name,
@@ -261,7 +289,7 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     issueYear: defaultIssueYear,
     about: focus?.about || details?.about || journal.about || "",
     focusScope: focusKeywords(focus, focusList),
-    focusNotes: defaultFocusNotes,
+    focusNotes: journal.focusNotes.length ? journal.focusNotes : defaultFocusNotes,
     editorialBoard,
     managementHead: management?.head ?? {
       name: "Puneet Mehrotra",
@@ -277,7 +305,9 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     directorName: directorDesk.name,
     directorRole: directorDesk.role,
     directorParagraphs: directorDesk.paragraphs,
-    manuscriptNotice: defaultManuscriptNotice,
+    directorPhotoImage: directorDesk.photo || undefined,
+    directorSignatureImage: directorDesk.signature || undefined,
+    manuscriptNotice: journal.manuscriptNotice || defaultManuscriptNotice,
     contentRows: contents,
     coverPrinter: "",
     publisherAddress: "",
@@ -305,7 +335,7 @@ function hasDefaultFocusScope(draft: BinderDraft) {
 }
 
 function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicData?: DynamicBinderData) {
-  const directorDesk = defaultDirectorDesk(journal);
+  const directorDesk = effectiveDirectorDesk(journal);
   const hydratedDraft = {
     ...draft,
     sjif: draft.sjif ?? journal.impactFactor ?? "",
@@ -325,6 +355,8 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
     directorName: draft.directorName?.trim() || directorDesk.name,
     directorRole: draft.directorRole?.trim() || directorDesk.role,
     directorParagraphs: hasDirectorContent(draft.directorParagraphs) ? draft.directorParagraphs : directorDesk.paragraphs,
+    directorPhotoImage: draft.directorPhotoImage || directorDesk.photo || undefined,
+    directorSignatureImage: draft.directorSignatureImage || directorDesk.signature || undefined,
   };
   const focus = dynamicData ? findDynamicValue(journal, dynamicData.focusByKey) : undefined;
   const withFocus = focus && hasDefaultFocusScope(draft)
@@ -334,7 +366,8 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
         focusScope: focusKeywords(focus, hydratedDraft.focusScope),
       }
     : hydratedDraft;
-  const withFocusNotes = withFocus.focusNotes?.length ? withFocus : { ...withFocus, focusNotes: defaultFocusNotes };
+  const fallbackFocusNotes = journal.focusNotes.length ? journal.focusNotes : defaultFocusNotes;
+  const withFocusNotes = withFocus.focusNotes?.length ? withFocus : { ...withFocus, focusNotes: fallbackFocusNotes };
 
   if (!isLawJournal(journal) || !hasGenericManagementMembers(withFocusNotes)) return withFocusNotes;
 
@@ -1097,6 +1130,10 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
   const scopeItems = focusScopeItemsForPage(draft);
   const focusNotes = draft.focusNotes?.length ? draft.focusNotes : defaultFocusNotes;
   const aboutText = draft.about || journal.about;
+  // Objectives + salient features come from the journal record (Setup), falling
+  // back to the built-in per-brand lists when the journal leaves them blank.
+  const objectiveItems = journal.objectives.length ? journal.objectives : isLaw ? lawObjectives : objectives;
+  const salientItems = journal.salientFeatures.length ? journal.salientFeatures : isLaw ? lawSalientFeatures : salientFeatures;
   // Top "about" paragraph is sourced from the publisher's about text when set,
   // otherwise the built-in imprint blurb below is used.
   const publisherAbout = journal.publisherAbout?.trim();
@@ -1132,13 +1169,13 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
       <section>
         <h2>Objectives</h2>
         <ul>
-          {(isLaw ? lawObjectives : objectives).map((item) => <li key={item}>{item}</li>)}
+          {objectiveItems.map((item) => <li key={item}>{item}</li>)}
         </ul>
       </section>
       <section>
         <h2>Salient Features</h2>
         <ul>
-          {(isLaw ? lawSalientFeatures : salientFeatures).map((item) => <li key={item}>{item}</li>)}
+          {salientItems.map((item) => <li key={item}>{item}</li>)}
         </ul>
       </section>
       <p className="journal-focus-intro">
@@ -1161,7 +1198,7 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
 function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
   const isLaw = identity.logoMode === "law";
-  const fallbackContacts = defaultPage5Contacts(isLaw);
+  const fallbackContacts = effectivePage5Contacts(journal);
   const contacts = {
     dispatchContactName: draft.dispatchContactName?.trim() || fallbackContacts.dispatchContactName,
     dispatchContactPhone: draft.dispatchContactPhone?.trim() || fallbackContacts.dispatchContactPhone,
@@ -1340,7 +1377,7 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
         <div className="director-intro">
           <Image
             className="portrait"
-            src={draft.directorPhotoImage || logoAssets.director.src}
+            src={draft.directorPhotoImage || journal.directorPhoto || logoAssets.director.src}
             alt={logoAssets.director.alt}
             width={logoAssets.director.width}
             height={logoAssets.director.height}
@@ -1357,7 +1394,7 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
       </div>
       <div className="signature">
         <Image
-          src={draft.directorSignatureImage || logoAssets.signature.src}
+          src={draft.directorSignatureImage || journal.directorSignature || logoAssets.signature.src}
           alt={logoAssets.signature.alt}
           width={logoAssets.signature.width}
           height={logoAssets.signature.height}
@@ -2004,7 +2041,7 @@ function SectionEditor({
             </article>
           ))}
           {(() => {
-            const c = defaultPage5Contacts(isLawJournal(journal));
+            const c = effectivePage5Contacts(journal);
             return (
               <div className="management-contact-edit">
                 <div className="editor-row-head">

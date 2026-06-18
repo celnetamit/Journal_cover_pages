@@ -5,6 +5,7 @@ import { EntityForm, Text, Area, ImageField, type FormState } from "@/components
 type Values = {
   name: string; email: string; designation: string; department: string;
   affiliation: string; address: string; biography: string; photoUrl: string;
+  signatureUrl: string;
 };
 
 export default function ProfileForm({ action, values, submitLabel }: {
@@ -23,6 +24,7 @@ export default function ProfileForm({ action, values, submitLabel }: {
         <Text name="address" label="Location / address" defaultValue={values?.address} />
       </div>
       <ImageField name="photoUrl" label="Photo" defaultValue={values?.photoUrl} />
+      <ImageField name="signatureUrl" label="Signature (for Director's Desk)" defaultValue={values?.signatureUrl} />
       <Area name="biography" label="Biography" defaultValue={values?.biography} rows={4} />
     </EntityForm>
   );

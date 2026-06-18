@@ -7,6 +7,9 @@ type Values = {
   registeredAddress: string; salesAddress: string; cin: string; gst: string;
   bankAccountName: string; bankAccountNo: string; bankIfsc: string;
   bankName: string; bankBranch: string; bankSwift: string; directorId: string;
+  directorDeskTitle: string; directorDeskParagraphs: string;
+  dispatchContactName: string; dispatchContactPhone: string; dispatchContactEmail: string;
+  salesContactName: string; salesContactPhone: string; salesContactEmail: string;
 };
 
 export default function CompanyForm({ action, values, profiles, submitLabel }: {
@@ -31,6 +34,28 @@ export default function CompanyForm({ action, values, profiles, submitLabel }: {
         <Area name="registeredAddress" label="Registered address" defaultValue={values?.registeredAddress} rows={2} />
         <Area name="salesAddress" label="Sales address" defaultValue={values?.salesAddress} rows={2} />
       </div>
+
+      <fieldset className="rounded-xl border border-slate-200 p-4">
+        <legend className="px-2 text-sm font-medium text-slate-700">Director&apos;s Desk (Page 7)</legend>
+        <p className="mb-3 px-1 text-xs text-slate-500">
+          Signed by the director profile selected above (name, role, photo &amp; signature come from that profile).
+          One paragraph per line; use <code>{"{journal}"}</code> for the journal name.
+        </p>
+        <Text name="directorDeskTitle" label="Heading" defaultValue={values?.directorDeskTitle} placeholder="From the Director's Desk" />
+        <Area name="directorDeskParagraphs" label="Message paragraphs" defaultValue={values?.directorDeskParagraphs} rows={6} />
+      </fieldset>
+
+      <fieldset className="rounded-xl border border-slate-200 p-4">
+        <legend className="px-2 text-sm font-medium text-slate-700">Page 5 contact boxes</legend>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Text name="dispatchContactName" label="Dispatch contact" defaultValue={values?.dispatchContactName} />
+          <Text name="dispatchContactPhone" label="Dispatch phone" defaultValue={values?.dispatchContactPhone} />
+          <Text name="dispatchContactEmail" label="Dispatch e-mail" defaultValue={values?.dispatchContactEmail} />
+          <Text name="salesContactName" label="Sales contact" defaultValue={values?.salesContactName} />
+          <Text name="salesContactPhone" label="Sales phone" defaultValue={values?.salesContactPhone} />
+          <Text name="salesContactEmail" label="Sales e-mail" defaultValue={values?.salesContactEmail} />
+        </div>
+      </fieldset>
 
       <fieldset className="rounded-xl border border-slate-200 p-4">
         <legend className="px-2 text-sm font-medium text-slate-700">Bank details</legend>

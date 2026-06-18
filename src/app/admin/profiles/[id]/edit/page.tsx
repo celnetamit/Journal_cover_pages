@@ -26,6 +26,7 @@ export default async function EditProfilePage({ params }: { params: Promise<{ id
           address: p.address ?? "",
           biography: p.biography ?? "",
           photoUrl: p.photoUrl ?? "",
+          signatureUrl: p.signatureUrl ?? "",
         }}
         submitLabel="Save changes"
       />
