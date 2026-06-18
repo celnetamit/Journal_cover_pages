@@ -1447,6 +1447,21 @@ button {
   width: 210mm;
 }
 
+/* All binder pages except the cover spread get a thin black frame. The frame's
+   bottom stops above the footer so the page number sits in the bottom margin,
+   outside the border. */
+.pdf-page:not(.cover-spread-page)::after {
+  border: 1px solid #000;
+  bottom: 16mm;
+  content: "";
+  left: 12mm;
+  pointer-events: none;
+  position: absolute;
+  right: 12mm;
+  top: 12mm;
+  z-index: 6;
+}
+
 .pdf-page.cover-spread-page {
   width: 431.8mm;
   height: 304.8mm;
@@ -1902,12 +1917,10 @@ button {
 }
 
 .page-number {
-  border-top: 1px solid #9aa9b8;
   bottom: 7mm;
   color: #66758d;
   font-size: 9pt;
   left: 18mm;
-  padding-top: 2mm;
   position: absolute;
   right: 18mm;
   text-align: center;
