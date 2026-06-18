@@ -71,6 +71,15 @@ model User {
   editedBinders  Binder[]
 }
 
+// Email domains permitted to self-onboard via Google sign-in (new accounts are
+// created as VIEWER). Managed from /admin/auth-domains. Specific admin emails
+// (e.g. amit.rai@celnet.in) are configured via env and bypass this list.
+model AllowedDomain {
+  id        String   @id @default(cuid())
+  domain    String   @unique // lowercase, no "@" — e.g. "celnet.in"
+  createdAt DateTime @default(now())
+}
+
 // ---------------------------------------------------------------------------
 // People & organisations (defined once, reused everywhere)
 // ---------------------------------------------------------------------------

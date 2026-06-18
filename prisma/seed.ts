@@ -375,12 +375,23 @@ async function seedAdmin() {
   console.log(`• Admin user ready: ${email}`);
 }
 
+// Email domains allowed to self-onboard via Google sign-in. Editable later from
+// /admin/auth-domains; this just guarantees a sensible starting set.
+async function seedAllowedDomains() {
+  const domains = ["celnet.in", "stmjournals.com", "conwiz.in"];
+  for (const domain of domains) {
+    await prisma.allowedDomain.upsert({ where: { domain }, update: {}, create: { domain } });
+  }
+  console.log(`• Allowed sign-in domains ready: ${domains.join(", ")}`);
+}
+
 async function main() {
   console.log("Seeding database…");
 
   // Admin + subscription plans first: these never depend on the CSV files, so a
   // CSV-less deployment can still log in.
   await seedAdmin();
+  await seedAllowedDomains();
   const subscriptionIds = await seedSubscriptions();
   console.log("• Subscription plans ready.");
 

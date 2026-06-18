@@ -268,3 +268,35 @@ export async function removeJournalMember(formData: FormData): Promise<void> {
   revalidatePath(`/journals/${member.journalId}/edit`);
   revalidatePath("/");
 }
+
+// --- Allowed sign-in domains (Google OAuth) ------------------------------
+
+// Normalize free-form input to a bare host: lowercase, drop scheme/path, and
+// take the part after "@" when a full email was pasted in.
+function normalizeDomain(input: string): string {
+  let d = input.trim().toLowerCase();
+  d = d.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  if (d.includes("@")) d = d.split("@")[1] ?? "";
+  return d;
+}
+
+export async function addAllowedDomain(_p: FormState, fd: FormData): Promise<FormState> {
+  await requireRole("ADMIN");
+  const domain = normalizeDomain(str(fd.get("domain")));
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) return { error: "Enter a valid domain, e.g. celnet.in" };
+  try {
+    await prisma.allowedDomain.create({ data: { domain } });
+  } catch (e) {
+    if (isUniqueError(e)) return { error: "That domain is already allowed." };
+    throw e;
+  }
+  revalidatePath("/admin/auth-domains");
+  return undefined;
+}
+
+export async function removeAllowedDomain(formData: FormData): Promise<void> {
+  await requireRole("ADMIN");
+  const id = String(formData.get("id"));
+  await prisma.allowedDomain.delete({ where: { id } });
+  revalidatePath("/admin/auth-domains");
+}

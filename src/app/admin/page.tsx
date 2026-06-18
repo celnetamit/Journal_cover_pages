@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminHubPage() {
   const session = await requireRole("EDITOR");
-  const [profiles, companies, publishers, domains, subscriptions, journals, users] = await Promise.all([
+  const [profiles, companies, publishers, domains, subscriptions, journals, users, allowedDomains] = await Promise.all([
     prisma.profile.count(),
     prisma.company.count(),
     prisma.publisher.count(),
@@ -14,6 +14,7 @@ export default async function AdminHubPage() {
     prisma.subscription.count(),
     prisma.journal.count(),
     prisma.user.count(),
+    prisma.allowedDomain.count(),
   ]);
 
   const cards = [
@@ -24,6 +25,7 @@ export default async function AdminHubPage() {
     { href: "/admin/domains", title: "Domains", count: domains, desc: "Subject domains + manager" },
     { href: "/admin/subscriptions", title: "Subscriptions", count: subscriptions, desc: "Global plans + prices" },
     ...(isAdmin(session.role) ? [{ href: "/admin/users", title: "Users", count: users, desc: "Login accounts & roles" }] : []),
+    ...(isAdmin(session.role) ? [{ href: "/admin/auth-domains", title: "Sign-in domains", count: allowedDomains, desc: "Domains allowed for Google sign-in" }] : []),
   ];
 
   return (
