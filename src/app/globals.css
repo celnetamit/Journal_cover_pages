@@ -869,12 +869,17 @@ button {
 }
 
 .management-edit-head,
-.management-edit-card {
+.management-edit-card,
+.management-contact-edit {
   border: 1px solid #d9e4ee;
   border-radius: 8px;
   display: grid;
   gap: 10px;
   padding: 12px;
+}
+
+.management-contact-edit {
+  margin-top: 4px;
 }
 
 .content-edit-card {

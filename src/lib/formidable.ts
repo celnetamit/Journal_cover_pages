@@ -16,6 +16,18 @@ export type EditorialMember = {
   priority: number;
 };
 
+export type ManagementPersonData = {
+  name: string;
+  role: string;
+  department: string;
+  photo: string;
+};
+
+export type ManagementTeam = {
+  head: ManagementPersonData | null;
+  members: ManagementPersonData[];
+};
+
 export type DynamicJournalDetails = {
   name: string;
   abbreviation: string;
@@ -42,6 +54,7 @@ export type DynamicBinderData = {
   detailsByKey: Record<string, DynamicJournalDetails>;
   focusByKey: Record<string, DynamicFocusScope>;
   editorialByKey: Record<string, EditorialMember[]>;
+  managementByKey: Record<string, ManagementTeam>;
   status: {
     enabled: boolean;
     fetchedAt?: string;
@@ -54,6 +67,7 @@ export function emptyDynamicBinderData(errors: string[] = []): DynamicBinderData
     detailsByKey: {},
     focusByKey: {},
     editorialByKey: {},
+    managementByKey: {},
     status: { enabled: true, errors },
   };
 }
@@ -138,6 +152,22 @@ export const getDynamicBinderData = cache(async (_journal?: Journal): Promise<Dy
           priority: m.order,
         }));
       if (editorial.length) addAliases(data.editorialByKey, editorial, aliases);
+
+      const toManagementPerson = (m: (typeof j.members)[number]): ManagementPersonData => ({
+        name: m.profile.name,
+        role: s(m.profile.designation) || JOURNAL_ROLE_LABELS[m.role] || "",
+        department: s(m.profile.department),
+        photo: s(m.profile.photoUrl),
+      });
+      const headMember = j.members.find((m) => m.role === "MANAGEMENT_HEAD");
+      const memberRows = j.members.filter((m) => m.role === "MANAGEMENT_MEMBER");
+      if (headMember || memberRows.length) {
+        addAliases(
+          data.managementByKey,
+          { head: headMember ? toManagementPerson(headMember) : null, members: memberRows.map(toManagementPerson) },
+          aliases,
+        );
+      }
     }
 
     data.status.fetchedAt = new Date().toISOString();

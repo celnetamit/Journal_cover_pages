@@ -46,6 +46,7 @@ import {
   lawJournalNames,
   managementMembers,
   lawManagementMembers,
+  defaultPage5Contacts,
   subscriptionPlans,
   defaultDirectorParagraphs,
   lawDirectorParagraphs,
@@ -236,7 +237,9 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
   const details = findDynamicValue(journal, dynamicData.detailsByKey);
   const focus = findDynamicValue(journal, dynamicData.focusByKey);
   const editorialBoard = findDynamicValue(journal, dynamicData.editorialByKey) || [];
+  const management = findDynamicValue(journal, dynamicData.managementByKey);
   const directorDesk = defaultDirectorDesk(journal);
+  const contacts = defaultPage5Contacts(isLawJournal(journal));
 
   return {
     journalTitle: details?.name || journal.name,
@@ -260,13 +263,16 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     focusScope: focusKeywords(focus, focusList),
     focusNotes: defaultFocusNotes,
     editorialBoard,
-    managementHead: {
+    managementHead: management?.head ?? {
       name: "Puneet Mehrotra",
       role: "Chairman and Director",
       department: "",
       photo: logoAssets.director.src,
     },
-    managementMembers: isLawJournal(journal) ? lawManagementMembers : managementMembers,
+    managementMembers: management?.members?.length
+      ? management.members
+      : isLawJournal(journal) ? lawManagementMembers : managementMembers,
+    ...contacts,
     directorTitle: directorDesk.title,
     directorName: directorDesk.name,
     directorRole: directorDesk.role,
@@ -1131,6 +1137,15 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
 function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const identity = publisherIdentity(journal);
   const isLaw = identity.logoMode === "law";
+  const fallbackContacts = defaultPage5Contacts(isLaw);
+  const contacts = {
+    dispatchContactName: draft.dispatchContactName?.trim() || fallbackContacts.dispatchContactName,
+    dispatchContactPhone: draft.dispatchContactPhone?.trim() || fallbackContacts.dispatchContactPhone,
+    dispatchContactEmail: draft.dispatchContactEmail?.trim() || fallbackContacts.dispatchContactEmail,
+    salesContactName: draft.salesContactName?.trim() || fallbackContacts.salesContactName,
+    salesContactPhone: draft.salesContactPhone?.trim() || fallbackContacts.salesContactPhone,
+    salesContactEmail: draft.salesContactEmail?.trim() || fallbackContacts.salesContactEmail,
+  };
   const pageScale = pageDensityScale(
     [
       identity.website,
@@ -1163,16 +1178,16 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
       <div className="management-contact-boxes">
         <div>
           <b>For any query related to Dispatch and Online Access, please contact</b>
-          <span>Mr. Asan Kumar</span>
-          <span>Tel.: +91 120 4781225</span>
-          <span>E-mail: asank@celnet.in</span>
+          <span>{contacts.dispatchContactName}</span>
+          <span>Tel.: {contacts.dispatchContactPhone}</span>
+          <span>E-mail: {contacts.dispatchContactEmail}</span>
           <strong>Website: {identity.website}</strong>
         </div>
         <div>
           <b>For any query related to Sales and Marketing, please contact</b>
-          <span>Subscription Manager</span>
-          <span>Tel.: {isLaw ? "+91 120-4781211" : "+91 120-4781201"}, +91 9810078958</span>
-          <span>E-mail: {isLaw ? "subscriptions@stmjournals.com" : "subs@journalspub.com"}</span>
+          <span>{contacts.salesContactName}</span>
+          <span>Tel.: {contacts.salesContactPhone}</span>
+          <span>E-mail: {contacts.salesContactEmail}</span>
           <strong>Tel. no.: {identity.phone}</strong>
         </div>
       </div>
@@ -1964,6 +1979,26 @@ function SectionEditor({
               </div>
             </article>
           ))}
+          {(() => {
+            const c = defaultPage5Contacts(isLawJournal(journal));
+            return (
+              <div className="management-contact-edit">
+                <div className="editor-row-head">
+                  <span>Contact boxes</span>
+                </div>
+                <div className="management-edit-row">
+                  <input aria-label="Dispatch contact name" placeholder="Dispatch contact name" value={draft.dispatchContactName ?? c.dispatchContactName} onChange={(event) => onChange({ ...draft, dispatchContactName: event.target.value })} />
+                  <input aria-label="Dispatch contact phone" placeholder="Dispatch phone" value={draft.dispatchContactPhone ?? c.dispatchContactPhone} onChange={(event) => onChange({ ...draft, dispatchContactPhone: event.target.value })} />
+                  <input aria-label="Dispatch contact email" placeholder="Dispatch e-mail" value={draft.dispatchContactEmail ?? c.dispatchContactEmail} onChange={(event) => onChange({ ...draft, dispatchContactEmail: event.target.value })} />
+                </div>
+                <div className="management-edit-row">
+                  <input aria-label="Sales contact name" placeholder="Sales contact name" value={draft.salesContactName ?? c.salesContactName} onChange={(event) => onChange({ ...draft, salesContactName: event.target.value })} />
+                  <input aria-label="Sales contact phone" placeholder="Sales phone" value={draft.salesContactPhone ?? c.salesContactPhone} onChange={(event) => onChange({ ...draft, salesContactPhone: event.target.value })} />
+                  <input aria-label="Sales contact email" placeholder="Sales e-mail" value={draft.salesContactEmail ?? c.salesContactEmail} onChange={(event) => onChange({ ...draft, salesContactEmail: event.target.value })} />
+                </div>
+              </div>
+            );
+          })()}
         </div>
       ) : null}
       {activePage === 6 ? (

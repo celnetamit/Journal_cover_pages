@@ -24,6 +24,13 @@ export type BinderDraft = {
   editorialBoard: EditorialMember[];
   managementHead: ManagementPerson;
   managementMembers: ManagementPerson[];
+  // Page 5 contact boxes — blank/undefined = fall back to the built-in defaults.
+  dispatchContactName?: string;
+  dispatchContactPhone?: string;
+  dispatchContactEmail?: string;
+  salesContactName?: string;
+  salesContactPhone?: string;
+  salesContactEmail?: string;
   directorTitle: string;
   directorName: string;
   directorRole: string;
@@ -471,6 +478,28 @@ export const lawManagementMembers: ManagementPerson[] = [
   { name: "Gagan Kumar", role: "Associate Editor", department: "Law Journals | cle@celnet.in", photo: "" },
   { name: "Gautam Goswami", role: "Manager", department: "Quality Control", photo: "" },
 ];
+
+export type Page5Contacts = {
+  dispatchContactName: string;
+  dispatchContactPhone: string;
+  dispatchContactEmail: string;
+  salesContactName: string;
+  salesContactPhone: string;
+  salesContactEmail: string;
+};
+
+// Built-in defaults for the two Page 5 contact boxes. Sales details differ for
+// law journals; everything is overridable per issue via the draft.
+export function defaultPage5Contacts(isLaw: boolean): Page5Contacts {
+  return {
+    dispatchContactName: "Mr. Asan Kumar",
+    dispatchContactPhone: "+91 120 4781225",
+    dispatchContactEmail: "asank@celnet.in",
+    salesContactName: "Subscription Manager",
+    salesContactPhone: `${isLaw ? "+91 120-4781211" : "+91 120-4781201"}, +91 9810078958`,
+    salesContactEmail: isLaw ? "subscriptions@stmjournals.com" : "subs@journalspub.com",
+  };
+}
 
 export const subscriptionPlans = [
   "Print: Only $44 (Two Print Issues)",
