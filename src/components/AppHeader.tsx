@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Logo from "@/components/Logo";
 import { getSession, isAdmin, canEdit } from "@/lib/auth/session";
 import { logout } from "@/app/actions/auth";
 
@@ -11,8 +12,8 @@ export default async function AppHeader() {
 
   return (
     <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2 text-sm">
-      <Link href="/" className="font-semibold text-slate-900">
-        Journal Builder
+      <Link href="/" className="-my-1" aria-label="Journal Builder home">
+        <Logo size={26} />
       </Link>
       <nav className="flex items-center gap-4">
         {canEdit(session.role) && (
