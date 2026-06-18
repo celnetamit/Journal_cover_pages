@@ -93,7 +93,12 @@ export async function createPublisher(_p: FormState, fd: FormData): Promise<Form
   if (!name) return { error: "Name is required." };
   try {
     await prisma.publisher.create({
-      data: { name, logoUrl: nul(str(fd.get("logoUrl"))), company: rel(str(fd.get("companyId"))) },
+      data: {
+        name,
+        logoUrl: nul(str(fd.get("logoUrl"))),
+        about: nul(str(fd.get("about"))),
+        company: rel(str(fd.get("companyId"))),
+      },
     });
   } catch (e) {
     if (isUniqueError(e)) return { error: "A publisher with that name already exists." };
@@ -110,7 +115,12 @@ export async function updatePublisher(id: string, _p: FormState, fd: FormData): 
   try {
     await prisma.publisher.update({
       where: { id },
-      data: { name, logoUrl: nul(str(fd.get("logoUrl"))), company: relOrClear(str(fd.get("companyId"))) },
+      data: {
+        name,
+        logoUrl: nul(str(fd.get("logoUrl"))),
+        about: nul(str(fd.get("about"))),
+        company: relOrClear(str(fd.get("companyId"))),
+      },
     });
   } catch (e) {
     if (isUniqueError(e)) return { error: "A publisher with that name already exists." };

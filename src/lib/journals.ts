@@ -17,6 +17,7 @@ export type Journal = {
   journalLogo: string;
   publisherLogo: string;
   about: string;
+  publisherAbout: string;
   eIssn: string;
   pIssn: string;
   impactFactor: string;
@@ -32,6 +33,8 @@ export type Journal = {
   publisher: string;
   imprint: string;
   address: string;
+  salesAddress: string;
+  companyWebsite: string;
   publisherEmail: string;
   publisherPhone: string;
   editorName: string;
@@ -78,6 +81,7 @@ export function toLegacyJournal(j: DbJournal): Journal {
     journalLogo: s(j.logoUrl),
     publisherLogo: s(j.publisher?.logoUrl),
     about: s(j.about),
+    publisherAbout: s(j.publisher?.about),
     eIssn: s(j.issnOnline),
     pIssn: s(j.issnPrint),
     impactFactor: s(j.impactFactor),
@@ -93,6 +97,8 @@ export function toLegacyJournal(j: DbJournal): Journal {
     publisher: s(j.publisher?.name),
     imprint: s(company?.name),
     address: s(company?.registeredAddress),
+    salesAddress: s(company?.salesAddress),
+    companyWebsite: s(company?.website),
     publisherEmail: s(company?.email),
     publisherPhone: s(company?.phone),
     editorName: j.manager?.name || DEFAULT_EDITOR_NAME,

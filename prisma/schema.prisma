@@ -136,6 +136,7 @@ model Publisher {
   id        String   @id @default(cuid())
   name      String   @unique
   logoUrl   String?
+  about     String? // imprint blurb shown at the top of the journal-details page (Page 3)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

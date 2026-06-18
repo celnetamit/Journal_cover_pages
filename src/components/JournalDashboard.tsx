@@ -558,7 +558,9 @@ function ContentHeader({ journal, draft }: { journal: Journal; draft: BinderDraf
   );
 }
 
-function publisherIdentity(journal: Journal) {
+// Per-brand fallback strings, chosen by matching the journal's publisher/imprint
+// name. Used only when the linked DB Company/Publisher leaves a field blank.
+function brandDefaults(journal: Journal) {
   const publisher = journal.publisher || "MBA Journals";
   const imprint = journal.imprint || "MBA Journals, An imprint of Consortium e-Learning Network Pvt. Ltd.";
   const haystack = `${publisher} ${imprint}`.toLowerCase();
@@ -567,8 +569,7 @@ function publisherIdentity(journal: Journal) {
     return {
       publisherName: "JournalsPub",
       companyName: "Dhruv Info Systems Private Limited",
-      address:
-        "Sales Office: A-118, 2nd Floor, Sector-63, Noida, Uttar Pradesh, PIN 201301, India",
+      address: "Sales Office: A-118, 2nd Floor, Sector-63, Noida, Uttar Pradesh, PIN 201301, India",
       email: "info@journalspub.com",
       phone: "0120-4781200; Mobile No.: +91 9810078958",
       website: "www.journalspub.com",
@@ -580,11 +581,9 @@ function publisherIdentity(journal: Journal) {
     return {
       publisherName: "STM Journals",
       companyName: "Consortium e-Learning Network Pvt. Ltd.",
-      address:
-        journal.address ||
-        "STM Journals, An imprint of Consortium e-Learning Network Pvt. Ltd. A-118, 1st Floor, Sector-63, Noida, U.P. India, Pin - 201301",
-      email: journal.publisherEmail || "info@stmjournals.com",
-      phone: journal.publisherPhone || "(+91)-0120-4781-200",
+      address: "A-118, 1st Floor, Sector-63, Noida, U.P. India, Pin - 201301",
+      email: "info@stmjournals.com",
+      phone: "(+91)-0120-4781-200",
       website: "www.stmjournals.com",
       logoMode: "stm",
     };
@@ -594,11 +593,9 @@ function publisherIdentity(journal: Journal) {
     return {
       publisherName: "Law Journals",
       companyName: "Consortium e-Learning Network Pvt. Ltd.",
-      address:
-        journal.address ||
-        "Law Journals, An imprint of Consortium e-Learning Network Pvt. Ltd. A-118, 1st Floor, Sector-63, Noida, U.P. India, Pin - 201301",
-      email: journal.publisherEmail || "info@stmjournals.com",
-      phone: journal.publisherPhone || "+91 120-4781211",
+      address: "A-118, 1st Floor, Sector-63, Noida, U.P. India, Pin - 201301",
+      email: "info@stmjournals.com",
+      phone: "+91 120-4781211",
       website: "www.lawjournals.stmjournals.com",
       logoMode: "law",
     };
@@ -607,13 +604,32 @@ function publisherIdentity(journal: Journal) {
   return {
     publisherName: "MBA Journals",
     companyName: "Consortium e-Learning Network Pvt. Ltd.",
-    address:
-      journal.address ||
-      "MBA Journals, An imprint of Consortium e-Learning Network Pvt. Ltd. A-118, 1st Floor, Sector-63, Noida, U.P. India, Pin - 201301",
-    email: journal.publisherEmail || "info@mbajournals.in",
-    phone: journal.publisherPhone || "91(0)120-4781200/218/219",
+    address: "A-118, 1st Floor, Sector-63, Noida, U.P. India, Pin - 201301",
+    email: "info@mbajournals.in",
+    phone: "91(0)120-4781200/218/219",
     website: "www.mbajournals.in",
     logoMode: "mba",
+  };
+}
+
+// Publisher identity for the binder pages. Values are pulled from the journal's
+// linked Publisher + Company (DB) and only fall back to the per-brand defaults
+// when a DB field is blank — so editing the Company in Setup updates every page.
+function publisherIdentity(journal: Journal) {
+  const base = brandDefaults(journal);
+  const registeredAddress = journal.address?.trim() || base.address;
+  const salesAddress = journal.salesAddress?.trim() || base.address;
+  return {
+    ...base,
+    publisherName: journal.publisher?.trim() || base.publisherName,
+    companyName: journal.imprint?.trim() || base.companyName,
+    email: journal.publisherEmail?.trim() || base.email,
+    phone: journal.publisherPhone?.trim() || base.phone,
+    website: journal.companyWebsite?.trim() || base.website,
+    // Primary display address prefers the sales/office address.
+    address: salesAddress,
+    registeredAddress,
+    salesAddress,
   };
 }
 
@@ -1081,8 +1097,11 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
   const scopeItems = focusScopeItemsForPage(draft);
   const focusNotes = draft.focusNotes?.length ? draft.focusNotes : defaultFocusNotes;
   const aboutText = draft.about || journal.about;
+  // Top "about" paragraph is sourced from the publisher's about text when set,
+  // otherwise the built-in imprint blurb below is used.
+  const publisherAbout = journal.publisherAbout?.trim();
   const pageScale = pageDensityScale(
-    [aboutText, ...scopeItems, ...focusNotes].join(" ").length,
+    [publisherAbout ?? "", aboutText, ...scopeItems, ...focusNotes].join(" ").length,
     2350,
   );
 
@@ -1092,7 +1111,12 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
         <PublisherLogo mode={identity.logoMode} side="publisher" />
         <h1>{titleCaseName(journal.name)}</h1>
       </div>
-      {isLaw ? (
+      {publisherAbout ? (
+        <p>
+          <b>{identity.publisherName}</b> {publisherAbout}
+          {aboutText ? ` ${aboutText}` : ""}
+        </p>
+      ) : isLaw ? (
         <p>
           <b>Law Journals</b>, an imprint of Consortium E-learning Network Private Ltd. is prepared under the support
           and guidance by our esteemed editorial board members from renowned institutions.{" "}
