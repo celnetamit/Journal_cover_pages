@@ -49,10 +49,16 @@ export function publicOrigin(request: NextRequest): string {
   const envUrl = process.env.APP_URL || process.env.AUTH_URL;
   if (envUrl) return envUrl.replace(/\/+$/, "");
 
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  if (forwardedHost) {
-    const proto = request.headers.get("x-forwarded-proto")?.split(",")[0].trim() || "https";
-    return `${proto}://${forwardedHost.split(",")[0].trim()}`;
+  // `X-Forwarded-Host` is client-influenced, so we only trust it outside
+  // production (dev convenience). In production APP_URL must be set — it takes
+  // priority above — otherwise we fall back to the request's own origin rather
+  // than an attacker-controllable header (prevents OAuth/redirect poisoning).
+  if (process.env.NODE_ENV !== "production") {
+    const forwardedHost = request.headers.get("x-forwarded-host");
+    if (forwardedHost) {
+      const proto = request.headers.get("x-forwarded-proto")?.split(",")[0].trim() || "https";
+      return `${proto}://${forwardedHost.split(",")[0].trim()}`;
+    }
   }
   return request.nextUrl.origin;
 }

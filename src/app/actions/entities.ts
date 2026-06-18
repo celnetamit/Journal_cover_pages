@@ -41,6 +41,7 @@ export async function createProfile(_p: FormState, fd: FormData): Promise<FormSt
   if (!ProfileSchema.safeParse({ name: str(fd.get("name")) }).success) return { error: "Name is required." };
   await prisma.profile.create({ data: profileData(fd) });
   revalidatePath("/admin/profiles");
+  revalidatePath("/");
   redirect("/admin/profiles");
 }
 
@@ -49,6 +50,7 @@ export async function updateProfile(id: string, _p: FormState, fd: FormData): Pr
   if (!ProfileSchema.safeParse({ name: str(fd.get("name")) }).success) return { error: "Name is required." };
   await prisma.profile.update({ where: { id }, data: profileData(fd) });
   revalidatePath("/admin/profiles");
+  revalidatePath("/");
   redirect("/admin/profiles");
 }
 
@@ -109,6 +111,7 @@ export async function createPublisher(_p: FormState, fd: FormData): Promise<Form
     throw e;
   }
   revalidatePath("/admin/publishers");
+  revalidatePath("/");
   redirect("/admin/publishers");
 }
 
@@ -133,6 +136,7 @@ export async function updatePublisher(id: string, _p: FormState, fd: FormData): 
     throw e;
   }
   revalidatePath("/admin/publishers");
+  revalidatePath("/");
   redirect("/admin/publishers");
 }
 
@@ -221,6 +225,7 @@ export async function createCompany(_p: FormState, fd: FormData): Promise<FormSt
     throw e;
   }
   revalidatePath("/admin/companies");
+  revalidatePath("/");
   redirect("/admin/companies");
 }
 
@@ -237,6 +242,7 @@ export async function updateCompany(id: string, _p: FormState, fd: FormData): Pr
     throw e;
   }
   revalidatePath("/admin/companies");
+  revalidatePath("/");
   redirect("/admin/companies");
 }
 

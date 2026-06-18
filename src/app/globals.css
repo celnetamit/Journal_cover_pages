@@ -1528,11 +1528,64 @@ button {
 .front-cover-dynamic-layer {
   --front-cover-header-bottom: 27.6%;
   color: #fff;
+  display: flex;
+  flex-direction: column;
   font-family: "Arial Narrow", Arial, sans-serif;
   inset: 0;
   overflow: hidden;
   position: absolute;
   z-index: 1;
+}
+
+/* Fixed cover layout: a header zone (top meta row + title/issue row) and a
+   footer pinned to the bottom. */
+.front-cover-header {
+  background: #1d3165;
+  box-sizing: border-box;
+  padding: 5% 4.5% 4.2%;
+  position: relative;
+  z-index: 2;
+}
+
+.front-cover-top {
+  align-items: flex-start;
+  display: flex;
+  gap: 4%;
+  justify-content: space-between;
+}
+
+.front-cover-top-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6mm;
+}
+
+.front-cover-top-right {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6mm;
+  text-align: right;
+}
+
+.front-cover-title-row {
+  align-items: flex-end;
+  display: flex;
+  gap: 3%;
+  margin-top: 4.8%;
+}
+
+.front-cover-footer {
+  align-items: center;
+  background: #fff;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+  min-height: 13%;
+  padding: 2.2% 4.5%;
+  position: relative;
+  z-index: 2;
 }
 
 .front-cover-node {
@@ -1613,7 +1666,6 @@ button {
   font-weight: 800;
   letter-spacing: -0.3px;
   line-height: 0.88;
-  max-width: 28%;
   white-space: nowrap;
 }
 
@@ -1624,7 +1676,6 @@ button {
   font-weight: 700;
   letter-spacing: 0.1px;
   line-height: 1.02;
-  max-width: 24%;
   white-space: nowrap;
 }
 
@@ -1644,10 +1695,9 @@ button {
   font-weight: 650;
   line-height: 1.01;
   margin: 0;
-  min-height: 10.5%;
   padding: 0;
   text-wrap: balance;
-  width: 75.2%;
+  width: 80%;
 }
 
 .front-cover-title.balanced {
@@ -1681,25 +1731,17 @@ button {
 }
 
 .front-cover-month {
+  color: #fff200;
+  flex: 1;
   font-family: Tahoma, Arial, sans-serif;
   font-size: 9.6pt;
   font-weight: 700;
   line-height: 1.1;
-  padding: 0;
+  padding: 0 0 1mm;
   text-align: right;
   white-space: nowrap;
 }
 
-.front-cover-dynamic-layer::before {
-  background: #1d3165;
-  content: "";
-  height: var(--front-cover-header-bottom);
-  left: 0;
-  position: absolute;
-  right: 0;
-  top: 0;
-  z-index: -1;
-}
 
 .front-cover-embedded-footer-mask {
   background: #fff;

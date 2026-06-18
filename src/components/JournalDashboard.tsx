@@ -23,7 +23,6 @@ import SaveFocusToJournal from "@/components/SaveFocusToJournal";
 import { exportBookToPdf, type ExportMode } from "@/lib/pdf-export";
 import {
   cleanIcv,
-  compactKeyword,
   frontCoverTitleClass,
   initials,
   isLawJournal,
@@ -188,31 +187,36 @@ function defaultCoverImage(journal: Journal) {
 }
 
 
+// Focus & Scope entries are full topic phrases (e.g. "Strategic Management
+// Process"), not single keywords: strip a leading bullet + collapse whitespace,
+// but keep the whole phrase.
+function normalizeScopePhrase(value: string): string {
+  return value.replace(/^[^a-z0-9]+/i, "").replace(/\s+/g, " ").trim();
+}
+
 function focusKeywords(focus: { keywords?: string[]; focusScope?: string[] } | undefined, fallback: string[]) {
-  const preferred = (focus?.keywords || [])
-    .map(compactKeyword)
-    .filter(Boolean);
+  const scope = (focus?.focusScope || []).map(normalizeScopePhrase).filter(Boolean);
+  if (scope.length > 0) return scope;
 
-  if (preferred.length > 0) return preferred;
+  const keywords = (focus?.keywords || []).map(normalizeScopePhrase).filter(Boolean);
+  if (keywords.length > 0) return keywords;
 
-  return (focus?.focusScope || fallback)
-    .map(compactKeyword)
-    .filter(Boolean);
+  return fallback.map(normalizeScopePhrase).filter(Boolean);
 }
 
 function normalizeFocusScopeInput(value: string) {
   return value
     .split("\n")
-    .map((item) => compactKeyword(item))
+    .map(normalizeScopePhrase)
     .filter(Boolean)
     .slice(0, maxFocusScopeKeywords);
 }
 
 function focusScopeItemsForPage(draft: BinderDraft) {
   const draftItems = (draft.focusScope || [])
-    .map(compactKeyword)
+    .map(normalizeScopePhrase)
     .filter(Boolean);
-  const fallbackItems = focusList.map(compactKeyword).filter(Boolean);
+  const fallbackItems = focusList.map(normalizeScopePhrase).filter(Boolean);
   const merged: string[] = [];
 
   for (const item of draftItems) {
@@ -834,7 +838,7 @@ function JournalFrontCover({
         title={coverTitle}
         titleClassName={frontCoverTitleClass(coverTitle)}
         monthRange={monthRange.replace("-", "–")}
-        layout={draft.frontCoverLayout}
+        layout={defaultFrontCoverLayout}
         interactive={interactive}
         showEmbeddedFooterMask={shouldMaskEmbeddedFooter}
         publisherMark={<FrontCoverPublisherMark draft={draft} />}
@@ -1350,40 +1354,32 @@ function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: Bin
   );
 }
 
+// Editorial sections in display order, matched by role keyword. Each member
+// falls into the first matching section; anything unmatched goes to "Editors".
+const EDITORIAL_SECTIONS: { heading: string; match: (role: string) => boolean }[] = [
+  { heading: "Editor-in-Chief", match: (r) => r.includes("chief") && !r.includes("associate") },
+  { heading: "Associate Editor-in-Chief", match: (r) => r.includes("associate") && r.includes("chief") },
+  { heading: "Managing Editor", match: (r) => r.includes("managing") },
+  { heading: "Advisors", match: (r) => r.includes("advisor") },
+  { heading: "Reviewers", match: (r) => r.includes("reviewer") },
+];
+
 function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const members = draft.editorialBoard;
-  const chief = members.find((member) => {
+
+  const buckets = EDITORIAL_SECTIONS.map((s) => ({ heading: s.heading, members: [] as EditorialMember[] }));
+  const editors: EditorialMember[] = [];
+  for (const member of members) {
     const role = member.role.toLowerCase();
-    return role.includes("chief") && !role.includes("associate");
-  });
-  const associateChiefs = members.filter((member) => member.role.toLowerCase().includes("associate"));
-  const editors = members.filter(
-    (member) =>
-      !member.role.toLowerCase().includes("chief") &&
-      !member.role.toLowerCase().includes("associate"),
-  );
-  const chiefBlock = chief ? (
-    <section>
-      <h3>Editor-in-Chief</h3>
-      <EditorialMemberLine member={chief} />
-    </section>
-  ) : null;
-  const associateBlock = associateChiefs.length > 0 ? (
-    <section>
-      <h3>Associate Editor-in-Chief</h3>
-      <div className="editor-grid">
-        {associateChiefs.map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)}
-      </div>
-    </section>
-  ) : null;
-  const editorsBlock = editors.length > 0 ? (
-    <section>
-      <h3>Editors</h3>
-      <div className="editor-grid">
-        {editors.map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)}
-      </div>
-    </section>
-  ) : null;
+    const idx = EDITORIAL_SECTIONS.findIndex((s) => s.match(role));
+    if (idx >= 0) buckets[idx].members.push(member);
+    else editors.push(member);
+  }
+  const groups = [
+    ...buckets.filter((b) => b.members.length > 0),
+    ...(editors.length > 0 ? [{ heading: "Editors", members: editors }] : []),
+  ];
+
   const pageScale = pageDensityScale(
     members
       .map((member) => [member.name, member.designation, member.affiliation, member.location].filter(Boolean).join(" "))
@@ -1398,9 +1394,14 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
       <h1>{titleCaseName(journal.name)}</h1>
       <h2>Editorial Board Members</h2>
       {members.length === 0 ? <p className="editorial-empty">No editorial board members have been added for this journal yet.</p> : null}
-      {members.length > 0 ? chiefBlock : null}
-      {members.length > 0 ? associateBlock : null}
-      {members.length > 0 ? editorsBlock : null}
+      {groups.map((group) => (
+        <section key={group.heading}>
+          <h3>{group.heading}</h3>
+          <div className="editor-grid">
+            {group.members.map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)}
+          </div>
+        </section>
+      ))}
       <PageNumber value={6} />
     </section>
   );
@@ -1450,7 +1451,7 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
           />
           <div className="director-intro-copy">
             <p className="dear-line"><b>Dear Readers,</b></p>
-            <p className="director-first-paragraph">{applyBinderTokens(paragraphs[0], journal, draft)}</p>
+            <p className="director-first-paragraph">{applyBinderTokens(paragraphs[0] ?? "", journal, draft)}</p>
           </div>
         </div>
         {paragraphs.slice(1).map((paragraph, index) => (
@@ -1576,7 +1577,6 @@ function SectionEditor({
   exportingMode,
   exportError,
   onExport,
-  onResetFrontCoverLayout,
   profiles,
 }: {
   journal: Journal;
@@ -1589,7 +1589,6 @@ function SectionEditor({
   exportingMode: ExportMode | null;
   exportError: ExportError;
   onExport: (mode: ExportMode) => void;
-  onResetFrontCoverLayout: () => void;
   profiles: ProfilePick[];
 }) {
   const legalForJournal = useContext(LegalContext)[journal.id];
@@ -1785,11 +1784,10 @@ function SectionEditor({
             <span>First page dynamic data</span>
             <div className="editor-row-actions">
               <button type="button" onClick={useDynamicPageOneData}>Reload CSV Data</button>
-              <button type="button" onClick={onResetFrontCoverLayout}>Reset Drag Layout</button>
             </div>
           </div>
           <div className="editor-note">
-            Drag each text line and logo slot directly on the live canvas. The guides now react to nearby edges, centers, margins, and neighboring items so subelements can be placed much more precisely.
+            The front cover uses a fixed layout. Edit the values below; they render at their preset positions on the cover.
           </div>
           <label>
             <span>Journal title</span>
@@ -2858,7 +2856,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                     page={activePage}
                     journal={primaryJournal}
                     draft={primaryDraft}
-                    interactiveCover={activePage === 1}
+                    interactiveCover={false}
                     onFrontCoverLayoutChange={(frontCoverLayout) =>
                       startTransition(() => {
                         updateDraft(primaryJournal.id, {
@@ -2884,13 +2882,6 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                 exportingMode={exportJob?.mode ?? null}
                 exportError={exportError}
                 onExport={runExport}
-                onResetFrontCoverLayout={() =>
-                  updateDraft(primaryJournal.id, {
-                    ...primaryDraft,
-                    frontCoverLayout: defaultFrontCoverLayout,
-                    frontCoverLayoutCustomized: false,
-                  })
-                }
                 profiles={profiles}
               />
             ) : (

@@ -202,13 +202,13 @@ export const ENTITY_SPECS: Record<EntityKey, Spec> = {
 
   journals: {
     filename: "journals.csv",
-    headers: ["slug", "name", "abbreviation", "shortName", "website", "manuscriptUrl", "issnPrint", "issnOnline", "sjif", "icv", "doi", "impactFactor", "frequency", "issuesPerYear", "about", "manuscriptNotice", "directorDeskTitle", "directorDeskParagraphs", "focusScope", "focusNotes", "keywords", "indexing", "domain", "publisher", "manager"],
+    headers: ["slug", "name", "abbreviation", "shortName", "website", "manuscriptUrl", "issnPrint", "issnOnline", "sjif", "icv", "doi", "impactFactor", "frequency", "issuesPerYear", "about", "manuscriptNotice", "directorDeskTitle", "directorDeskParagraphs", "focusScope", "focusNotes", "objectives", "salientFeatures", "keywords", "indexing", "domain", "publisher", "manager"],
     async exportRows() {
       const rows = await prisma.journal.findMany({ orderBy: { name: "asc" }, include: { domain: true, publisher: true, manager: true } });
       return rows.map((j) => [
         j.slug, j.name, j.abbreviation, j.shortName ?? "", j.website ?? "", j.manuscriptUrl ?? "", j.issnPrint ?? "", j.issnOnline ?? "",
         j.sjif ?? "", j.icv ?? "", j.doi ?? "", j.impactFactor ?? "", j.frequency, j.issuesPerYear != null ? String(j.issuesPerYear) : "",
-        j.about ?? "", j.manuscriptNotice ?? "", j.directorDeskTitle ?? "", list(j.directorDeskParagraphs), list(j.focusScope), list(j.focusNotes), list(j.keywords), list(j.indexing),
+        j.about ?? "", j.manuscriptNotice ?? "", j.directorDeskTitle ?? "", list(j.directorDeskParagraphs), list(j.focusScope), list(j.focusNotes), list(j.objectives), list(j.salientFeatures), list(j.keywords), list(j.indexing),
         j.domain?.name ?? "", j.publisher?.name ?? "", j.manager?.email || j.manager?.name || "",
       ]);
     },
@@ -231,7 +231,7 @@ export const ENTITY_SPECS: Record<EntityKey, Spec> = {
           sjif: nul(r.sjif), icv: nul(r.icv), doi: nul(r.doi), impactFactor: nul(r.impactFactor),
           frequency, issuesPerYear: num(r.issuesPerYear), about: nul(r.about), manuscriptNotice: nul(r.manuscriptNotice),
           directorDeskTitle: nul(r.directorDeskTitle), directorDeskParagraphs: unlist(r.directorDeskParagraphs),
-          focusScope: unlist(r.focusScope), focusNotes: unlist(r.focusNotes), keywords: unlist(r.keywords), indexing: unlist(r.indexing),
+          focusScope: unlist(r.focusScope), focusNotes: unlist(r.focusNotes), objectives: unlist(r.objectives), salientFeatures: unlist(r.salientFeatures), keywords: unlist(r.keywords), indexing: unlist(r.indexing),
           domainId: r.domain ? resolveDomain(r.domain) : null,
           publisherId: r.publisher ? resolvePublisher(r.publisher) : null,
           managerId: r.manager ? resolveProfile(r.manager) : null,

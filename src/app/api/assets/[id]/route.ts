@@ -21,6 +21,11 @@ export async function GET(req: Request, { params }: Params) {
       "Content-Length": String(asset.byteSize),
       "Cache-Control": "public, max-age=31536000, immutable",
       ETag: `"${asset.id}"`,
+      // Defense-in-depth for user-uploaded files (e.g. an SVG containing a
+      // <script>): renders fine via <img>, but if opened/embedded as a document
+      // the sandbox blocks scripts and nosniff blocks content-type confusion.
+      "Content-Security-Policy": "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }
