@@ -1,4 +1,5 @@
 import "server-only";
+import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Role } from "@/lib/auth/jwt";
 
@@ -40,8 +41,24 @@ export function emailDomain(email: string): string {
   return email.toLowerCase().split("@")[1] ?? "";
 }
 
+// Public-facing origin of the app. Behind a reverse proxy (Coolify/Docker) the
+// request's own origin is the internal bind address (e.g. http://0.0.0.0:3000),
+// which is useless as an OAuth redirect target. Prefer an explicit APP_URL, then
+// the proxy's forwarded headers, and only fall back to the request origin.
+export function publicOrigin(request: NextRequest): string {
+  const envUrl = process.env.APP_URL || process.env.AUTH_URL;
+  if (envUrl) return envUrl.replace(/\/+$/, "");
+
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  if (forwardedHost) {
+    const proto = request.headers.get("x-forwarded-proto")?.split(",")[0].trim() || "https";
+    return `${proto}://${forwardedHost.split(",")[0].trim()}`;
+  }
+  return request.nextUrl.origin;
+}
+
 // The callback URI must exactly match one registered in the Google Cloud OAuth
-// client. Derived from the request origin so it works across localhost/prod.
+// client. Built from the public origin so it works behind a proxy and in dev.
 export function googleRedirectUri(origin: string): string {
   return `${origin}/api/auth/google/callback`;
 }

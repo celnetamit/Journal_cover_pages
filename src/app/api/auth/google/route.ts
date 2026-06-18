@@ -8,12 +8,14 @@ import {
   googleClientId,
   googleConfigured,
   googleRedirectUri,
+  publicOrigin,
 } from "@/lib/auth/google";
 
 // Start the Google OAuth flow: stash a CSRF `state` + desired post-login path in
 // short-lived cookies, then redirect to Google's consent screen.
 export async function GET(request: NextRequest) {
-  const { origin, searchParams } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  const origin = publicOrigin(request);
 
   if (!googleConfigured()) {
     return NextResponse.redirect(new URL("/login?error=google_unconfigured", origin));

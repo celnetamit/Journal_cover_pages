@@ -16,6 +16,7 @@ import {
   googleConfigured,
   googleRedirectUri,
   isAdminEmail,
+  publicOrigin,
   resolveAccess,
 } from "@/lib/auth/google";
 
@@ -29,7 +30,8 @@ function fail(origin: string, code: string) {
 // Handle Google's redirect back: verify state, exchange the code, look up the
 // profile, enforce the domain/admin policy, then mint a session.
 export async function GET(request: NextRequest) {
-  const { origin, searchParams } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  const origin = publicOrigin(request);
 
   if (!googleConfigured()) return fail(origin, "google_unconfigured");
 
