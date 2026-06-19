@@ -35,6 +35,7 @@ export default async function EditJournalPage({ params }: { params: Promise<{ id
     globalInr: p.priceInr,
     overrideUsd: overrideByPlan.get(p.id)?.priceUsd ?? null,
     overrideInr: overrideByPlan.get(p.id)?.priceInr ?? null,
+    hidden: journal.hiddenSubscriptionIds.includes(p.id),
   }));
 
   const values: JournalFormValues = {

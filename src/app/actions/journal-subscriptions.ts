@@ -17,6 +17,8 @@ export async function setJournalSubscriptions(journalId: string, formData: FormD
   await requireRole("EDITOR");
 
   const plans = await prisma.subscription.findMany({ select: { id: true } });
+  // Plans whose "Show" checkbox is unticked become the journal's hidden list.
+  const hiddenSubscriptionIds: string[] = [];
   for (const plan of plans) {
     const priceUsd = num(formData.get(`usd_${plan.id}`));
     const priceInr = num(formData.get(`inr_${plan.id}`));
@@ -31,7 +33,9 @@ export async function setJournalSubscriptions(journalId: string, formData: FormD
         create: { journalId, subscriptionId: plan.id, priceUsd, priceInr },
       });
     }
+    if (formData.get(`show_${plan.id}`) == null) hiddenSubscriptionIds.push(plan.id);
   }
+  await prisma.journal.update({ where: { id: journalId }, data: { hiddenSubscriptionIds } });
 
   revalidatePath(`/journals/${journalId}/edit`);
   revalidatePath("/");

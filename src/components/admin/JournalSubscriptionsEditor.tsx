@@ -11,6 +11,7 @@ export type PlanRow = {
   globalInr: number | null;
   overrideUsd: number | null;
   overrideInr: number | null;
+  hidden: boolean;
 };
 
 const control =
@@ -30,7 +31,8 @@ export default function JournalSubscriptionsEditor({
       <div className="mb-3">
         <h2 className="text-lg font-semibold text-slate-900">Subscription pricing</h2>
         <p className="text-sm text-slate-500">
-          Override the global plan price for this journal. Blank = use the global price.{" "}
+          Override the global plan price for this journal. Blank = use the global price.
+          Untick <b>Show</b> to hide a plan from this journal&apos;s subscription page.{" "}
           <Link href="/admin/subscriptions" className="text-slate-700 underline">Manage plans</Link>
         </p>
       </div>
@@ -43,6 +45,7 @@ export default function JournalSubscriptionsEditor({
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
+                  <th className="px-4 py-2">Show</th>
                   <th className="px-4 py-2">Plan</th>
                   <th className="px-4 py-2">Mode</th>
                   <th className="px-4 py-2">USD (override)</th>
@@ -52,6 +55,15 @@ export default function JournalSubscriptionsEditor({
               <tbody className="divide-y divide-slate-100">
                 {plans.map((p) => (
                   <tr key={p.id}>
+                    <td className="px-4 py-3">
+                      <input
+                        name={`show_${p.id}`}
+                        type="checkbox"
+                        defaultChecked={!p.hidden}
+                        aria-label={`Show ${p.name} on the subscription page`}
+                        className="h-4 w-4"
+                      />
+                    </td>
                     <td className="px-4 py-3 font-medium text-slate-900">{p.name}</td>
                     <td className="px-4 py-3 text-slate-600">{MODE_LABEL[p.mode] ?? p.mode}</td>
                     <td className="px-4 py-3">
