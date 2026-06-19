@@ -344,6 +344,19 @@ function hasGenericManagementMembers(draft: BinderDraft) {
     );
 }
 
+// A saved draft only carries the generic seed team until the user picks profiles
+// in Setup, so detect that untouched seed. When it's still the seed we let dynamic
+// JournalMember data replace it; a team the user edited inline is left alone.
+function managementMembersAreDefault(members: ManagementPerson[]) {
+  const sig = (list: ManagementPerson[]) => list.map((m) => m.name).join("|");
+  const current = sig(members);
+  return current === sig(managementMembers) || current === sig(lawManagementMembers);
+}
+
+function managementHeadIsDefault(head: ManagementPerson | undefined) {
+  return !head?.name || head.name === "Puneet Mehrotra";
+}
+
 function hasDefaultFocusScope(draft: BinderDraft) {
   const current = dynamicKey(draft.focusScope.join(" "));
   return !current ||
@@ -386,14 +399,31 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
   const fallbackFocusNotes = journal.focusNotes.length ? journal.focusNotes : defaultFocusNotes;
   const withFocusNotes = withFocus.focusNotes?.length ? withFocus : { ...withFocus, focusNotes: fallbackFocusNotes };
 
-  if (!isLawJournal(journal) || !hasGenericManagementMembers(withFocusNotes)) return withFocusNotes;
+  // Overlay management picked in Setup onto a saved draft that still holds the
+  // seed team (the draft itself doesn't capture later JournalMember changes).
+  const management = dynamicData ? findDynamicValue(journal, dynamicData.managementByKey) : undefined;
+  const withManagement = management
+    ? {
+        ...withFocusNotes,
+        managementHead:
+          management.head && managementHeadIsDefault(withFocusNotes.managementHead)
+            ? management.head
+            : withFocusNotes.managementHead,
+        managementMembers:
+          management.members?.length && managementMembersAreDefault(withFocusNotes.managementMembers)
+            ? management.members
+            : withFocusNotes.managementMembers,
+      }
+    : withFocusNotes;
+
+  if (!isLawJournal(journal) || !hasGenericManagementMembers(withManagement)) return withManagement;
 
   return {
-    ...withFocusNotes,
+    ...withManagement,
     managementMembers: lawManagementMembers,
-    directorTitle: withFocusNotes.directorTitle === "From the Director's Desk" ? directorDesk.title : withFocusNotes.directorTitle,
-    directorRole: withFocusNotes.directorRole === "Managing Director" ? directorDesk.role : withFocusNotes.directorRole,
-    directorParagraphs: hasDirectorContent(withFocusNotes.directorParagraphs) ? withFocusNotes.directorParagraphs : directorDesk.paragraphs,
+    directorTitle: withManagement.directorTitle === "From the Director's Desk" ? directorDesk.title : withManagement.directorTitle,
+    directorRole: withManagement.directorRole === "Managing Director" ? directorDesk.role : withManagement.directorRole,
+    directorParagraphs: hasDirectorContent(withManagement.directorParagraphs) ? withManagement.directorParagraphs : directorDesk.paragraphs,
   };
 }
 
