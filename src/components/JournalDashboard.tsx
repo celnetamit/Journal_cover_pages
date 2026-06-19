@@ -278,6 +278,10 @@ function directorParagraphsForJournal(journal: Journal, draft: BinderDraft) {
   return defaults.map((paragraph, index) => draft.directorParagraphs?.[index]?.trim() || paragraph);
 }
 
+function defaultManagementHead(): ManagementPerson {
+  return { name: "Puneet Mehrotra", role: "Chairman and Director", department: "", photo: logoAssets.director.src };
+}
+
 function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): BinderDraft {
   const details = findDynamicValue(journal, dynamicData.detailsByKey);
   const focus = findDynamicValue(journal, dynamicData.focusByKey);
@@ -308,12 +312,7 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     focusScope: focusKeywords(focus, focusList),
     focusNotes: journal.focusNotes.length ? journal.focusNotes : defaultFocusNotes,
     editorialBoard,
-    managementHead: management?.head ?? {
-      name: "Puneet Mehrotra",
-      role: "Chairman and Director",
-      department: "",
-      photo: logoAssets.director.src,
-    },
+    managementHeads: management?.heads?.length ? management.heads : [defaultManagementHead()],
     managementMembers: management?.members?.length
       ? management.members
       : isLawJournal(journal) ? lawManagementMembers : managementMembers,
@@ -353,8 +352,17 @@ function managementMembersAreDefault(members: ManagementPerson[]) {
   return current === sig(managementMembers) || current === sig(lawManagementMembers);
 }
 
-function managementHeadIsDefault(head: ManagementPerson | undefined) {
-  return !head?.name || head.name === "Puneet Mehrotra";
+function managementHeadsAreDefault(heads: ManagementPerson[] | undefined) {
+  const named = (heads ?? []).filter((h) => h.name?.trim());
+  return named.length === 0 || (named.length === 1 && named[0].name === "Puneet Mehrotra");
+}
+
+// Saved drafts predate multiple heads (single `managementHead` object). Coerce
+// the legacy shape into the `managementHeads` array so old drafts keep working.
+function migratedManagementHeads(draft: BinderDraft): ManagementPerson[] {
+  if (Array.isArray(draft.managementHeads)) return draft.managementHeads;
+  const legacy = (draft as unknown as { managementHead?: ManagementPerson }).managementHead;
+  return legacy ? [legacy] : [defaultManagementHead()];
 }
 
 function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicData?: DynamicBinderData) {
@@ -372,6 +380,7 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
       : defaultFrontCoverLayout,
     frontCoverLayoutCustomized: Boolean(draft.frontCoverLayoutCustomized),
     pageLayouts: normalizeBinderPageLayouts(draft.pageLayouts),
+    managementHeads: migratedManagementHeads(draft),
     journalAbbreviation: draft.journalAbbreviation || journal.abbreviation || journal.shortName,
     journalWebsite: normalizeCoverWebsite(draft.journalWebsite, journal),
     directorTitle: draft.directorTitle?.trim() || directorDesk.title,
@@ -401,10 +410,10 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
   const withManagement = management
     ? {
         ...withFocusNotes,
-        managementHead:
-          management.head && managementHeadIsDefault(withFocusNotes.managementHead)
-            ? management.head
-            : withFocusNotes.managementHead,
+        managementHeads:
+          management.heads?.length && managementHeadsAreDefault(withFocusNotes.managementHeads)
+            ? management.heads
+            : withFocusNotes.managementHeads,
         managementMembers:
           management.members?.length && managementMembersAreDefault(withFocusNotes.managementMembers)
             ? management.members
@@ -1138,13 +1147,17 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
           </ul>
         </>
       ) : (
-        <ul className="checkbox-list">
-          <li>Online access will be activated within 72 hours of receipt of the payment (working days), subject to receipt of correct information on user details/Static IP address of the subscriber.</li>
-          <li>There will be blocking.</li>
-          <li>If the user request for the same and furnishes valid reasons for blocking.</li>
-          <li>Due to technical issue.</li>
-          <li>Misuse of the access rights as per the access policy.</li>
-        </ul>
+        <>
+          <ul className="checkbox-list">
+            <li>Online access will be activated within 72 hours of receipt of the payment (working days), subject to receipt of correct information on user details/Static IP address of the subscriber.</li>
+            <li>There will be blocking.</li>
+          </ul>
+          <ul className="subpoint-list">
+            <li>If the user request for the same and furnishes valid reasons for blocking.</li>
+            <li>Due to technical issue.</li>
+            <li>Misuse of the access rights as per the access policy.</li>
+          </ul>
+        </>
       )}
 
       <h2>ADVERTISING AND COMMERCIAL REPRINT INQUIRIES</h2>
@@ -1284,7 +1297,11 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
     <section className="pdf-page management-page" data-export-group="internal" style={pageStyle(pageScale)}>
       <div className="page-rule" />
       <h1>Publication and Management Team</h1>
-      <ManagementProfile person={draft.managementHead} featured />
+      <div className={draft.managementHeads.length > 1 ? "management-head-row multi" : "management-head-row"}>
+        {draft.managementHeads.map((head, index) => (
+          <ManagementProfile key={index} person={head} featured />
+        ))}
+      </div>
       <div className="management-band">Members</div>
       <div className="management-photo-grid">
         {draft.managementMembers.map((member, index) => (
@@ -1420,14 +1437,19 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
       <h1>{titleCaseName(journal.name)}</h1>
       <h2>Editorial Board Members</h2>
       {members.length === 0 ? <p className="editorial-empty">No editorial board members have been added for this journal yet.</p> : null}
-      {groups.map((group) => (
-        <section key={group.heading}>
-          <h3>{group.heading}</h3>
-          <div className="editor-grid">
-            {group.members.map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)}
-          </div>
-        </section>
-      ))}
+      {groups.map((group) => {
+        // The Editor-in-Chief (one per journal) is centered rather than placed in
+        // the left column of the two-column grid used for the other sections.
+        const isChief = group.heading === EDITORIAL_SECTIONS[0].heading;
+        return (
+          <section key={group.heading} className={isChief ? "editorial-section chief" : "editorial-section"}>
+            <h3>{group.heading}</h3>
+            <div className={isChief ? "editor-grid chief" : "editor-grid"}>
+              {group.members.map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)}
+            </div>
+          </section>
+        );
+      })}
       <PageNumber value={6} />
     </section>
   );
@@ -1453,6 +1475,8 @@ function applyBinderTokens(text: string, journal: Journal, draft: BinderDraft): 
   return text
     .replaceAll("{journal}", titleCaseName(journal.name))
     .replaceAll("{volume}", ordinalWord(draft.issueVolume || defaultIssueVolume))
+    .replaceAll("{issue}", draft.issueNumber || defaultIssueNumber)
+    .replaceAll("{year}", draft.issueYear || defaultIssueYear)
     .replaceAll("{domain}", journal.domain || "")
     .replaceAll("{publisher}", publisherIdentity(journal).publisherName);
 }
@@ -1679,8 +1703,27 @@ function SectionEditor({
     });
   }
 
-  function updateManagementHead(patch: Partial<ManagementPerson>) {
-    onChange({ ...draft, managementHead: { ...draft.managementHead, ...patch } });
+  function updateManagementHead(index: number, patch: Partial<ManagementPerson>) {
+    onChange({
+      ...draft,
+      managementHeads: draft.managementHeads.map((head, headIndex) =>
+        headIndex === index ? { ...head, ...patch } : head,
+      ),
+    });
+  }
+
+  function addManagementHead() {
+    onChange({
+      ...draft,
+      managementHeads: [...draft.managementHeads, { name: "New Head", role: "Director", department: "", photo: "" }],
+    });
+  }
+
+  function removeManagementHead(index: number) {
+    onChange({
+      ...draft,
+      managementHeads: draft.managementHeads.filter((_, headIndex) => headIndex !== index),
+    });
   }
 
   function updateManagementMember(index: number, patch: Partial<ManagementPerson>) {
@@ -2078,39 +2121,47 @@ function SectionEditor({
             <a href={`/journals/${journal.id}/edit`} className="board-team-link">manage this journal&apos;s Board &amp; Team</a>{" "}
             (Profiles + roles, shared across all issues).
           </div>
-          <div className="management-edit-head">
-            <span>Management head (chairman)</span>
-            {profiles.length > 0 ? (
-              <select
-                className="profile-fill"
-                defaultValue=""
-                onChange={(event) => {
-                  const picked = profiles.find((p) => p.id === event.target.value);
-                  if (picked) {
-                    updateManagementHead({
-                      name: picked.name,
-                      role: picked.role || draft.managementHead.role,
-                      photo: picked.photo || draft.managementHead.photo,
-                    });
-                  }
-                  event.target.value = "";
-                }}
-              >
-                <option value="">Fill from a saved profile…</option>
-                {profiles.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}{p.role ? ` — ${p.role}` : ""}</option>
-                ))}
-              </select>
-            ) : null}
-            <div className="management-edit-row">
-              <input aria-label="Management head name" placeholder="Name" value={draft.managementHead.name} onChange={(event) => updateManagementHead({ name: event.target.value })} />
-              <input aria-label="Management head role" placeholder="Role" value={draft.managementHead.role} onChange={(event) => updateManagementHead({ role: event.target.value })} />
-              <label className="file-field">
-                <span>Photo</span>
-                <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (photo) => updateManagementHead({ photo }))} />
-              </label>
+          <div className="editor-row-head">
+            <span>Management heads ({draft.managementHeads.length})</span>
+            <div className="editor-row-actions">
+              <button type="button" onClick={addManagementHead}>Add Head</button>
             </div>
           </div>
+          {draft.managementHeads.map((head, index) => (
+            <div className="management-edit-head" key={index}>
+              {profiles.length > 0 ? (
+                <select
+                  className="profile-fill"
+                  defaultValue=""
+                  onChange={(event) => {
+                    const picked = profiles.find((p) => p.id === event.target.value);
+                    if (picked) {
+                      updateManagementHead(index, {
+                        name: picked.name,
+                        role: picked.role || head.role,
+                        photo: picked.photo || head.photo,
+                      });
+                    }
+                    event.target.value = "";
+                  }}
+                >
+                  <option value="">Fill from a saved profile…</option>
+                  {profiles.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}{p.role ? ` — ${p.role}` : ""}</option>
+                  ))}
+                </select>
+              ) : null}
+              <div className="management-edit-row">
+                <input aria-label="Management head name" placeholder="Name" value={head.name} onChange={(event) => updateManagementHead(index, { name: event.target.value })} />
+                <input aria-label="Management head role" placeholder="Role" value={head.role} onChange={(event) => updateManagementHead(index, { role: event.target.value })} />
+                <label className="file-field">
+                  <span>Photo</span>
+                  <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (photo) => updateManagementHead(index, { photo }))} />
+                </label>
+                <button type="button" onClick={() => removeManagementHead(index)}>Delete</button>
+              </div>
+            </div>
+          ))}
           <div className="editor-row-head">
             <span>Publication Management Officers ({draft.managementMembers.length})</span>
             <div className="editor-row-actions">
@@ -2216,7 +2267,7 @@ function SectionEditor({
         <>
           <div className="editor-note">
             The Director&apos;s Desk keeps the default paragraph set by default. Edit any paragraph below to replace only that paragraph.
-            Use <code>{"{journal}"}</code>, <code>{"{volume}"}</code>, <code>{"{domain}"}</code>, <code>{"{publisher}"}</code> — they are filled in automatically.
+            Use <code>{"{journal}"}</code>, <code>{"{volume}"}</code>, <code>{"{issue}"}</code>, <code>{"{year}"}</code>, <code>{"{domain}"}</code>, <code>{"{publisher}"}</code> — they are filled in automatically.
           </div>
           <label>
             <span>Director desk letter title</span>

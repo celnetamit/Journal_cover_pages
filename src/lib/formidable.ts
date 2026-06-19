@@ -24,7 +24,7 @@ export type ManagementPersonData = {
 };
 
 export type ManagementTeam = {
-  head: ManagementPersonData | null;
+  heads: ManagementPersonData[];
   members: ManagementPersonData[];
 };
 
@@ -161,12 +161,12 @@ export const getDynamicBinderData = cache(async (_journal?: Journal): Promise<Dy
         department: s(m.profile.department),
         photo: s(m.profile.photoUrl),
       });
-      const headMember = j.members.find((m) => m.role === "MANAGEMENT_HEAD");
+      const headMembers = j.members.filter((m) => m.role === "MANAGEMENT_HEAD");
       const memberRows = j.members.filter((m) => m.role === "MANAGEMENT_MEMBER");
-      if (headMember || memberRows.length) {
+      if (headMembers.length || memberRows.length) {
         addAliases(
           data.managementByKey,
-          { head: headMember ? toManagementPerson(headMember) : null, members: memberRows.map(toManagementPerson) },
+          { heads: headMembers.map(toManagementPerson), members: memberRows.map(toManagementPerson) },
           aliases,
         );
       }

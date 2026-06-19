@@ -2273,10 +2273,31 @@ button {
   text-align: center;
 }
 
+.management-head-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(6mm * var(--page-scale));
+  justify-content: center;
+}
+
+/* Two or more heads lay out in a centered two-column grid; a single head stays
+   centered via the flex rule above. */
+.management-head-row.multi {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  justify-content: center;
+  justify-items: center;
+}
+
 .management-profile.featured {
   margin: calc(1mm * var(--page-scale)) auto calc(2.8mm * var(--page-scale));
   min-height: calc(37mm * var(--page-scale));
   width: 42mm;
+}
+
+.management-head-row .management-profile.featured {
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .management-profile img,
@@ -3044,6 +3065,17 @@ button {
   gap: calc(5mm * var(--page-scale)) calc(13mm * var(--page-scale));
   grid-template-columns: repeat(2, 1fr);
   margin-top: calc(3mm * var(--page-scale));
+}
+
+/* Editor-in-Chief (one per journal) sits centered above the two-column grid. */
+.editorial-section.chief h3 {
+  text-align: center;
+}
+
+.editor-grid.chief {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  text-align: center;
 }
 
 .member-line {

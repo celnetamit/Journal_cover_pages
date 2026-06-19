@@ -22,7 +22,7 @@ export type BinderDraft = {
   focusScope: string[];
   focusNotes: string[];
   editorialBoard: EditorialMember[];
-  managementHead: ManagementPerson;
+  managementHeads: ManagementPerson[];
   managementMembers: ManagementPerson[];
   // Page 5 contact boxes — blank/undefined = fall back to the built-in defaults.
   dispatchContactName?: string;
