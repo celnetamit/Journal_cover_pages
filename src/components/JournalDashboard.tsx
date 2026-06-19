@@ -13,7 +13,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import FrontCoverCanvas from "@/components/FrontCoverCanvas";
-import { dynamicKey, journalLookupKeys } from "@/lib/lookup";
+import { journalLookupKeys } from "@/lib/lookup";
 import type { DynamicBinderData, EditorialMember } from "@/lib/formidable";
 import type { Journal } from "@/lib/journals";
 import { proxiedImage } from "@/lib/image";
@@ -357,13 +357,6 @@ function managementHeadIsDefault(head: ManagementPerson | undefined) {
   return !head?.name || head.name === "Puneet Mehrotra";
 }
 
-function hasDefaultFocusScope(draft: BinderDraft) {
-  const current = dynamicKey(draft.focusScope.join(" "));
-  return !current ||
-    current === dynamicKey(focusList.join(" ")) ||
-    current === dynamicKey(focusList.slice(0, 5).join(" "));
-}
-
 function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicData?: DynamicBinderData) {
   const directorDesk = effectiveDirectorDesk(journal);
   const hydratedDraft = {
@@ -388,8 +381,11 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
     directorPhotoImage: draft.directorPhotoImage || directorDesk.photo || undefined,
     directorSignatureImage: draft.directorSignatureImage || directorDesk.signature || undefined,
   };
+  // About & Focus/Scope always mirror the journal record (Setup). A saved draft's
+  // own about/focusScope are overlaid on every load so later record edits show on
+  // existing issues; per-issue values are kept only for live in-session preview.
   const focus = dynamicData ? findDynamicValue(journal, dynamicData.focusByKey) : undefined;
-  const withFocus = focus && hasDefaultFocusScope(draft)
+  const withFocus = focus
     ? {
         ...hydratedDraft,
         about: focus.about || hydratedDraft.about,
@@ -1011,7 +1007,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
   const bankBranch = legal?.bankBranch || "HDFC Bank, Sector-62, Noida, U.P., India";
   const bankIfsc = legal?.bankIfsc || "HDFC0002649";
   const bankSwift = legal?.bankSwift || "HDFCINBBXXX";
-  const sendToAddress = legal?.registeredAddress || "A-118, Level 1, Sector-63, Noida, 201 301, U.P., India";
+  const sendToAddress = legal?.salesAddress || legal?.registeredAddress || "A-118, Level 1, Sector-63, Noida, 201 301, U.P., India";
   const legalPhoneDisplay = legal?.phone || legalPhone;
   const marketingOffice = legal?.registeredAddress || defaultRegisteredOffice;
   const openAccessIndia = legal?.openAccessIndia || "₹1500";
@@ -2056,7 +2052,7 @@ function SectionEditor({
           </label>
           <SaveFocusToJournal journalId={journal.id} about={draft.about} focusScope={draft.focusScope} />
           <div className="editor-note">
-            Per-issue edits autosave to this issue. <b>Save About &amp; Focus to journal</b> promotes them to the journal record (the default for all issues).
+            These fields always mirror the journal record. Edits here preview live, but reload to the saved record &mdash; click <b>Save About &amp; Focus to journal</b> to persist them for every issue.
           </div>
           <div className="editor-row-head">
             <span>Additional focus and scope text</span>

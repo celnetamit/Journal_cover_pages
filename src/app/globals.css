@@ -1987,6 +1987,7 @@ button {
 }
 
 .payment-reference-page h2 {
+  border-top: 1px solid #777;
   color: #333;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 11pt;
@@ -1994,6 +1995,7 @@ button {
   letter-spacing: 0;
   line-height: 1.16;
   margin: 2.8mm 0 0.9mm;
+  padding-top: 1.4mm;
 }
 
 .payment-reference-page p {
@@ -2054,7 +2056,7 @@ button {
 }
 
 .payment-reference-page .subpoint-list li::before {
-  content: "w";
+  content: "▪";
   font-weight: 700;
   left: 0;
   position: absolute;
