@@ -74,6 +74,8 @@ export async function saveJournalPrices(journalId: string, _prev: Page3State, fd
     const m = /^(?:usd|inr)_(.+)$/.exec(key);
     if (m) ids.add(m[1]);
   }
+  // Plans whose "Show" checkbox is unticked become the journal's hidden list.
+  const hiddenSubscriptionIds: string[] = [];
   for (const id of ids) {
     const priceUsd = num(fd.get(`usd_${id}`));
     const priceInr = num(fd.get(`inr_${id}`));
@@ -86,7 +88,9 @@ export async function saveJournalPrices(journalId: string, _prev: Page3State, fd
         create: { journalId, subscriptionId: id, priceUsd, priceInr },
       });
     }
+    if (fd.get(`show_${id}`) == null) hiddenSubscriptionIds.push(id);
   }
+  await prisma.journal.update({ where: { id: journalId }, data: { hiddenSubscriptionIds } });
   revalidatePath("/");
   return { ok: true };
 }

@@ -1023,8 +1023,8 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
   const openAccessSaarc = legal?.openAccessSaarc || "$100";
   const openAccessOther = legal?.openAccessOther || "$200";
   const modeLabel = (m: string) => (m === "PRINT" ? "Print" : m === "ONLINE" ? "Online" : "Print + Online");
-  const inrPlans = (legal?.plans ?? []).filter((p) => p.priceInr != null);
-  const usdPlans = (legal?.plans ?? []).filter((p) => p.priceUsd != null);
+  const inrPlans = (legal?.plans ?? []).filter((p) => !p.hidden && p.priceInr != null);
+  const usdPlans = (legal?.plans ?? []).filter((p) => !p.hidden && p.priceUsd != null);
 
   return (
     <section className="pdf-page payment-reference-page" data-export-group="internal">
@@ -1043,7 +1043,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
           {inrPlans.length ? (
             <ul className="checkbox-list">
               {inrPlans.map((p) => (
-                <li key={`inr-${p.name}`}>{p.name} ({modeLabel(p.mode)}): ₹{p.priceInr} per Journal.</li>
+                <li key={`inr-${p.id}`}><b>{modeLabel(p.mode)}</b>: ₹{p.priceInr} per Journal.</li>
               ))}
             </ul>
           ) : (
@@ -1059,7 +1059,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
           {usdPlans.length ? (
             <ul className="checkbox-list">
               {usdPlans.map((p) => (
-                <li key={`usd-${p.name}`}>{p.name} ({modeLabel(p.mode)}): ${p.priceUsd} per Journal.</li>
+                <li key={`usd-${p.id}`}><b>{modeLabel(p.mode)}</b>: ${p.priceUsd} per Journal.</li>
               ))}
             </ul>
           ) : (
@@ -1616,6 +1616,44 @@ function PageSet({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   );
 }
 
+// Draft fields on each Setup page that are sourced from the journal record (DB
+// journal + publisher/company). Used to flag whether a page is in sync with the
+// record or carries per-issue overrides, and to re-pull the record values.
+// Issue meta (volume/issue/year/month) is inherently per-issue, so it's excluded.
+const PAGE_RECORD_FIELDS: Record<number, (keyof BinderDraft)[]> = {
+  1: ["journalTitle", "journalAbbreviation", "eIssn", "sjif", "icv", "coverImage", "backCoverImage", "journalLogoImage", "footerRightLogoImage", "journalWebsite"],
+  4: ["about", "focusScope", "focusNotes"],
+  5: ["managementHeads", "managementMembers", "dispatchContactName", "dispatchContactPhone", "dispatchContactEmail", "salesContactName", "salesContactPhone", "salesContactEmail"],
+  6: ["manuscriptNotice"],
+  7: ["editorialBoard"],
+  8: ["directorTitle", "directorName", "directorRole", "directorParagraphs", "directorPhotoImage", "directorSignatureImage"],
+};
+
+function recordFieldValue(draft: BinderDraft, field: keyof BinderDraft) {
+  return field === "icv" ? cleanIcv(draft.icv) : draft[field];
+}
+
+// The record values a "sync" would write for a page (icv cleaned to match the form).
+function recordBaselineForPage(page: number, recordDraft: BinderDraft): Partial<BinderDraft> {
+  const patch: Record<string, unknown> = {};
+  for (const field of PAGE_RECORD_FIELDS[page] ?? []) patch[field] = recordFieldValue(recordDraft, field);
+  return patch as Partial<BinderDraft>;
+}
+
+function pageMatchesRecord(page: number, draft: BinderDraft, recordDraft: BinderDraft): boolean {
+  const fields = PAGE_RECORD_FIELDS[page];
+  if (!fields) return true;
+  return fields.every(
+    (field) =>
+      JSON.stringify(recordFieldValue(draft, field) ?? null) ===
+      JSON.stringify(recordFieldValue(recordDraft, field) ?? null),
+  );
+}
+
+function customizedPageCount(draft: BinderDraft, recordDraft: BinderDraft): number {
+  return Object.keys(PAGE_RECORD_FIELDS).filter((page) => !pageMatchesRecord(Number(page), draft, recordDraft)).length;
+}
+
 function SectionEditor({
   journal,
   draft,
@@ -1649,6 +1687,31 @@ function SectionEditor({
   const focusNotes = draft.focusNotes?.length ? draft.focusNotes : defaultFocusNotes;
   const directorParagraphs = directorParagraphsForJournal(journal, draft);
   const [uploadError, setUploadError] = useState("");
+
+  // "Record baseline": the draft as it would be built purely from the journal
+  // record + defaults (ignoring any saved per-issue overrides). We diff the live
+  // draft against it to show whether each page is synced or customized.
+  const recordDraft = useMemo(
+    () => normalizeDraftForJournal(journal, draftFromDynamic(journal, dynamicData), dynamicData),
+    [journal, dynamicData],
+  );
+  const pageHasRecordFields = Boolean(PAGE_RECORD_FIELDS[activePage]);
+  const pageSynced = pageMatchesRecord(activePage, draft, recordDraft);
+  const customCount = customizedPageCount(draft, recordDraft);
+
+  function syncPageFromRecord() {
+    if (!window.confirm("Replace this page's per-issue edits with the current journal-record values?")) return;
+    onChange({ ...draft, ...recordBaselineForPage(activePage, recordDraft) });
+  }
+
+  function syncAllFromRecord() {
+    if (!window.confirm(`Replace per-issue edits on all ${customCount} customized page(s) with the current journal-record values?`)) return;
+    let merged: BinderDraft = { ...draft };
+    for (const page of Object.keys(PAGE_RECORD_FIELDS)) {
+      merged = { ...merged, ...recordBaselineForPage(Number(page), recordDraft) };
+    }
+    onChange(merged);
+  }
 
   function updateEditorial(index: number, patch: Partial<EditorialMember>) {
     onChange({
@@ -1830,7 +1893,26 @@ function SectionEditor({
       <div className="section-editor-head">
         <span className="editor-kicker">Page {activePage} form controls</span>
         <b>{pageEditorTitle(activePage)}</b>
-        <span>Using local CSV and static defaults</span>
+        {pageHasRecordFields ? (
+          <span className={`record-sync-badge ${pageSynced ? "synced" : "custom"}`}>
+            {pageSynced ? "✓ Synced from journal record" : "● Customized for this issue"}
+          </span>
+        ) : (
+          <span>Using local CSV and static defaults</span>
+        )}
+      </div>
+      <div className="record-sync-bar">
+        <button type="button" className="sync-page-btn" disabled={!pageHasRecordFields || pageSynced} onClick={syncPageFromRecord}>
+          Sync this page from record
+        </button>
+        <span className={`record-sync-summary ${customCount === 0 ? "synced" : "custom"}`}>
+          {customCount === 0
+            ? "All pages match the journal record"
+            : `${customCount} page${customCount > 1 ? "s" : ""} customized for this issue`}
+        </span>
+        <button type="button" className="sync-all-btn" disabled={customCount === 0} onClick={syncAllFromRecord}>
+          Sync all pages from record
+        </button>
       </div>
       <div className="api-source-grid">
         <span className={hasDetails ? "loaded" : ""}>Journal details CSV</span>

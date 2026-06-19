@@ -272,6 +272,10 @@ model Journal {
   directorDeskTitle      String?
   directorDeskParagraphs String[]
 
+  // Subscription plans hidden on this journal's subscription page (denylist;
+  // empty = show every priced plan). Plans vary per journal.
+  hiddenSubscriptionIds String[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

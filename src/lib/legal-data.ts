@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 
-export type LegalPlan = { id: string; name: string; mode: string; priceUsd: number | null; priceInr: number | null };
+export type LegalPlan = { id: string; name: string; mode: string; priceUsd: number | null; priceInr: number | null; hidden: boolean };
 
 // Per-journal data for the subscription / payment / legal page (Page 3).
 export type LegalInfo = {
@@ -43,6 +43,7 @@ export async function getJournalLegalData(): Promise<Record<string, LegalInfo>> 
   for (const j of journals) {
     const c = j.publisher?.company ?? null;
     const overrides = new Map(j.subscriptions.map((o) => [o.subscriptionId, o]));
+    const hidden = new Set(j.hiddenSubscriptionIds);
     const plans: LegalPlan[] = globalPlans.map((p) => {
       const o = overrides.get(p.id);
       return {
@@ -51,6 +52,7 @@ export async function getJournalLegalData(): Promise<Record<string, LegalInfo>> 
         mode: p.mode,
         priceUsd: o?.priceUsd ?? p.priceUsd,
         priceInr: o?.priceInr ?? p.priceInr,
+        hidden: hidden.has(p.id),
       };
     });
     map[j.id] = {
