@@ -3139,22 +3139,6 @@ button {
   width: 100%;
 }
 
-.director-intro {
-  align-items: start;
-  column-gap: calc(4mm * var(--page-scale));
-  display: grid;
-  grid-template-columns: 38mm minmax(0, 1fr);
-  margin-bottom: calc(1.4mm * var(--page-scale));
-}
-
-.director-intro-copy {
-  display: flex;
-  flex-direction: column;
-  gap: calc(0.8mm * var(--page-scale));
-  min-width: 0;
-  padding-top: 0;
-}
-
 .director-page p {
   margin: 0 0 calc(2mm * var(--page-scale));
   text-align: justify;
@@ -3162,8 +3146,9 @@ button {
 
 .portrait {
   border-radius: 2px;
+  float: left;
   height: 38mm;
-  margin: 0.5mm 0 0;
+  margin: 0.5mm calc(4.5mm * var(--page-scale)) calc(1.5mm * var(--page-scale)) 0;
   object-fit: cover;
   object-position: center 18%;
   width: 38mm;
@@ -3171,10 +3156,6 @@ button {
 
 .dear-line {
   font-size: calc(10.5pt * var(--page-scale));
-  margin-bottom: 0 !important;
-}
-
-.director-first-paragraph {
   margin-bottom: 0 !important;
 }
 

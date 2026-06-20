@@ -264,9 +264,10 @@ function hasDirectorContent(paragraphs: string[] | undefined) {
   return (paragraphs || []).some((paragraph) => paragraph.trim());
 }
 
-function directorParagraphsForJournal(journal: Journal, draft: BinderDraft) {
-  const defaults = effectiveDirectorDesk(journal).paragraphs;
-  return defaults.map((paragraph, index) => draft.directorParagraphs?.[index]?.trim() || paragraph);
+// Letter title + paragraphs are managed once in the Journal Setup form (the
+// journal record), not per-issue — so they read straight from the record.
+function directorParagraphsForJournal(journal: Journal) {
+  return effectiveDirectorDesk(journal).paragraphs;
 }
 
 function defaultManagementHead(): ManagementPerson {
@@ -1451,29 +1452,24 @@ function applyBinderTokens(text: string, journal: Journal, draft: BinderDraft, e
 }
 
 function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
-  const paragraphs = directorParagraphsForJournal(journal, draft).filter((paragraph) => paragraph.trim());
+  const paragraphs = directorParagraphsForJournal(journal).filter((paragraph) => paragraph.trim());
   const pageScale = pageDensityScale(paragraphs.join(" ").length, 3600);
 
   return (
     <section className="pdf-page director-page" data-export-group="internal" style={pageStyle(pageScale)}>
       <div className="page-rule" />
-      <h1>{draft.directorTitle}</h1>
+      <h1>{effectiveDirectorDesk(journal).title}</h1>
       <div className="director-letter">
-        <div className="director-intro">
-          <Image
-            className="portrait"
-            src={draft.directorPhotoImage || journal.directorPhoto || logoAssets.director.src}
-            alt={logoAssets.director.alt}
-            width={logoAssets.director.width}
-            height={logoAssets.director.height}
-            unoptimized
-          />
-          <div className="director-intro-copy">
-            <p className="dear-line"><b>Dear Readers,</b></p>
-            <p className="director-first-paragraph">{applyBinderTokens(paragraphs[0] ?? "", journal, draft)}</p>
-          </div>
-        </div>
-        {paragraphs.slice(1).map((paragraph, index) => (
+        <Image
+          className="portrait"
+          src={draft.directorPhotoImage || journal.directorPhoto || logoAssets.director.src}
+          alt={logoAssets.director.alt}
+          width={logoAssets.director.width}
+          height={logoAssets.director.height}
+          unoptimized
+        />
+        <p className="dear-line"><b>Dear Readers,</b></p>
+        {paragraphs.map((paragraph, index) => (
           <p key={index}>{applyBinderTokens(paragraph, journal, draft)}</p>
         ))}
       </div>
@@ -1673,7 +1669,7 @@ const PAGE_RECORD_FIELDS: Record<number, (keyof BinderDraft)[]> = {
   5: ["managementHeads", "managementMembers", "dispatchContactName", "dispatchContactPhone", "dispatchContactEmail", "salesContactName", "salesContactPhone", "salesContactEmail"],
   6: ["manuscriptNotice"],
   7: ["editorialBoard"],
-  8: ["directorTitle", "directorName", "directorRole", "directorParagraphs", "directorPhotoImage", "directorSignatureImage"],
+  8: ["directorName", "directorRole", "directorPhotoImage", "directorSignatureImage"],
 };
 
 function recordFieldValue(draft: BinderDraft, field: keyof BinderDraft) {
@@ -1731,7 +1727,6 @@ function SectionEditor({
   const hasDetails = apiKeys.some((key) => dynamicData.detailsByKey[key]);
   const hasFocus = apiKeys.some((key) => dynamicData.focusByKey[key]);
   const hasEditorial = apiKeys.some((key) => dynamicData.editorialByKey[key]);
-  const directorParagraphs = directorParagraphsForJournal(journal, draft);
   const [uploadError, setUploadError] = useState("");
 
   // "Record baseline": the draft as it would be built purely from the journal
@@ -1794,15 +1789,6 @@ function SectionEditor({
 
   function useSampleEditorialBoard() {
     onChange({ ...draft, editorialBoard: sampleEditorialBoard() });
-  }
-
-  function updateParagraph(index: number, value: string) {
-    onChange({
-      ...draft,
-      directorParagraphs: directorParagraphs.map((paragraph, paragraphIndex) =>
-        paragraphIndex === index ? value : paragraph,
-      ),
-    });
   }
 
   function updateManagementHead(index: number, patch: Partial<ManagementPerson>) {
@@ -2116,7 +2102,7 @@ function SectionEditor({
             </div>
           </div>
           <div className="editor-note">
-            The cover footer shows two logos: left = publisher logo (from the Publisher record), right = journal logo (from the journal's Logo URL). Override per-issue here, or leave blank to use those record defaults.
+            The cover footer shows two logos: left = publisher logo (from the Publisher record), right = journal logo (from the journal&apos;s Logo URL). Override per-issue here, or leave blank to use those record defaults.
           </div>
           <div className="final-export-actions">
             <DownloadButton
@@ -2390,13 +2376,10 @@ function SectionEditor({
       {activePage === 8 ? (
         <>
           <div className="editor-note">
-            The Director&apos;s Desk keeps the default paragraph set by default. Edit any paragraph below to replace only that paragraph.
-            Use <code>{"{journal}"}</code>, <code>{"{volume}"}</code>, <code>{"{issue}"}</code>, <code>{"{year}"}</code>, <code>{"{domain}"}</code>, <code>{"{publisher}"}</code> — they are filled in automatically.
+            The letter <b>title and paragraphs</b> are managed once in the journal&apos;s{" "}
+            <a href={`/journals/${journal.id}/edit`} className="board-team-link">Setup (Director&apos;s Desk letter)</a>{" "}
+            and apply to every issue. The director&apos;s name, role, photo and signature below can still be set per issue.
           </div>
-          <label>
-            <span>Director desk letter title</span>
-            <input value={draft.directorTitle} onChange={(event) => onChange({ ...draft, directorTitle: event.target.value })} />
-          </label>
           {profiles.length > 0 ? (
             <label>
               <span>Fill director from a saved profile</span>
@@ -2448,17 +2431,6 @@ function SectionEditor({
               Reset photo &amp; signature to default
             </button>
           ) : null}
-          <div className="editor-row-head">
-            <span>Letter body paragraphs</span>
-          </div>
-          {directorParagraphs.map((paragraph, index) => (
-            <article key={index} className="content-edit-card">
-              <div className="editor-row-head">
-                <span>Paragraph {index + 1}</span>
-              </div>
-              <textarea rows={4} value={paragraph} onChange={(event) => updateParagraph(index, event.target.value)} />
-            </article>
-          ))}
         </>
       ) : null}
       {activePage === 9 ? (
