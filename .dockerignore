@@ -11,3 +11,10 @@ yarn-error.log*
 *.tsbuildinfo
 coverage
 .vercel
+# Tests, docs and editor/agent files — not needed to build the image.
+**/*.test.ts
+**/*.test.tsx
+*.md
+.vscode
+.idea
+.claude
