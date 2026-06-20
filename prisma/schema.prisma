@@ -254,7 +254,6 @@ model Journal {
 
   impactFactor      String?
   indexing          String[]
-  indexingLogoUrl   String?
   codeN             String?
   startedSince      String?
   typeOfPublication String?

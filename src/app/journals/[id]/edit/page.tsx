@@ -64,7 +64,6 @@ export default async function EditJournalPage({ params }: { params: Promise<{ id
     coverFrontUrl: journal.coverFrontUrl ?? "",
     coverBackUrl: journal.coverBackUrl ?? "",
     logoUrl: journal.logoUrl ?? "",
-    indexingLogoUrl: journal.indexingLogoUrl ?? "",
     domainId: journal.domainId ?? "",
     publisherId: journal.publisherId ?? "",
     managerId: journal.managerId ?? "",

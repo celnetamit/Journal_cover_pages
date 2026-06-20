@@ -11,7 +11,6 @@ export type Journal = {
   abbreviation: string;
   shortName: string;
   website: string;
-  indexingLogo: string;
   logo: string;
   coverBack: string;
   journalLogo: string;
@@ -96,7 +95,6 @@ export function toLegacyJournal(j: DbJournal): Journal {
     abbreviation: j.abbreviation,
     shortName: s(j.shortName),
     website: s(j.website),
-    indexingLogo: s(j.indexingLogoUrl),
     logo: s(j.coverFrontUrl),
     coverBack: s(j.coverBackUrl),
     journalLogo: s(j.logoUrl),

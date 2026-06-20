@@ -255,7 +255,6 @@ async function seedJournals(subscriptionIds: Record<SubscriptionMode, string>) {
       doi: pick(row, "Journal DOI Number") || null,
       impactFactor: pick(row, "Impact Factor") || null,
       indexing: splitList(pick(row, "Indexing")),
-      indexingLogoUrl: pick(row, "Indexing Logo URL") || pick(row, "Indexing Logo Img") || null,
       codeN: pick(row, "CODEN") || null,
       startedSince: pick(row, "Started Since") || null,
       typeOfPublication: pick(row, "Type of Publication") || null,

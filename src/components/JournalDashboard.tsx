@@ -289,8 +289,8 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     icv: journal.icv.replace(/^ICV\s*:\s*/i, "") || "62.07",
     coverImage: defaultCoverImage(journal),
     backCoverImage: journal.coverBack ? proxiedImage(journal.coverBack) : defaultBackCoverImage(),
-    journalLogoImage: proxiedImage(journal.publisherLogo || journal.journalLogo),
-    footerRightLogoImage: proxiedImage(journal.indexingLogo),
+    journalLogoImage: proxiedImage(journal.publisherLogo),
+    footerRightLogoImage: proxiedImage(journal.journalLogo),
     frontCoverLayout: defaultFrontCoverLayout,
     frontCoverLayoutCustomized: false,
     pageLayouts: defaultBinderPageLayouts,
@@ -364,8 +364,8 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
     icv: draft.icv ?? journal.icv.replace(/^ICV\s*:\s*/i, "") ?? "",
     coverImage: draft.coverImage && draft.coverImage !== journal.logo ? draft.coverImage : defaultCoverImage(journal),
     backCoverImage: draft.backCoverImage || (journal.coverBack ? proxiedImage(journal.coverBack) : defaultBackCoverImage()),
-    journalLogoImage: draft.journalLogoImage || proxiedImage(journal.publisherLogo || journal.journalLogo),
-    footerRightLogoImage: draft.footerRightLogoImage || proxiedImage(journal.indexingLogo),
+    journalLogoImage: draft.journalLogoImage || proxiedImage(journal.publisherLogo),
+    footerRightLogoImage: draft.footerRightLogoImage || proxiedImage(journal.journalLogo),
     frontCoverLayout: draft.frontCoverLayoutCustomized
       ? normalizeFrontCoverLayout(draft.frontCoverLayout)
       : defaultFrontCoverLayout,
@@ -2083,7 +2083,7 @@ function SectionEditor({
           <small className="field-hint">Full-page back / digital-library artwork shown as-is (no overlay), portrait A4 ratio (≈1240×1754px or larger). JPG or PNG.</small>
           <div className="two-field-grid logo-input-grid">
             <div className="logo-input-section">
-              <strong>Bottom-left cover logo (publisher mark)</strong>
+              <strong>Bottom-left cover logo (publisher logo)</strong>
               <label className="file-field">
                 <span>Upload bottom-left logo</span>
                 <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (journalLogoImage) => onChange({ ...draft, journalLogoImage }))} />
@@ -2096,10 +2096,10 @@ function SectionEditor({
                 />
               </label>
               <LogoThumb src={draft.journalLogoImage} label="Bottom-left logo" />
-              <small className="field-hint">Publisher mark. PNG with a transparent background, landscape or square, ≥ 300px.</small>
+              <small className="field-hint">Publisher logo (defaults from the Publisher record). PNG with a transparent background, landscape or square, ≥ 300px.</small>
             </div>
             <div className="logo-input-section">
-              <strong>Bottom-right cover logo (excellence / award)</strong>
+              <strong>Bottom-right cover logo (journal logo)</strong>
               <label className="file-field">
                 <span>Upload bottom-right logo</span>
                 <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (footerRightLogoImage) => onChange({ ...draft, footerRightLogoImage }))} />
@@ -2112,11 +2112,11 @@ function SectionEditor({
                 />
               </label>
               <LogoThumb src={draft.footerRightLogoImage} label="Bottom-right logo" />
-              <small className="field-hint">Indexing / award badge. PNG with a transparent background, landscape or square, ≥ 300px.</small>
+              <small className="field-hint">Journal logo (defaults from the journal&apos;s Logo URL). PNG with a transparent background, landscape or square, ≥ 300px.</small>
             </div>
           </div>
           <div className="editor-note">
-            Both bottom cover-footer logo slots are blank by default. Add a logo here only when you want it shown in the cover footer (left = publisher mark, right = excellence/award badge).
+            The cover footer shows two logos: left = publisher logo (from the Publisher record), right = journal logo (from the journal's Logo URL). Override per-issue here, or leave blank to use those record defaults.
           </div>
           <div className="final-export-actions">
             <DownloadButton

@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import type { JournalActionState } from "@/app/actions/journals";
+import { ImageField } from "@/components/forms/Fields";
 
 export type JournalFormValues = {
   name: string;
@@ -30,7 +31,6 @@ export type JournalFormValues = {
   coverFrontUrl: string;
   coverBackUrl: string;
   logoUrl: string;
-  indexingLogoUrl: string;
   domainId: string;
   publisherId: string;
   managerId: string;
@@ -143,10 +143,9 @@ export default function JournalForm({
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Text name="coverFrontUrl" label="Front cover image URL" defaultValue={v.coverFrontUrl} hint="Portrait A4 background (≈1240×1754px), fills the panel center-cropped. The top ~28% (title/issue/ISSN band) and bottom ~13% (footer logos) render on top — keep the key artwork in the centre." />
-        <Text name="coverBackUrl" label="Back cover image URL" defaultValue={v.coverBackUrl} hint="Full-page back cover artwork shown as-is (no overlay), portrait A4 ratio (≈1240×1754px or larger). JPG or PNG." />
-        <Text name="logoUrl" label="Journal logo URL" defaultValue={v.logoUrl} hint="Journal mark/logo. PNG with a transparent background, ≥ 400px. Used on the cover." />
-        <Text name="indexingLogoUrl" label="Indexing logo URL" defaultValue={v.indexingLogoUrl} hint="Indexing/award badge for the cover footer. Transparent PNG, landscape or square, ≥ 300px." />
+        <ImageField name="coverFrontUrl" label="Front cover image" defaultValue={v.coverFrontUrl} hint="Portrait A4 background (≈1240×1754px), fills the panel center-cropped. The top ~28% (title/issue/ISSN band) and bottom ~13% (footer logos) render on top — keep the key artwork in the centre." />
+        <ImageField name="coverBackUrl" label="Back cover image" defaultValue={v.coverBackUrl} hint="Full-page back cover artwork shown as-is (no overlay), portrait A4 ratio (≈1240×1754px or larger). JPG or PNG." />
+        <ImageField name="logoUrl" label="Journal logo" defaultValue={v.logoUrl} hint="Journal mark/logo, shown on the cover (bottom-right). PNG with a transparent background, ≥ 400px." />
       </section>
 
       <section className="space-y-4">
