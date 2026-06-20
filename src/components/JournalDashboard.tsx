@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { createContext, startTransition, useContext, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { createContext, startTransition, useContext, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
 import {
   ArrowLeft,
@@ -37,7 +37,6 @@ import {
   type ContentRow,
   boardMembers,
   contents,
-  focusList,
   objectives,
   salientFeatures,
   lawObjectives,
@@ -50,6 +49,7 @@ import {
   defaultDirectorParagraphs,
   lawDirectorParagraphs,
   defaultFocusNotes,
+  defaultAboutNotes,
   defaultManuscriptNotice,
   defaultManuscriptEngine,
   type ManuscriptEngineSettings,
@@ -92,6 +92,9 @@ const LegalContext = createContext<Record<string, LegalInfo>>({});
 // Shared Manuscript-page content (same for every journal), provided via context.
 const ManuscriptContext = createContext<ManuscriptEngineSettings>(defaultManuscriptEngine);
 
+// Shared About-page closing paragraphs (same for every journal), via context.
+const AboutNotesContext = createContext<string[]>(defaultAboutNotes);
+
 type Props = {
   journals: Journal[];
   defaultJournalId: string;
@@ -101,6 +104,7 @@ type Props = {
   profiles: ProfilePick[];
   legalData: Record<string, LegalInfo>;
   manuscriptEngine: ManuscriptEngineSettings;
+  aboutNotes: string[];
 };
 
 
@@ -194,14 +198,10 @@ function normalizeScopePhrase(value: string): string {
   return value.replace(/^[^a-z0-9]+/i, "").replace(/\s+/g, " ").trim();
 }
 
-function focusKeywords(focus: { keywords?: string[]; focusScope?: string[] } | undefined, fallback: string[]) {
-  const scope = (focus?.focusScope || []).map(normalizeScopePhrase).filter(Boolean);
-  if (scope.length > 0) return scope;
-
-  const keywords = (focus?.keywords || []).map(normalizeScopePhrase).filter(Boolean);
-  if (keywords.length > 0) return keywords;
-
-  return fallback.map(normalizeScopePhrase).filter(Boolean);
+// Focus & Scope comes from the journal entry only — its own focusScope field.
+// No keyword substitution or built-in defaults: an empty record shows nothing.
+function journalFocusScope(focus: { focusScope?: string[] } | undefined) {
+  return (focus?.focusScope || []).map(normalizeScopePhrase).filter(Boolean);
 }
 
 function normalizeFocusScopeInput(value: string) {
@@ -213,23 +213,14 @@ function normalizeFocusScopeInput(value: string) {
 }
 
 function focusScopeItemsForPage(draft: BinderDraft) {
-  const draftItems = (draft.focusScope || [])
-    .map(normalizeScopePhrase)
-    .filter(Boolean);
-  const fallbackItems = focusList.map(normalizeScopePhrase).filter(Boolean);
+  // Render exactly what the journal entry supplies (via the draft, which mirrors
+  // the record) — deduped and capped. No built-in default padding.
   const merged: string[] = [];
-
-  for (const item of draftItems) {
-    if (!merged.includes(item)) merged.push(item);
-    if (merged.length >= maxFocusScopeKeywords) return merged.slice(0, maxFocusScopeKeywords);
-  }
-
-  for (const item of fallbackItems) {
+  for (const item of (draft.focusScope || []).map(normalizeScopePhrase).filter(Boolean)) {
     if (!merged.includes(item)) merged.push(item);
     if (merged.length >= maxFocusScopeKeywords) break;
   }
-
-  return merged.slice(0, maxFocusScopeKeywords);
+  return merged;
 }
 
 function defaultDirectorDesk(journal: Journal) {
@@ -309,7 +300,7 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     issueMonthRange: defaultIssueMonthRange,
     issueYear: defaultIssueYear,
     about: focus?.about || details?.about || journal.about || "",
-    focusScope: focusKeywords(focus, focusList),
+    focusScope: journalFocusScope(focus),
     focusNotes: journal.focusNotes.length ? journal.focusNotes : defaultFocusNotes,
     editorialBoard,
     managementHeads: management?.heads?.length ? management.heads : [defaultManagementHead()],
@@ -398,7 +389,7 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
     ? {
         ...hydratedDraft,
         about: focus.about || hydratedDraft.about,
-        focusScope: focusKeywords(focus, hydratedDraft.focusScope),
+        focusScope: journalFocusScope(focus),
       }
     : hydratedDraft;
   const fallbackFocusNotes = journal.focusNotes.length ? journal.focusNotes : defaultFocusNotes;
@@ -590,54 +581,23 @@ function LogoThumb({ src, label }: { src: string; label: string }) {
   );
 }
 
-function JournalLogo({ journal }: { journal: Journal }) {
-  return (
-    <div className="journal-logo">
-      {journal.logo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={journal.logo} alt={`${journal.name} logo`} crossOrigin="anonymous" />
-      ) : (
-        <span>{initials(journal.abbreviation || journal.name)}</span>
-      )}
-    </div>
-  );
-}
-
 function PageNumber({ value }: { value: number }) {
   return (
     <span className="page-number">{lowerRoman(value)}</span>
   );
 }
 
-function PdfHeader({
-  journal,
-  label,
-  showLogo = true,
-  showLabel = true,
-}: {
-  journal: Journal;
-  label: string;
-  showLogo?: boolean;
-  showLabel?: boolean;
-}) {
+// Shared top section for the inner content pages (About, Manuscript, Editorial,
+// Contents) so the publisher logo + journal title read identically on each. An
+// optional per-page subtitle sits on the line below the title.
+function PageMasthead({ journal, subtitle }: { journal: Journal; subtitle?: string }) {
+  const identity = publisherIdentity(journal);
   return (
-    <header className="pdf-header">
-      {showLogo ? <JournalLogo journal={journal} /> : <div aria-hidden="true" />}
-      <div>
-        <p>{journal.publisher || "MBA Journals"}</p>
-        <h2>{titleCaseName(journal.name)}</h2>
-      </div>
-      {showLabel ? <span>{label}</span> : <div aria-hidden="true" />}
-    </header>
-  );
-}
-
-function ContentHeader({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
-  return (
-    <header className="content-header">
-      <div>
-        <h2>{titleCaseName(journal.name)}</h2>
-        <p>Volume {draft.issueVolume || defaultIssueVolume} | Issue {draft.issueNumber || defaultIssueNumber} | {(draft.issueMonthRange || defaultIssueMonthRange).replace("-", "–")}</p>
+    <header className="page-masthead">
+      <PublisherLogo mode={identity.logoMode} side="publisher" src={proxiedImage(journal.publisherLogo)} />
+      <div className="page-masthead-text">
+        <div className="page-masthead-title">{titleCaseName(journal.name)}</div>
+        {subtitle ? <div className="page-masthead-sub">{subtitle}</div> : null}
       </div>
     </header>
   );
@@ -915,9 +875,10 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
   const publisherName = legal?.publisherName || identity.publisherName;
   const companyName = legal?.companyName || identity.companyName;
   const address = draft.publisherAddress || legal?.salesAddress || legal?.registeredAddress || identity.address;
-  const phone = draft.publisherPhone || legal?.phone || identity.phone;
-  const email = draft.publisherEmail || legal?.email || identity.email;
-  const website = draft.publisherWebsite || legal?.website || identity.website;
+  // Title-page contact details come from the Publisher record (not the Company).
+  const phone = draft.publisherPhone || legal?.publisherPhone || identity.phone;
+  const email = draft.publisherEmail || legal?.publisherEmail || identity.email;
+  const website = draft.publisherWebsite || legal?.publisherWebsite || identity.website;
   const registeredOffice = draft.registeredOffice || legal?.registeredAddress || defaultRegisteredOffice;
   const cin = draft.cin || legal?.cin || defaultCin;
   const gst = legal?.gst;
@@ -1202,7 +1163,11 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
   const identity = publisherIdentity(journal);
   const isLaw = identity.logoMode === "law";
   const scopeItems = focusScopeItemsForPage(draft);
-  const focusNotes = draft.focusNotes?.length ? draft.focusNotes : defaultFocusNotes;
+  // Closing paragraphs are a single shared block (admin-edited), rendered for
+  // every journal with {journal}/{publisher}/{email} filled in per-journal.
+  const aboutNotes = useContext(AboutNotesContext);
+  const legal = useContext(LegalContext)[journal.id];
+  const publisherEmail = legal?.publisherEmail || identity.email;
   const aboutText = draft.about || journal.about;
   // Objectives + salient features come from the journal record (Setup), falling
   // back to the built-in per-brand lists when the journal leaves them blank.
@@ -1212,16 +1177,13 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
   // otherwise the built-in imprint blurb below is used.
   const publisherAbout = journal.publisherAbout?.trim();
   const pageScale = pageDensityScale(
-    [publisherAbout ?? "", aboutText, ...scopeItems, ...focusNotes].join(" ").length,
+    [publisherAbout ?? "", aboutText, ...scopeItems, ...aboutNotes].join(" ").length,
     2350,
   );
 
   return (
     <section className="pdf-page journal-info-page" data-export-group="internal" style={pageStyle(pageScale)}>
-      <div className="journal-info-head">
-        <PublisherLogo mode={identity.logoMode} side="publisher" src={proxiedImage(journal.publisherLogo)} />
-        <h1>{titleCaseName(journal.name)}</h1>
-      </div>
+      <PageMasthead journal={journal} />
       {publisherAbout ? (
         <p>
           <b>{identity.publisherName}</b> {publisherAbout}
@@ -1252,18 +1214,22 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
           {salientItems.map((item) => <li key={item}>{item}</li>)}
         </ul>
       </section>
-      <p className="journal-focus-intro">
-        <b>{journal.name.toUpperCase()}</b>, is focused towards the rapid publication in the following areas.
-      </p>
-      <section>
-        <h2>Focus and Scope</h2>
-        <ul className="focus-list">
-          {scopeItems.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
-        </ul>
-      </section>
+      {scopeItems.length > 0 ? (
+        <>
+          <p className="journal-focus-intro">
+            <b>{journal.name.toUpperCase()}</b>, is focused towards the rapid publication in the following areas.
+          </p>
+          <section>
+            <h2>Focus and Scope</h2>
+            <ul className="focus-list">
+              {scopeItems.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+            </ul>
+          </section>
+        </>
+      ) : null}
       <div>
-        {focusNotes.map((note, index) => (
-          <p key={index}>{applyBinderTokens(note, journal, draft)}</p>
+        {aboutNotes.map((note, index) => (
+          <p key={index}>{applyBinderTokens(note, journal, draft, publisherEmail)}</p>
         ))}
       </div>
       <PageNumber value={3} />
@@ -1357,6 +1323,10 @@ function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: Bin
   // Manuscript-engine settings; the QR + URL + notice are per-journal.
   const engine = useContext(ManuscriptContext);
   const engineLogo = proxiedImage(engine.logoUrl);
+  // The closing notice is static text, but its {email} renders the publisher email.
+  const legal = useContext(LegalContext)[journal.id];
+  const publisherEmail = legal?.publisherEmail || publisherIdentity(journal).email;
+  const manuscriptNotice = applyBinderTokens(draft.manuscriptNotice, journal, draft, publisherEmail);
   // The QR encodes the journal's manuscript-submission URL (falling back to the
   // journal website); the printed link shows the journal website.
   const submissionUrl = journal.manuscriptUrl?.trim() || journal.website?.trim() || "";
@@ -1365,12 +1335,12 @@ function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: Bin
     ? `/api/qr?data=${encodeURIComponent(submissionUrl)}`
     : logoAssets.manuscriptQr.src;
   const pageScale = pageDensityScale(
-    `${url} ${engine.leadText} ${engine.steps.join(" ")} ${draft.manuscriptNotice}`.length,
+    `${url} ${engine.leadText} ${engine.steps.join(" ")} ${manuscriptNotice}`.length,
     340,
   );
   return (
     <section className="pdf-page details-page manuscript-page" data-export-group="internal" style={pageStyle(pageScale)}>
-      <PdfHeader journal={journal} label="Manuscript Engine" showLogo={false} showLabel={false} />
+      <PageMasthead journal={journal} />
       <div className="manuscript-head">
         {engineLogo ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -1391,7 +1361,7 @@ function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: Bin
         </ol>
       </div>
       <p className="url-line">{url}</p>
-      <p className="manuscript-notice">{draft.manuscriptNotice}</p>
+      <p className="manuscript-notice">{manuscriptNotice}</p>
       <PageNumber value={5} />
     </section>
   );
@@ -1433,9 +1403,7 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
 
   return (
     <section className="pdf-page editorial-page" data-export-group="internal" style={pageStyle(pageScale)}>
-      <div className="page-rule" />
-      <h1>{titleCaseName(journal.name)}</h1>
-      <h2>Editorial Board Members</h2>
+      <PageMasthead journal={journal} subtitle="Editorial Board Members" />
       {members.length === 0 ? <p className="editorial-empty">No editorial board members have been added for this journal yet.</p> : null}
       {groups.map((group) => {
         // The Editor-in-Chief (one per journal) is centered rather than placed in
@@ -1471,14 +1439,15 @@ function ordinalWord(value: string): string {
 }
 
 // Tokens usable in director-desk + focus-note text, filled from the journal/issue.
-function applyBinderTokens(text: string, journal: Journal, draft: BinderDraft): string {
+function applyBinderTokens(text: string, journal: Journal, draft: BinderDraft, email?: string): string {
   return text
     .replaceAll("{journal}", titleCaseName(journal.name))
     .replaceAll("{volume}", ordinalWord(draft.issueVolume || defaultIssueVolume))
     .replaceAll("{issue}", draft.issueNumber || defaultIssueNumber)
     .replaceAll("{year}", draft.issueYear || defaultIssueYear)
     .replaceAll("{domain}", journal.domain || "")
-    .replaceAll("{publisher}", publisherIdentity(journal).publisherName);
+    .replaceAll("{publisher}", publisherIdentity(journal).publisherName)
+    .replaceAll("{email}", email || publisherIdentity(journal).email);
 }
 
 function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
@@ -1524,29 +1493,107 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
   );
 }
 
+// Contents is the last page in the binder, so a long article list spills onto
+// additional pages instead of overflowing/clipping one fixed-height page.
+const CONTENT_FIRST_PAGE_NUMBER = 8;
+
+function ContentRowCells({ row }: { row: ContentRow }) {
+  return (
+    <>
+      <td><b>{row.title}</b><span>{row.author}</span></td>
+      <td>{row.page}</td>
+    </>
+  );
+}
+
+// Measure the rendered rows in a hidden full-width clone and break to a new page
+// the moment the current one fills — so long/wrapping titles never get clipped.
+function paginateContentByHeight(container: HTMLElement, rows: ContentRow[]): ContentRow[][] {
+  const pageEl = container.querySelector<HTMLElement>(".content-page");
+  const rowEls = Array.from(container.querySelectorAll<HTMLElement>("tbody tr"));
+  if (!pageEl || rowEls.length !== rows.length) return [rows];
+
+  const outer = (el: HTMLElement | null) => {
+    if (!el) return 0;
+    const s = getComputedStyle(el);
+    return el.offsetHeight + parseFloat(s.marginTop) + parseFloat(s.marginBottom);
+  };
+  const ps = getComputedStyle(pageEl);
+  const contentHeight = pageEl.clientHeight - parseFloat(ps.paddingTop) - parseFloat(ps.paddingBottom);
+  // Reserve the per-page header + title; the page number is absolutely positioned
+  // in the bottom padding, so it's already outside the content box.
+  const available = contentHeight
+    - outer(container.querySelector<HTMLElement>(".page-masthead"))
+    - outer(container.querySelector<HTMLElement>("h1"))
+    - 4; // small safety against sub-pixel rounding
+
+  const pages: ContentRow[][] = [];
+  let current: ContentRow[] = [];
+  let used = 0;
+  rowEls.forEach((el, i) => {
+    const h = el.offsetHeight;
+    if (current.length > 0 && used + h > available) {
+      pages.push(current);
+      current = [];
+      used = 0;
+    }
+    current.push(rows[i]);
+    used += h;
+  });
+  if (current.length > 0) pages.push(current);
+  return pages.length ? pages : [[]];
+}
+
 function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const rows = draft.contentRows.length ? draft.contentRows : contents;
-  const pageScale = pageDensityScale(
-    rows.map((row) => `${row.title} ${row.author} ${row.page}`).join(" ").length,
-    1600,
-  );
+  const issueLine = `Volume ${draft.issueVolume || defaultIssueVolume} | Issue ${draft.issueNumber || defaultIssueNumber} | ${(draft.issueMonthRange || defaultIssueMonthRange).replace("-", "–")}`;
+  const rowsKey = rows.map((row) => `${row.title}|${row.author}|${row.page}`).join("\n");
+  const measureRef = useRef<HTMLDivElement>(null);
+  const [chunks, setChunks] = useState<ContentRow[][]>([rows]);
+
+  useEffect(() => {
+    if (measureRef.current) setChunks(paginateContentByHeight(measureRef.current, rows));
+    // rowsKey captures every row change; rows is derived from it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowsKey]);
 
   return (
-    <section className="pdf-page content-page" data-export-group="internal" style={pageStyle(pageScale)}>
-      <ContentHeader journal={journal} draft={draft} />
-      <h1>Contents</h1>
-      <table className="contents-table">
-        <tbody>
-          {rows.map((row, index) => (
-            <tr key={`${row.title}-${index}`}>
-              <td><b>{row.title}</b><span>{row.author}</span></td>
-              <td>{row.page}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <PageNumber value={8} />
-    </section>
+    <>
+      {/* Hidden measuring clone — lays out every row at full page width. Excluded
+          from export (no data-export-group) and from view (visibility:hidden). */}
+      <div
+        ref={measureRef}
+        aria-hidden="true"
+        style={{ position: "absolute", left: -99999, top: 0, visibility: "hidden", pointerEvents: "none" }}
+      >
+        <section className="pdf-page content-page">
+          <PageMasthead journal={journal} subtitle={issueLine} />
+          <h1>Contents</h1>
+          <table className="contents-table">
+            <tbody>
+              {rows.map((row, index) => <tr key={index}><ContentRowCells row={row} /></tr>)}
+            </tbody>
+          </table>
+        </section>
+      </div>
+
+      {chunks.map((pageRows, pageIndex) => (
+        <section
+          key={pageIndex}
+          className="pdf-page content-page"
+          data-export-group="internal"
+        >
+          <PageMasthead journal={journal} subtitle={issueLine} />
+          <h1>{pageIndex === 0 ? "Contents" : "Contents (continued)"}</h1>
+          <table className="contents-table">
+            <tbody>
+              {pageRows.map((row, index) => <tr key={`${row.title}-${index}`}><ContentRowCells row={row} /></tr>)}
+            </tbody>
+          </table>
+          <PageNumber value={CONTENT_FIRST_PAGE_NUMBER + pageIndex} />
+        </section>
+      ))}
+    </>
   );
 }
 
@@ -1622,7 +1669,7 @@ function PageSet({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
 // Issue meta (volume/issue/year/month) is inherently per-issue, so it's excluded.
 const PAGE_RECORD_FIELDS: Record<number, (keyof BinderDraft)[]> = {
   1: ["journalTitle", "journalAbbreviation", "eIssn", "sjif", "icv", "coverImage", "backCoverImage", "journalLogoImage", "footerRightLogoImage", "journalWebsite"],
-  4: ["about", "focusScope", "focusNotes"],
+  4: ["about", "focusScope"],
   5: ["managementHeads", "managementMembers", "dispatchContactName", "dispatchContactPhone", "dispatchContactEmail", "salesContactName", "salesContactPhone", "salesContactEmail"],
   6: ["manuscriptNotice"],
   7: ["editorialBoard"],
@@ -1684,7 +1731,6 @@ function SectionEditor({
   const hasDetails = apiKeys.some((key) => dynamicData.detailsByKey[key]);
   const hasFocus = apiKeys.some((key) => dynamicData.focusByKey[key]);
   const hasEditorial = apiKeys.some((key) => dynamicData.editorialByKey[key]);
-  const focusNotes = draft.focusNotes?.length ? draft.focusNotes : defaultFocusNotes;
   const directorParagraphs = directorParagraphsForJournal(journal, draft);
   const [uploadError, setUploadError] = useState("");
 
@@ -1756,13 +1802,6 @@ function SectionEditor({
       directorParagraphs: directorParagraphs.map((paragraph, paragraphIndex) =>
         paragraphIndex === index ? value : paragraph,
       ),
-    });
-  }
-
-  function updateFocusNote(index: number, value: string) {
-    onChange({
-      ...draft,
-      focusNotes: focusNotes.map((note, noteIndex) => (noteIndex === index ? value : note)),
     });
   }
 
@@ -2028,6 +2067,7 @@ function SectionEditor({
             />
           </label>
           <LogoThumb src={draft.coverImage} label="Front cover" />
+          <small className="field-hint">Portrait A4 background (≈1240×1754px), fills the panel center-cropped. The top ~28% (title/issue/ISSN band) and bottom ~13% (footer logos) are rendered on top — keep the key artwork in the centre.</small>
           <label className="file-field">
             <span>Upload back cover image</span>
             <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (backCoverImage) => onChange({ ...draft, backCoverImage }))} />
@@ -2040,6 +2080,7 @@ function SectionEditor({
             />
           </label>
           <LogoThumb src={draft.backCoverImage} label="Back cover" />
+          <small className="field-hint">Full-page back / digital-library artwork shown as-is (no overlay), portrait A4 ratio (≈1240×1754px or larger). JPG or PNG.</small>
           <div className="two-field-grid logo-input-grid">
             <div className="logo-input-section">
               <strong>Bottom-left cover logo (publisher mark)</strong>
@@ -2055,6 +2096,7 @@ function SectionEditor({
                 />
               </label>
               <LogoThumb src={draft.journalLogoImage} label="Bottom-left logo" />
+              <small className="field-hint">Publisher mark. PNG with a transparent background, landscape or square, ≥ 300px.</small>
             </div>
             <div className="logo-input-section">
               <strong>Bottom-right cover logo (excellence / award)</strong>
@@ -2070,6 +2112,7 @@ function SectionEditor({
                 />
               </label>
               <LogoThumb src={draft.footerRightLogoImage} label="Bottom-right logo" />
+              <small className="field-hint">Indexing / award badge. PNG with a transparent background, landscape or square, ≥ 300px.</small>
             </div>
           </div>
           <div className="editor-note">
@@ -2183,14 +2226,10 @@ function SectionEditor({
             <span>Additional focus and scope text</span>
           </div>
           <div className="editor-note">
-            Use <code>{"{publisher}"}</code> for the publisher name and <code>{"{journal}"}</code> for the journal title — they are filled in automatically.
+            The closing paragraphs are now a single shared block for every journal —{" "}
+            <a href="/admin/about-notes" className="board-team-link">edit them in About notes</a>. Tokens{" "}
+            <code>{"{journal}"}</code>, <code>{"{publisher}"}</code> and <code>{"{email}"}</code> are filled in automatically per journal.
           </div>
-          {focusNotes.map((note, index) => (
-            <label key={index}>
-              <span>Note paragraph {index + 1}</span>
-              <textarea rows={index === 3 ? 7 : 4} value={note} onChange={(event) => updateFocusNote(index, event.target.value)} />
-            </label>
-          ))}
         </>
       ) : null}
       {activePage === 5 ? (
@@ -2300,6 +2339,9 @@ function SectionEditor({
               onChange={(event) => onChange({ ...draft, manuscriptNotice: event.target.value })}
             />
           </label>
+          <div className="editor-note">
+            Use <code>{"{email}"}</code> for the publisher email — it is filled in automatically.
+          </div>
         </>
       ) : null}
       {activePage === 7 ? (
@@ -2469,7 +2511,7 @@ function SectionEditor({
   );
 }
 
-export default function JournalDashboard({ journals, defaultJournalId, dynamicData, serverDrafts, canEdit, profiles, legalData, manuscriptEngine }: Props) {
+export default function JournalDashboard({ journals, defaultJournalId, dynamicData, serverDrafts, canEdit, profiles, legalData, manuscriptEngine, aboutNotes }: Props) {
   const [selectedId, setSelectedId] = useState(defaultJournalId);
   const [drafts, setDrafts] = useState<Record<string, BinderDraft>>(() => initialDrafts(journals, dynamicData, serverDrafts));
   const [updatedAtById, setUpdatedAtById] = useState<Record<string, string>>(() =>
@@ -2881,6 +2923,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   return (
     <LegalContext.Provider value={legalData}>
     <ManuscriptContext.Provider value={manuscriptEngine}>
+    <AboutNotesContext.Provider value={aboutNotes}>
     <main className="app-shell">
       <aside className="dashboard-sidebar">
         <div className="dashboard-menu">
@@ -3131,6 +3174,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
         ) : null}
       </section>
     </main>
+    </AboutNotesContext.Provider>
     </ManuscriptContext.Provider>
     </LegalContext.Provider>
   );

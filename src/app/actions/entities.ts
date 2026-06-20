@@ -103,6 +103,7 @@ export async function createPublisher(_p: FormState, fd: FormData): Promise<Form
         about: nul(str(fd.get("about"))),
         email: nul(str(fd.get("email"))),
         phone: nul(str(fd.get("phone"))),
+        website: nul(str(fd.get("website"))),
         company: rel(str(fd.get("companyId"))),
       },
     });
@@ -128,6 +129,7 @@ export async function updatePublisher(id: string, _p: FormState, fd: FormData): 
         about: nul(str(fd.get("about"))),
         email: nul(str(fd.get("email"))),
         phone: nul(str(fd.get("phone"))),
+        website: nul(str(fd.get("website"))),
         company: relOrClear(str(fd.get("companyId"))),
       },
     });
@@ -348,6 +350,19 @@ export async function saveManuscriptEngine(_p: FormState, fd: FormData): Promise
   revalidatePath("/admin/manuscript-engine");
   revalidatePath("/");
   redirect("/admin/manuscript-engine");
+}
+
+export async function saveAboutNotes(_p: FormState, fd: FormData): Promise<FormState> {
+  await requireRole("EDITOR");
+  const data = { paragraphs: textLines(str(fd.get("paragraphs"))) };
+  await prisma.aboutNotes.upsert({
+    where: { id: "singleton" },
+    update: data,
+    create: { id: "singleton", ...data },
+  });
+  revalidatePath("/admin/about-notes");
+  revalidatePath("/");
+  redirect("/admin/about-notes");
 }
 
 export async function removeAllowedDomain(formData: FormData): Promise<void> {

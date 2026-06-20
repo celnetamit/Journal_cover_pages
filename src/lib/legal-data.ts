@@ -9,6 +9,7 @@ export type LegalInfo = {
   publisherName: string;
   publisherEmail: string;
   publisherPhone: string;
+  publisherWebsite: string;
   companyName: string;
   registeredAddress: string;
   salesAddress: string;
@@ -60,6 +61,7 @@ export async function getJournalLegalData(): Promise<Record<string, LegalInfo>> 
       publisherName: s(j.publisher?.name),
       publisherEmail: s(j.publisher?.email),
       publisherPhone: s(j.publisher?.phone),
+      publisherWebsite: s(j.publisher?.website),
       companyName: s(c?.name),
       registeredAddress: s(c?.registeredAddress),
       salesAddress: s(c?.salesAddress),

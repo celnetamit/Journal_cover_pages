@@ -121,10 +121,10 @@ export const ENTITY_SPECS: Record<EntityKey, Spec> = {
 
   publishers: {
     filename: "publishers.csv",
-    headers: ["name", "logoUrl", "about", "email", "phone", "company"],
+    headers: ["name", "logoUrl", "about", "email", "phone", "website", "company"],
     async exportRows() {
       const rows = await prisma.publisher.findMany({ orderBy: { name: "asc" }, include: { company: true } });
-      return rows.map((p) => [p.name, p.logoUrl ?? "", p.about ?? "", p.email ?? "", p.phone ?? "", p.company?.name ?? ""]);
+      return rows.map((p) => [p.name, p.logoUrl ?? "", p.about ?? "", p.email ?? "", p.phone ?? "", p.website ?? "", p.company?.name ?? ""]);
     },
     async importRecords(records) {
       const out = emptySummary();
@@ -133,7 +133,7 @@ export const ENTITY_SPECS: Record<EntityKey, Spec> = {
         const name = s(r.name);
         if (!name) { out.errors.push(`Row ${i + 2}: missing name`); out.skipped++; continue; }
         const companyId = r.company ? resolveCompany(r.company) : null;
-        const data = { name, logoUrl: nul(r.logoUrl), about: nul(r.about), email: nul(r.email), phone: nul(r.phone), companyId };
+        const data = { name, logoUrl: nul(r.logoUrl), about: nul(r.about), email: nul(r.email), phone: nul(r.phone), website: nul(r.website), companyId };
         const existing = await prisma.publisher.findUnique({ where: { name } });
         if (existing) { await prisma.publisher.update({ where: { name }, data }); out.updated++; }
         else { await prisma.publisher.create({ data }); out.created++; }

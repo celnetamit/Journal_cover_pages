@@ -532,8 +532,17 @@ export const defaultFocusNotes = [
   "To cite any of the material contained in this journal, in English or translation, please use the full English reference at the beginning of each article. To reuse any of the material, please contact {publisher}. The author(s) is/are solely responsible for the content of the article(s) published in the {publisher} platform. The published articles are not constituted or deemed to constitute any representation of view of the editors or publisher. The data presented therein are correct or sufficient to support the conclusions reached or that the experiment design or methodology is adequate and the information, opinions, views presented in the articles reflect the views of the authors and contributors of the article and not the opinion of publisher or the editorial board.",
 ];
 
+// Shared closing paragraphs for the About page. Edited once in /admin/about-notes
+// and rendered for every journal; {journal}/{publisher}/{email} are filled in.
+export const defaultAboutNotes = [
+  "Sections covered by this journal are review papers, research papers, interviews, news, companies/institutions write-ups, short popular articles and case studies.",
+  "All contributions to the journal are rigorously refereed and are selected on the basis of quality and originality of the work. The journal publishes the most significant new research papers or any other original contribution in the form of reviews and reports on new concepts in all areas pertaining to its scope and research being done in the world, thus ensuring its scientific priority and significance.",
+  "No part of this publication may be reproduced, stored in retrieval or transmitted in any form without written permission to the publisher.",
+  "To cite any of the material contained in this journal, in English or translation, please use the full English reference at the beginning of each article. To reuse any of the material, please contact {publisher} at {email}. The author(s) is/are solely responsible for the content of the article(s) published in the {publisher} platform. The published articles are not constituted or deemed to constitute any representation of view of the editors or publisher. The data presented therein are correct or sufficient to support the conclusions reached or that the experiment design or methodology is adequate and the information, opinions, views presented in the articles reflect the views of the authors and contributors of the article and not the opinion of publisher or the editorial board.",
+];
+
 export const defaultManuscriptNotice =
-  "Manuscript Engine is our specialized platform ensuring a seamless publication flow. Please don't hesitate to reach out to us for any inquiries regarding APID and manuscript submission. You can contact us at info@stmjournals.com.";
+  "Manuscript Engine is our specialized platform ensuring a seamless publication flow. Please don't hesitate to reach out to us for any inquiries regarding APID and manuscript submission. You can contact us at {email}.";
 
 // Shared content for the Manuscript page — the same engine for every journal,
 // edited once in /admin/manuscript-engine. Per-journal bits (QR URL, notice)

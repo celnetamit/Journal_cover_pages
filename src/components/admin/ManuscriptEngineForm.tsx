@@ -18,7 +18,12 @@ export default function ManuscriptEngineForm({ action, values, submitLabel }: {
   return (
     <EntityForm action={action} submitLabel={submitLabel} cancelHref="/admin">
       <Text name="heading" label="Heading" defaultValue={values?.heading} />
-      <ImageField name="logoUrl" label="Manuscript engine logo" defaultValue={values?.logoUrl} />
+      <ImageField
+        name="logoUrl"
+        label="Manuscript engine logo"
+        defaultValue={values?.logoUrl}
+        hint="Shown on the Manuscript page. Wide landscape PNG with a transparent background (or SVG), about 3:1. Recommended ≥ 700×260px, max ~2 MB."
+      />
       <Area name="leadText" label="Intro paragraph" defaultValue={values?.leadText} rows={3} />
       <Area name="steps" label="Submission steps (one per line)" defaultValue={values?.steps} rows={5} />
       <Text name="scanLabel" label="QR caption" defaultValue={values?.scanLabel} />

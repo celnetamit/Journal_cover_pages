@@ -25,6 +25,7 @@ export default async function AdminHubPage() {
     { href: "/admin/domains", title: "Domains", count: domains, desc: "Subject domains + manager" },
     { href: "/admin/subscriptions", title: "Subscriptions", count: subscriptions, desc: "Global plans + prices" },
     { href: "/admin/manuscript-engine", title: "Manuscript engine", count: null, desc: "Shared Manuscript-page content + logo" },
+    { href: "/admin/about-notes", title: "About notes", count: null, desc: "Shared About-page closing paragraphs" },
     ...(isAdmin(session.role) ? [{ href: "/admin/users", title: "Users", count: users, desc: "Login accounts & roles" }] : []),
     ...(isAdmin(session.role) ? [{ href: "/admin/auth-domains", title: "Sign-in domains", count: allowedDomains, desc: "Domains allowed for Google sign-in" }] : []),
   ];

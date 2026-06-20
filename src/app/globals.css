@@ -876,6 +876,15 @@ button {
   padding: 16px;
 }
 
+/* Compact per-field upload hint (image dimensions/format). */
+.field-hint {
+  color: #64748b;
+  display: block;
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 2px;
+}
+
 .editor-save-row,
 .final-export-actions {
   align-items: center;
@@ -1552,20 +1561,6 @@ button {
   width: 210mm;
 }
 
-/* All binder pages except the cover spread get a thin black frame. The frame's
-   bottom stops above the footer so the page number sits in the bottom margin,
-   outside the border. */
-.pdf-page:not(.cover-spread-page)::after {
-  border: 1px solid #000;
-  bottom: 14mm;
-  content: "";
-  left: 10mm;
-  pointer-events: none;
-  position: absolute;
-  right: 10mm;
-  top: 7mm;
-  z-index: 6;
-}
 
 .pdf-page.cover-spread-page {
   width: 431.8mm;
@@ -1952,8 +1947,8 @@ button {
   align-items: center;
   border-bottom: 1px solid #1e3855;
   display: grid;
-  gap: 12px;
-  grid-template-columns: 16mm 1fr auto;
+  gap: 6mm;
+  grid-template-columns: auto 1fr auto;
   margin-bottom: 12mm;
   padding-bottom: 6mm;
 }
@@ -1961,6 +1956,35 @@ button {
 .pdf-header .journal-logo {
   height: 16mm;
   width: 16mm;
+}
+
+/* The header publisher logo reuses the title-page component but must render
+   compact — override the per-brand min-size rules that size it for the cover. */
+.pdf-header .publisher-logo,
+.pdf-header .publisher-logo.image-logo,
+.pdf-header .publisher-logo.image-logo.stm-logo,
+.pdf-header .publisher-logo.image-logo.law-logo,
+.pdf-header .publisher-logo.image-logo.db-logo,
+.pdf-header .publisher-logo.image-logo.consortium-logo,
+.pdf-header .publisher-logo.image-logo.dhruv-logo,
+.pdf-header .publisher-logo.image-logo.journalspub-logo,
+.pdf-header .publisher-logo.image-logo.mba-logo {
+  align-self: center;
+  background: transparent;
+  flex-direction: row;
+  justify-content: flex-start;
+  min-height: 0;
+  min-width: 0;
+  overflow: visible;
+}
+
+.pdf-header .publisher-logo.image-logo img,
+.pdf-header .publisher-logo.image-logo.stm-logo img,
+.pdf-header .publisher-logo.image-logo.law-logo img,
+.pdf-header .publisher-logo.image-logo.db-logo img {
+  max-height: 12mm;
+  max-width: 28mm;
+  object-fit: contain;
 }
 
 .pdf-header p {
@@ -1985,6 +2009,67 @@ button {
   font-size: 8pt;
   font-weight: 700;
   padding: 2mm 4mm;
+}
+
+/* Unified top section for About / Manuscript / Editorial / Contents pages:
+   compact publisher logo on the left, journal title (+ optional subtitle). */
+.page-masthead {
+  align-items: center;
+  border-bottom: 1px solid #1e3855;
+  display: grid;
+  gap: calc(6mm * var(--page-scale));
+  grid-template-columns: auto 1fr;
+  margin-bottom: calc(8mm * var(--page-scale));
+  padding-bottom: calc(4mm * var(--page-scale));
+}
+
+.page-masthead-text {
+  min-width: 0;
+  text-align: left;
+}
+
+.page-masthead-title {
+  color: var(--blue);
+  font-size: calc(16pt * var(--page-scale));
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.page-masthead-sub {
+  color: var(--blue-dark);
+  font-size: calc(9.5pt * var(--page-scale));
+  font-weight: 700;
+  margin-top: calc(1.5mm * var(--page-scale));
+  text-transform: uppercase;
+}
+
+/* Reuse the title-page logo component but render it compact — override the
+   per-brand cover-sized min-dimensions. */
+.page-masthead .publisher-logo,
+.page-masthead .publisher-logo.image-logo,
+.page-masthead .publisher-logo.image-logo.stm-logo,
+.page-masthead .publisher-logo.image-logo.law-logo,
+.page-masthead .publisher-logo.image-logo.db-logo,
+.page-masthead .publisher-logo.image-logo.consortium-logo,
+.page-masthead .publisher-logo.image-logo.dhruv-logo,
+.page-masthead .publisher-logo.image-logo.journalspub-logo,
+.page-masthead .publisher-logo.image-logo.mba-logo {
+  align-self: center;
+  background: transparent;
+  flex-direction: row;
+  justify-content: flex-start;
+  min-height: 0;
+  min-width: 0;
+  overflow: visible;
+}
+
+.page-masthead .publisher-logo.image-logo img,
+.page-masthead .publisher-logo.image-logo.stm-logo img,
+.page-masthead .publisher-logo.image-logo.law-logo img,
+.page-masthead .publisher-logo.image-logo.db-logo img {
+  max-height: 15mm;
+  max-width: 34mm;
+  object-fit: contain;
 }
 
 .pdf-page h1 {
@@ -2995,6 +3080,8 @@ button {
 }
 
 .content-page h1 {
+  font-size: calc(15pt * var(--page-scale));
+  margin-bottom: calc(5mm * var(--page-scale));
   text-align: center;
 }
 

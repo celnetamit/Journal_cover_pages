@@ -35,7 +35,6 @@ export type JournalFormValues = {
   publisherId: string;
   managerId: string;
   focusScope: string;
-  focusNotes: string;
   objectives: string;
   salientFeatures: string;
   keywords: string;
@@ -50,12 +49,13 @@ const input =
   "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200";
 const labelClass = "block text-sm font-medium text-slate-700";
 
-function Text({ name, label, defaultValue, type = "text", required = false }: {
-  name: string; label: string; defaultValue?: string; type?: string; required?: boolean;
+function Text({ name, label, defaultValue, type = "text", required = false, hint }: {
+  name: string; label: string; defaultValue?: string; type?: string; required?: boolean; hint?: string;
 }) {
   return (
     <label className="block">
       <span className={labelClass}>{label}{required && <span className="text-red-500"> *</span>}</span>
+      {hint && <span className="block text-xs text-slate-400">{hint}</span>}
       <input name={name} type={type} required={required} defaultValue={defaultValue} className={input} />
     </label>
   );
@@ -143,21 +143,20 @@ export default function JournalForm({
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Text name="coverFrontUrl" label="Front cover image URL" defaultValue={v.coverFrontUrl} />
-        <Text name="coverBackUrl" label="Back cover image URL" defaultValue={v.coverBackUrl} />
-        <Text name="logoUrl" label="Journal logo URL" defaultValue={v.logoUrl} />
-        <Text name="indexingLogoUrl" label="Indexing logo URL" defaultValue={v.indexingLogoUrl} />
+        <Text name="coverFrontUrl" label="Front cover image URL" defaultValue={v.coverFrontUrl} hint="Portrait A4 background (≈1240×1754px), fills the panel center-cropped. The top ~28% (title/issue/ISSN band) and bottom ~13% (footer logos) render on top — keep the key artwork in the centre." />
+        <Text name="coverBackUrl" label="Back cover image URL" defaultValue={v.coverBackUrl} hint="Full-page back cover artwork shown as-is (no overlay), portrait A4 ratio (≈1240×1754px or larger). JPG or PNG." />
+        <Text name="logoUrl" label="Journal logo URL" defaultValue={v.logoUrl} hint="Journal mark/logo. PNG with a transparent background, ≥ 400px. Used on the cover." />
+        <Text name="indexingLogoUrl" label="Indexing logo URL" defaultValue={v.indexingLogoUrl} hint="Indexing/award badge for the cover footer. Transparent PNG, landscape or square, ≥ 300px." />
       </section>
 
       <section className="space-y-4">
         <Area name="about" label="About" defaultValue={v.about} rows={4} />
         <Area name="focusScope" label="Focus & scope" defaultValue={v.focusScope} rows={5} hint="One item per line" />
-        <Area name="focusNotes" label="Focus notes (About page paragraphs)" defaultValue={v.focusNotes} rows={4} hint="One paragraph per line. Use {publisher} / {journal} for auto-filled names." />
         <Area name="objectives" label="Objectives" defaultValue={v.objectives} rows={4} hint="One item per line" />
         <Area name="salientFeatures" label="Salient features" defaultValue={v.salientFeatures} rows={4} hint="One item per line" />
         <Area name="keywords" label="Keywords" defaultValue={v.keywords} rows={2} hint="Comma-separated" />
         <Area name="indexing" label="Indexing" defaultValue={v.indexing} rows={2} hint="Comma-separated" />
-        <Area name="manuscriptNotice" label="Manuscript notice" defaultValue={v.manuscriptNotice} rows={3} />
+        <Area name="manuscriptNotice" label="Manuscript notice" defaultValue={v.manuscriptNotice} rows={3} hint="Use {email} for the auto-filled publisher email." />
         <Area name="directorDeskTitle" label="Director's Desk heading" defaultValue={v.directorDeskTitle} rows={1} hint="Blank = use the Company/brand default" />
         <Area name="directorDeskParagraphs" label="Director's Desk letter" defaultValue={v.directorDeskParagraphs} rows={8} hint="One paragraph per line. Tokens: {journal} {volume} {domain} {publisher}. Blank = Company default." />
       </section>

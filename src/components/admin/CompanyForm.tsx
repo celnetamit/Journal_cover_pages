@@ -31,7 +31,12 @@ export default function CompanyForm({ action, values, profiles, submitLabel }: {
         <Text name="gst" label="GST" defaultValue={values?.gst} />
         <Text name="printedBy" label="Printed by (print vendor)" defaultValue={values?.printedBy} />
       </div>
-      <ImageField name="logoUrl" label="Logo" defaultValue={values?.logoUrl} />
+      <ImageField
+        name="logoUrl"
+        label="Logo"
+        defaultValue={values?.logoUrl}
+        hint="Title-page logo. PNG with a transparent background (or SVG), landscape orientation. Recommended ≥ 600×400px, max ~2 MB."
+      />
       <Select name="directorId" label="Director (profile)" defaultValue={values?.directorId} options={profiles} />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Area name="registeredAddress" label="Registered address" defaultValue={values?.registeredAddress} rows={2} />

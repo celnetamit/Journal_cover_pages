@@ -21,13 +21,14 @@ export function Text({ name, label, defaultValue, type = "text", required = fals
   );
 }
 
-export function Area({ name, label, defaultValue, rows = 3 }: {
-  name: string; label: string; defaultValue?: string; rows?: number;
+export function Area({ name, label, defaultValue, rows = 3, hint }: {
+  name: string; label: string; defaultValue?: string; rows?: number; hint?: string;
 }) {
   return (
     <label className="block">
       <span className={labelClass}>{label}</span>
       <textarea name={name} rows={rows} defaultValue={defaultValue} className={inputClass} />
+      {hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
     </label>
   );
 }
@@ -65,7 +66,7 @@ export function NativeSelect({ name, label, defaultValue, options }: {
 }
 
 // Image field: a URL input that can be filled by uploading a file to /api/assets.
-export function ImageField({ name, label, defaultValue }: { name: string; label: string; defaultValue?: string }) {
+export function ImageField({ name, label, defaultValue, hint }: { name: string; label: string; defaultValue?: string; hint?: string }) {
   const [url, setUrl] = useState(defaultValue ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -100,6 +101,7 @@ export function ImageField({ name, label, defaultValue }: { name: string; label:
         <input name={name} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Image URL or upload →" className={inputClass} />
         <input type="file" accept="image/*" disabled={busy} onChange={(e) => upload(e.target.files?.[0])} className="text-xs" />
       </div>
+      {hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
       {error && <span className="text-xs text-red-600">{error}</span>}
     </label>
   );
