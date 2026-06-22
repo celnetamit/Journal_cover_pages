@@ -31,6 +31,9 @@ export default async function AppHeader() {
             Users
           </Link>
         )}
+        <Link href="/guide" className="text-slate-600 hover:text-slate-900">
+          Guide
+        </Link>
         <span className="text-slate-500">
           {label}
           <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs uppercase text-slate-600">

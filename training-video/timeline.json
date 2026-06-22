@@ -1,0 +1,70 @@
+{
+  "scenes": [
+    {
+      "id": "intro",
+      "startMs": 66,
+      "speech": 17.427
+    },
+    {
+      "id": "login",
+      "startMs": 18529,
+      "speech": 11.97
+    },
+    {
+      "id": "dashboard",
+      "startMs": 31597,
+      "speech": 13.27
+    },
+    {
+      "id": "selectjournal",
+      "startMs": 45967,
+      "speech": 14.129
+    },
+    {
+      "id": "tabs",
+      "startMs": 61196,
+      "speech": 16.231
+    },
+    {
+      "id": "coverspread",
+      "startMs": 78530,
+      "speech": 13.456
+    },
+    {
+      "id": "coverimages",
+      "startMs": 93083,
+      "speech": 13.665
+    },
+    {
+      "id": "contentpages",
+      "startMs": 107851,
+      "speech": 18.471
+    },
+    {
+      "id": "contents",
+      "startMs": 127422,
+      "speech": 12.318
+    },
+    {
+      "id": "export",
+      "startMs": 140838,
+      "speech": 15.105
+    },
+    {
+      "id": "setup",
+      "startMs": 157045,
+      "speech": 13.201
+    },
+    {
+      "id": "outro",
+      "startMs": 171344,
+      "speech": 11.598
+    }
+  ],
+  "recordedMs": 184045,
+  "lead": 0.4,
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  }
+}

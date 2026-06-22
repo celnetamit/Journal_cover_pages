@@ -1,0 +1,79 @@
+{
+  "scenes": [
+    {
+      "id": "intro",
+      "title": "Welcome",
+      "speech": 17.427,
+      "slot": 18.527
+    },
+    {
+      "id": "login",
+      "title": "Signing in",
+      "speech": 11.97,
+      "slot": 13.07
+    },
+    {
+      "id": "dashboard",
+      "title": "The dashboard",
+      "speech": 13.27,
+      "slot": 14.37
+    },
+    {
+      "id": "selectjournal",
+      "title": "Choosing a journal and issue",
+      "speech": 14.129,
+      "slot": 15.229
+    },
+    {
+      "id": "tabs",
+      "title": "The nine sections",
+      "speech": 16.231,
+      "slot": 17.331
+    },
+    {
+      "id": "coverspread",
+      "title": "Editing the cover",
+      "speech": 13.456,
+      "slot": 14.556
+    },
+    {
+      "id": "coverimages",
+      "title": "Cover images and logos",
+      "speech": 13.665,
+      "slot": 14.765
+    },
+    {
+      "id": "contentpages",
+      "title": "About and team pages",
+      "speech": 18.471,
+      "slot": 19.571
+    },
+    {
+      "id": "contents",
+      "title": "Table of contents",
+      "speech": 12.318,
+      "slot": 13.418
+    },
+    {
+      "id": "export",
+      "title": "Preview and export",
+      "speech": 15.105,
+      "slot": 16.205
+    },
+    {
+      "id": "setup",
+      "title": "Setup and shared data",
+      "speech": 13.201,
+      "slot": 14.301
+    },
+    {
+      "id": "outro",
+      "title": "Thanks for watching",
+      "speech": 11.598,
+      "slot": 12.698
+    }
+  ],
+  "total": 184.041,
+  "lead": 0.4,
+  "gap": 0.7
+}

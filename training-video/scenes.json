@@ -1,0 +1,69 @@
+{
+  "meta": {
+    "title": "Journal Builder — Training Walkthrough",
+    "voice": "en_US-lessac-medium",
+    "viewport": { "width": 1280, "height": 800 }
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "title": "Welcome",
+      "narration": "Welcome to the Journal Builder. This is the platform your team uses to design and publish the initial pages of every journal issue — the cover spread, title page, editorial board, and more. In the next few minutes, we'll walk through how to sign in, build a complete issue, and export it as a print-ready PDF."
+    },
+    {
+      "id": "login",
+      "title": "Signing in",
+      "narration": "Let's start by signing in. Enter the email and password your administrator gave you, then click Sign in. If your organization uses Google, you can also sign in with your work Google account using the button below."
+    },
+    {
+      "id": "dashboard",
+      "title": "The dashboard",
+      "narration": "This is the main dashboard. On the left you choose which journal and which issue you're working on. The large panel in the centre is a real-time live canvas — it shows exactly how the page will look, and it updates instantly as you make changes."
+    },
+    {
+      "id": "selectjournal",
+      "title": "Choosing a journal and issue",
+      "narration": "To pick a journal, use the search box and start typing its name or abbreviation. Once a journal is selected, the issue picker lets you switch between saved issues, or start a brand new one. Each issue keeps its own volume, number, and cover."
+    },
+    {
+      "id": "tabs",
+      "title": "The nine sections",
+      "narration": "Every issue is built from nine sections, shown along the top: Cover Spread, Title Page, Subscription, About, Management, Manuscript, Editorial, Director, and Contents. You can click any tab to jump straight to that part of the journal, or step through them in order."
+    },
+    {
+      "id": "coverspread",
+      "title": "Editing the cover",
+      "narration": "Let's start with the Cover Spread. On the right you'll find the form fields for this page — the journal title, the volume and issue numbers, the month range, and the year. As you type, watch the live canvas on the left update in real time."
+    },
+    {
+      "id": "coverimages",
+      "title": "Cover images and logos",
+      "narration": "Below the text fields you can set the artwork. Upload a front and back cover image, or paste an image address. You can also place the publisher logo in the bottom-left and the journal logo in the bottom-right. When you're happy, click Save to store this page."
+    },
+    {
+      "id": "contentpages",
+      "title": "About and team pages",
+      "narration": "The other sections work the same way. The About page holds the journal's description and its focus and scope. The Management and Editorial pages let you build the team — add board members, set their roles, and the layout arranges them automatically. Most of this data is pulled from your central records, so you only enter it once."
+    },
+    {
+      "id": "contents",
+      "title": "Table of contents",
+      "narration": "The Contents page is where you list the articles in this issue. Click Add Article, then fill in the title, the authors, and the page number for each one. The table of contents is generated for you and stays perfectly formatted."
+    },
+    {
+      "id": "export",
+      "title": "Preview and export",
+      "narration": "When the issue is ready, switch to Live Preview and Export. Here you can see every page together. Click Download Cover PDF for the cover spread, and Download Internal Pages PDF for the inside pages. You can even batch-export covers for many journals at once."
+    },
+    {
+      "id": "setup",
+      "title": "Setup and shared data",
+      "narration": "Finally, the Setup area is where the shared data lives — publishers, companies, profiles, domains, and subscription plans. Because every journal draws from these records, updating something once keeps all of your issues consistent."
+    },
+    {
+      "id": "outro",
+      "title": "Thanks for watching",
+      "narration": "And that's the Journal Builder. Sign in, choose your journal and issue, fill in the nine sections, preview, and export. If you get stuck, reach out to your administrator. Thanks for watching, and happy publishing."
+    }
+  ]
+}
