@@ -7,13 +7,15 @@ import json, os, re, subprocess
 ROOT = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.join(ROOT, "tools", "ffmpeg-static")
 FFMPEG, FFPROBE = os.path.join(TOOLS, "ffmpeg"), os.path.join(TOOLS, "ffprobe")
-AUDIO, VIDEO, OUT = (os.path.join(ROOT, d) for d in ("audio", "video", "output"))
+SLUG = os.environ.get("SLUG", "main")
+SUFFIX = "" if SLUG == "main" else f"-{SLUG}"
+AUDIO, VIDEO, OUT = (os.path.join(ROOT, d) for d in (f"audio{SUFFIX}", "video", "output"))
 os.makedirs(OUT, exist_ok=True)
 
-scenes_txt = {s["id"]: s["narration"] for s in json.load(open(os.path.join(ROOT, "scenes.json")))["scenes"]}
-tl = json.load(open(os.path.join(ROOT, "timeline.json")))
+scenes_txt = {s["id"]: s["narration"] for s in json.load(open(os.path.join(ROOT, f"scenes{SUFFIX}.json")))["scenes"]}
+tl = json.load(open(os.path.join(ROOT, f"timeline{SUFFIX}.json")))
 lead = tl["lead"]
-webm = os.path.join(VIDEO, "walkthrough.webm")
+webm = os.path.join(VIDEO, f"walkthrough{SUFFIX}.webm")
 
 def dur(p):
     return float(subprocess.check_output(
@@ -40,7 +42,7 @@ for sc in tl["scenes"]:
         seg = speech * (len(p) / total_chars)
         srt.append(f"{idx}\n{ts(t)} --> {ts(t + seg)}\n{p}\n")
         idx += 1; t += seg
-srt_path = os.path.join(ROOT, "subs.srt")
+srt_path = os.path.join(ROOT, f"subs{SUFFIX}.srt")
 open(srt_path, "w").write("\n".join(srt))
 print(f"wrote {idx-1} subtitle cues")
 
@@ -60,7 +62,8 @@ style = ("FontName=DejaVu Sans,FontSize=18,PrimaryColour=&H00FFFFFF,"
 filt.append(f"[0:v]subtitles={srt_path}:force_style='{style}'[v]")
 filter_complex = ";".join(filt)
 
-out = os.path.join(OUT, "journal-builder-training.mp4")
+out_name = "journal-builder-training.mp4" if SLUG == "main" else f"journal-{SLUG}-training.mp4"
+out = os.path.join(OUT, out_name)
 cmd = [FFMPEG, "-y", *inputs, "-filter_complex", filter_complex,
        "-map", "[v]", "-map", "[mix]",
        "-c:v", "libx264", "-preset", "medium", "-crf", "21", "-pix_fmt", "yuv420p",

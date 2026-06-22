@@ -30,6 +30,17 @@ export default function GuideSetupPage() {
         ). Each card is one type of record, with a count of how many you already have.
       </P>
 
+      <H2>Watch the Setup walkthrough</H2>
+      <P>This 3-minute video walks through every record type in the Setup area, in order.</P>
+      <video
+        controls
+        preload="metadata"
+        className="w-full rounded-xl border border-slate-200 shadow-sm"
+        src="/training/journal-setup-training.mp4"
+      >
+        Your browser does not support embedded video.
+      </video>
+
       <Figure src="/training/img/setup-hub.png" alt="The Setup hub with cards for each data type" caption="Setup hub — one card per type of shared record." />
 
       <H2>Recommended order</H2>

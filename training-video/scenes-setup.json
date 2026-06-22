@@ -1,0 +1,64 @@
+{
+  "meta": {
+    "title": "Journal Builder — Setup Guide",
+    "voice": "en_US-lessac-medium",
+    "viewport": { "width": 1280, "height": 800 }
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "title": "Setup",
+      "narration": "Welcome to the Setup guide. Setup is where you manage the shared data that every journal reuses — publishers, companies, people, subscription prices and more. Enter these once, and they flow automatically into the right pages of every issue, so your binders stay consistent and you never type the same thing twice."
+    },
+    {
+      "id": "hub",
+      "title": "The Setup hub",
+      "narration": "Open Setup from the top navigation. Each card is one type of record, with a count of how many you already have. A good order is to start with companies, then publishers, then people, and finally domains and subscription plans — because each one builds on the last."
+    },
+    {
+      "id": "companies",
+      "title": "Companies",
+      "narration": "Start with Companies. A company is the legal entity behind a publisher. Click New, then fill in the company name, addresses, bank details, CIN and the printed-by line. This information appears on the title page and the subscription page of every journal that uses it."
+    },
+    {
+      "id": "publishers",
+      "title": "Publishers",
+      "narration": "Next, create a Publisher and link it to its company. Add the publisher logo, a short about paragraph, and a contact email and phone. The logo shows on the cover, and the about text and contacts flow onto the About and Subscription pages automatically."
+    },
+    {
+      "id": "profiles",
+      "title": "Profiles (people)",
+      "narration": "Profiles are the people you reuse across journals — editors, directors, board members and team. Add each person once, with a photo, and a signature image for anyone who signs the Director's Desk letter. Later you can drop these people straight into a journal's board with a single click."
+    },
+    {
+      "id": "domains",
+      "title": "Domains & Subscriptions",
+      "narration": "Domains are your subject areas, like Management or Law, each with an assigned manager. Subscriptions hold your global plans and their default prices. Individual journals can override these prices later, but setting sensible defaults here saves time on every new journal."
+    },
+    {
+      "id": "shared",
+      "title": "Shared page content",
+      "narration": "Two records hold content shared by every journal. The Manuscript engine sets the Manuscript page text and logo once for all journals. About notes hold the closing paragraphs of the About page. Edit them here and the change appears everywhere instantly."
+    },
+    {
+      "id": "users",
+      "title": "Users & roles",
+      "narration": "Administrators also manage Users. Each account has a role: viewers can browse and export, editors can build issues and edit shared data, and admins can additionally delete records and manage accounts. Create accounts and set the right role for each member of your team."
+    },
+    {
+      "id": "domainsauth",
+      "title": "Sign-in domains",
+      "narration": "Sign-in domains control who may log in with Google. Add a domain, and anyone with an email at that domain can sign in as a viewer. It's an easy way to give your whole organization read access without creating accounts one by one."
+    },
+    {
+      "id": "csv",
+      "title": "Search & CSV",
+      "narration": "Finally, two time-savers on every list. The search box filters records instantly. And you can export any list to a CSV file, or import a CSV to add and update many records at once — perfect for the initial setup or for keeping a backup."
+    },
+    {
+      "id": "outro",
+      "title": "You're set up",
+      "narration": "That's Setup. Companies, publishers, people, domains and subscriptions form the foundation; shared content and user access complete it. With this in place, building a journal and its issues becomes quick and consistent. Thanks for watching."
+    }
+  ]
+}

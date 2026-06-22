@@ -1,0 +1,65 @@
+{
+  "scenes": [
+    {
+      "id": "intro",
+      "startMs": 1866,
+      "speech": 17.763
+    },
+    {
+      "id": "hub",
+      "startMs": 20729,
+      "speech": 14.814
+    },
+    {
+      "id": "companies",
+      "startMs": 36645,
+      "speech": 15.128
+    },
+    {
+      "id": "publishers",
+      "startMs": 52875,
+      "speech": 14.652
+    },
+    {
+      "id": "profiles",
+      "startMs": 68628,
+      "speech": 15.627
+    },
+    {
+      "id": "domains",
+      "startMs": 85355,
+      "speech": 15.116
+    },
+    {
+      "id": "shared",
+      "startMs": 101574,
+      "speech": 14.315
+    },
+    {
+      "id": "users",
+      "startMs": 116991,
+      "speech": 15.79
+    },
+    {
+      "id": "domainsauth",
+      "startMs": 152993,
+      "speech": 12.086
+    },
+    {
+      "id": "csv",
+      "startMs": 189006,
+      "speech": 14.617
+    },
+    {
+      "id": "outro",
+      "startMs": 204723,
+      "speech": 14.269
+    }
+  ],
+  "recordedMs": 220091,
+  "lead": 0.4,
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  }
+}

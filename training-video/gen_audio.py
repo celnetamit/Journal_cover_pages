@@ -11,14 +11,16 @@ PY = os.path.join(TOOLS, "venv", "bin", "python")
 MODEL = os.path.join(TOOLS, "voices", "en_US-lessac-medium.onnx")
 FFMPEG = os.path.join(TOOLS, "ffmpeg-static", "ffmpeg")
 FFPROBE = os.path.join(TOOLS, "ffmpeg-static", "ffprobe")
-AUDIO = os.path.join(ROOT, "audio")
+SLUG = os.environ.get("SLUG", "main")
+SUFFIX = "" if SLUG == "main" else f"-{SLUG}"
+AUDIO = os.path.join(ROOT, f"audio{SUFFIX}")
 GAP = 0.7          # silence after each scene (seconds)
 LEAD = 0.4         # silence before narration starts in a scene
 SR = 22050
 
 os.makedirs(AUDIO, exist_ok=True)
 
-with open(os.path.join(ROOT, "scenes.json")) as f:
+with open(os.path.join(ROOT, f"scenes{SUFFIX}.json")) as f:
     scenes = json.load(f)["scenes"]
 
 def dur(path):
@@ -59,10 +61,11 @@ subprocess.run([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", listfile,
                 "-c", "copy", narration], check=True, capture_output=True)
 
 total = dur(narration)
-with open(os.path.join(ROOT, "durations.json"), "w") as f:
+dur_path = os.path.join(ROOT, f"durations{SUFFIX}.json")
+with open(dur_path, "w") as f:
     json.dump({"scenes": manifest, "total": round(total, 3),
                "lead": LEAD, "gap": GAP}, f, indent=2)
 
 print(f"\nTotal narration: {total:.1f}s ({total/60:.1f} min)")
 print(f"Wrote {narration}")
-print(f"Wrote {os.path.join(ROOT, 'durations.json')}")
+print(f"Wrote {dur_path}")

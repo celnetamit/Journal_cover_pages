@@ -1,0 +1,73 @@
+{
+  "scenes": [
+    {
+      "id": "intro",
+      "title": "Setup",
+      "speech": 17.763,
+      "slot": 18.863
+    },
+    {
+      "id": "hub",
+      "title": "The Setup hub",
+      "speech": 14.814,
+      "slot": 15.914
+    },
+    {
+      "id": "companies",
+      "title": "Companies",
+      "speech": 15.128,
+      "slot": 16.228
+    },
+    {
+      "id": "publishers",
+      "title": "Publishers",
+      "speech": 14.652,
+      "slot": 15.752
+    },
+    {
+      "id": "profiles",
+      "title": "Profiles (people)",
+      "speech": 15.627,
+      "slot": 16.727
+    },
+    {
+      "id": "domains",
+      "title": "Domains & Subscriptions",
+      "speech": 15.116,
+      "slot": 16.216
+    },
+    {
+      "id": "shared",
+      "title": "Shared page content",
+      "speech": 14.315,
+      "slot": 15.415
+    },
+    {
+      "id": "users",
+      "title": "Users & roles",
+      "speech": 15.79,
+      "slot": 16.89
+    },
+    {
+      "id": "domainsauth",
+      "title": "Sign-in domains",
+      "speech": 12.086,
+      "slot": 13.186
+    },
+    {
+      "id": "csv",
+      "title": "Search & CSV",
+      "speech": 14.617,
+      "slot": 15.717
+    },
+    {
+      "id": "outro",
+      "title": "You're set up",
+      "speech": 14.269,
+      "slot": 15.369
+    }
+  ],
+  "total": 176.277,
+  "lead": 0.4,
+  "gap": 0.7
+}
