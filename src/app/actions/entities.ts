@@ -101,6 +101,9 @@ export async function createPublisher(_p: FormState, fd: FormData): Promise<Form
         name,
         logoUrl: nul(str(fd.get("logoUrl"))),
         about: nul(str(fd.get("about"))),
+        salientFeatures: textLines(str(fd.get("salientFeatures"))),
+        objectives: textLines(str(fd.get("objectives"))),
+        aboutNotes: textLines(str(fd.get("aboutNotes"))),
         email: nul(str(fd.get("email"))),
         phone: nul(str(fd.get("phone"))),
         website: nul(str(fd.get("website"))),
@@ -127,6 +130,9 @@ export async function updatePublisher(id: string, _p: FormState, fd: FormData): 
         name,
         logoUrl: nul(str(fd.get("logoUrl"))),
         about: nul(str(fd.get("about"))),
+        salientFeatures: textLines(str(fd.get("salientFeatures"))),
+        objectives: textLines(str(fd.get("objectives"))),
+        aboutNotes: textLines(str(fd.get("aboutNotes"))),
         email: nul(str(fd.get("email"))),
         phone: nul(str(fd.get("phone"))),
         website: nul(str(fd.get("website"))),
@@ -140,47 +146,6 @@ export async function updatePublisher(id: string, _p: FormState, fd: FormData): 
   revalidatePath("/admin/publishers");
   revalidatePath("/");
   redirect("/admin/publishers");
-}
-
-// --- Subscription ---------------------------------------------------------
-
-const MODES = ["PRINT", "ONLINE", "PRINT_ONLINE"] as const;
-const num = (v: string) => (v && Number.isFinite(Number(v)) ? Number(v) : null);
-
-function subscriptionData(fd: FormData) {
-  const mode = str(fd.get("mode"));
-  return {
-    name: str(fd.get("name")),
-    mode: (MODES.includes(mode as (typeof MODES)[number]) ? mode : "PRINT") as (typeof MODES)[number],
-    priceUsd: num(str(fd.get("priceUsd"))),
-    priceInr: num(str(fd.get("priceInr"))),
-  };
-}
-
-export async function createSubscription(_p: FormState, fd: FormData): Promise<FormState> {
-  await requireRole("EDITOR");
-  if (!str(fd.get("name"))) return { error: "Name is required." };
-  try {
-    await prisma.subscription.create({ data: subscriptionData(fd) });
-  } catch (e) {
-    if (isUniqueError(e)) return { error: "A plan with that name already exists." };
-    throw e;
-  }
-  revalidatePath("/admin/subscriptions");
-  redirect("/admin/subscriptions");
-}
-
-export async function updateSubscription(id: string, _p: FormState, fd: FormData): Promise<FormState> {
-  await requireRole("EDITOR");
-  if (!str(fd.get("name"))) return { error: "Name is required." };
-  try {
-    await prisma.subscription.update({ where: { id }, data: subscriptionData(fd) });
-  } catch (e) {
-    if (isUniqueError(e)) return { error: "A plan with that name already exists." };
-    throw e;
-  }
-  revalidatePath("/admin/subscriptions");
-  redirect("/admin/subscriptions");
 }
 
 // --- Company --------------------------------------------------------------
@@ -350,17 +315,42 @@ export async function saveManuscriptEngine(_p: FormState, fd: FormData): Promise
   redirect("/admin/manuscript-engine");
 }
 
-export async function saveAboutNotes(_p: FormState, fd: FormData): Promise<FormState> {
+// --- Subscription pricing tiers (frequency-based) -------------------------
+
+const moneyOrNull = (v: string): number | null => {
+  const n = Number(v.replace(/[,\s₹$]/g, ""));
+  return v.length && Number.isFinite(n) ? n : null;
+};
+
+export async function saveSubscriptionTier(_p: FormState, fd: FormData): Promise<FormState> {
   await requireRole("EDITOR");
-  const data = { paragraphs: textLines(str(fd.get("paragraphs"))) };
-  await prisma.aboutNotes.upsert({
-    where: { id: "singleton" },
+  const issuesPerYear = parseInt(str(fd.get("issuesPerYear")), 10);
+  if (!Number.isInteger(issuesPerYear) || issuesPerYear < 1) return { error: "Issues per year must be a positive whole number." };
+  const data = {
+    printInr: moneyOrNull(str(fd.get("printInr"))),
+    singleIssueInr: moneyOrNull(str(fd.get("singleIssueInr"))),
+    onlineInr: moneyOrNull(str(fd.get("onlineInr"))),
+    printOnlineInr: moneyOrNull(str(fd.get("printOnlineInr"))),
+    printUsd: moneyOrNull(str(fd.get("printUsd"))),
+    onlineUsd: moneyOrNull(str(fd.get("onlineUsd"))),
+    printOnlineUsd: moneyOrNull(str(fd.get("printOnlineUsd"))),
+  };
+  await prisma.subscriptionTier.upsert({
+    where: { issuesPerYear },
     update: data,
-    create: { id: "singleton", ...data },
+    create: { issuesPerYear, ...data },
   });
-  revalidatePath("/admin/about-notes");
+  revalidatePath("/admin/subscription-pricing");
   revalidatePath("/");
-  redirect("/admin/about-notes");
+  redirect("/admin/subscription-pricing");
+}
+
+export async function deleteSubscriptionTier(formData: FormData): Promise<void> {
+  await requireRole("EDITOR");
+  const id = String(formData.get("id"));
+  await prisma.subscriptionTier.delete({ where: { id } });
+  revalidatePath("/admin/subscription-pricing");
+  revalidatePath("/");
 }
 
 export async function removeAllowedDomain(formData: FormData): Promise<void> {

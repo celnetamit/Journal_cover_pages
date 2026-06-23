@@ -36,8 +36,6 @@ export type JournalFormValues = {
   publisherId: string;
   managerId: string;
   focusScope: string;
-  objectives: string;
-  salientFeatures: string;
 };
 
 type Option = { id: string; label: string };
@@ -154,11 +152,9 @@ export default function JournalForm({
       <section className="space-y-4">
         <Area name="about" label="About" defaultValue={v.about} rows={4} />
         <Area name="focusScope" label="Focus & scope" defaultValue={v.focusScope} rows={5} hint="One item per line" />
-        <Area name="objectives" label="Objectives" defaultValue={v.objectives} rows={4} hint="One item per line" />
-        <Area name="salientFeatures" label="Salient features" defaultValue={v.salientFeatures} rows={4} hint="One item per line" />
         <Area name="manuscriptNotice" label="Manuscript notice" defaultValue={v.manuscriptNotice} rows={3} hint="Use {email} for the auto-filled publisher email." />
         <Area name="directorDeskTitle" label="Director's Desk heading" defaultValue={v.directorDeskTitle} rows={1} hint="Blank = use the Company/brand default" />
-        <Area name="directorDeskParagraphs" label="Director's Desk letter" defaultValue={v.directorDeskParagraphs} rows={8} hint="One paragraph per line. Tokens: {journal} {volume} {domain} {publisher}. Blank = Company default." />
+        <Area name="directorDeskParagraphs" label="Director's Desk letter" defaultValue={v.directorDeskParagraphs} rows={8} hint="One paragraph per line. Tokens: {journal} {abbreviation} {journal short name} {year} {volume} {issue} {domain} {publisher}. Blank = standard default letter." />
       </section>
 
       {state?.error && (

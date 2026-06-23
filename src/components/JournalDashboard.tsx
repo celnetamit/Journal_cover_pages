@@ -23,6 +23,7 @@ import SaveFocusToJournal from "@/components/SaveFocusToJournal";
 import { RichTextField } from "@/components/RichTextField";
 import { RichText, ReqText, MissingFlag, hasValue } from "@/components/RichText";
 import { inlineToPlainText } from "@/lib/rich-text";
+import type { SubscriptionTier } from "@/lib/subscription-tiers";
 import { exportBookToPdf, type ExportMode } from "@/lib/pdf-export";
 import {
   cleanIcv,
@@ -41,7 +42,6 @@ import {
   boardMembers,
   lawJournalNames,
   defaultPage5Contacts,
-  subscriptionPlans,
   defaultDirectorParagraphs,
   lawDirectorParagraphs,
   defaultAboutNotes,
@@ -79,15 +79,15 @@ type ConflictState = {
 
 type ProfilePick = { id: string; name: string; role: string; photo: string };
 
-// Per-journal legal/subscription data for Page 3, provided via context so the
+// Per-journal legal/subscription data for the Subscription page, provided via context so the
 // page render components can read it without prop-threading through BinderPage.
 const LegalContext = createContext<Record<string, LegalInfo>>({});
 
 // Shared Manuscript-page content (same for every journal), provided via context.
 const ManuscriptContext = createContext<ManuscriptEngineSettings>(defaultManuscriptEngine);
 
-// Shared About-page closing paragraphs (same for every journal), via context.
-const AboutNotesContext = createContext<string[]>(defaultAboutNotes);
+// Frequency-based subscription pricing tiers, keyed by issues-per-year.
+const SubscriptionTiersContext = createContext<SubscriptionTier[]>([]);
 
 type Props = {
   journals: Journal[];
@@ -98,7 +98,7 @@ type Props = {
   profiles: ProfilePick[];
   legalData: Record<string, LegalInfo>;
   manuscriptEngine: ManuscriptEngineSettings;
-  aboutNotes: string[];
+  subscriptionTiers: SubscriptionTier[];
 };
 
 
@@ -117,8 +117,8 @@ const maxFocusScopeKeywords = 10;
 function pageStepperLabel(page: number) {
   if (page === 1) return "Cover Spread";
   if (page === 2) return "Title Page";
-  if (page === 3) return "Subscription";
-  if (page === 4) return "About";
+  if (page === 3) return "About";
+  if (page === 4) return "Subscription";
   if (page === 5) return "Management";
   if (page === 6) return "Manuscript";
   if (page === 7) return "Editorial";
@@ -221,7 +221,7 @@ function focusScopeItemsForPage(draft: BinderDraft) {
 
 function defaultDirectorDesk(journal: Journal) {
   return {
-    title: isLawJournal(journal) ? "Director's Desk" : "From the Director's Desk",
+    title: "Director's Desk",
     name: "Puneet Mehrotra",
     role: isLawJournal(journal) ? "Chairman & Director, Law Journals" : "Managing Director",
     paragraphs: isLawJournal(journal) ? lawDirectorParagraphs : defaultDirectorParagraphs,
@@ -237,9 +237,11 @@ function effectiveDirectorDesk(journal: Journal) {
     title: journal.directorDeskTitle?.trim() || base.title,
     name: journal.directorName?.trim() || base.name,
     role: journal.directorRole?.trim() || base.role,
-    // Letter is journal-record-only — NO built-in/Company fallback. When the
-    // journal leaves it blank, the Director page flags it for update.
-    paragraphs: journal.directorDeskParagraphs.filter((paragraph) => paragraph.trim()),
+    // Letter: the journal's own paragraphs override; otherwise the standard
+    // tokenized default ({journal}/{abbreviation}/{volume}…) renders per journal.
+    paragraphs: journal.directorDeskParagraphs.some((p) => p.trim())
+      ? journal.directorDeskParagraphs.filter((p) => p.trim())
+      : base.paragraphs,
     photo: journal.directorPhoto?.trim() || "",
     signature: journal.directorSignature?.trim() || "",
   };
@@ -494,8 +496,8 @@ function pageEditorTitle(page: number) {
   const titles = [
     "Cover spread journal metadata",
     "Publisher title page metadata",
-    "Subscription and legal information",
     "Journal details and focus/scope",
+    "Subscription and legal information",
     "Publication management team",
     "Manuscript engine submission structure",
     "Editorial board structure",
@@ -896,25 +898,35 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
   );
 }
 
-// Plain-text seed for the page-3 override editor: a solid starting point the
+// Plain-text seed for the Subscription page override editor: a solid starting point the
 // user can edit. Mirrors the general (non-publisher-specific) generated content.
-function generatePaymentText(journal: Journal, draft: BinderDraft): string {
+function generatePaymentText(journal: Journal, draft: BinderDraft, tier?: SubscriptionTier): string {
   const identity = publisherIdentity(journal);
   const year = draft.issueYear || defaultIssueYear;
   const email = draft.publisherEmail || identity.email;
   const phone = draft.publisherPhone || identity.phone;
+  const word = issueCountWord(Number(journal.issuesPerYear)) || "—";
+  const inr = (v: number | null | undefined) => (v == null ? "—" : `₹${v.toLocaleString("en-IN")}`);
+  const usd = (v: number | null | undefined) => (v == null ? "—" : `$${v.toLocaleString("en-US")}`);
+  const subscriptionLines = tier
+    ? [
+        "National Subscription",
+        `Print: ${inr(tier.printInr)} per Journal (${word} Print Issues), Single Issue ${inr(tier.singleIssueInr)}.`,
+        `Online: ${inr(tier.onlineInr)} per Journal (Online Access of Current and Back Issues).`,
+        `Print + Online: ${inr(tier.printOnlineInr)} per Journal (${word} Print Issues and Online Access of Current and Back Issues).`,
+        "",
+        "International Subscription",
+        `Print: Only ${usd(tier.printUsd)} (${word} Print Issues)`,
+        `Online: Only ${usd(tier.onlineUsd)} (Online Access to Current and Back Issues)`,
+        `Online + Print: ${usd(tier.printOnlineUsd)} (${word} Print Issues and Online Access to Current and Back Issues)`,
+      ]
+    : ["(Set the journal's Issues per year and a matching pricing tier to auto-fill subscription prices.)"];
   return [
     `${identity.publisherName} (an imprint of ${identity.companyName}) is the Publisher of the Journal. Statements and opinions expressed in the Journal reflect the views of the author(s) and are not the opinion of ${identity.publisherName} unless so stated.`,
     "",
     `SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, ${year})`,
     "",
-    "National Subscription",
-    "Print: ₹3500 per Journal (Two Print Issues), Single Issue ₹1800.",
-    "Online: ₹6500 per Journal (Online Access of Current and Back Issues).",
-    "Print + Online: ₹7315 per Journal (Two Print and Online Access of Current and Back Issues).",
-    "",
-    "International Subscription",
-    ...subscriptionPlans,
+    ...subscriptionLines,
     "",
     `To purchase print compilation of back issues, please send your query at ${email}. Subscription must be prepaid. Rates outside of India include delivery. Prices subject to change without notice.`,
     "",
@@ -935,14 +947,26 @@ function generatePaymentText(journal: Journal, draft: BinderDraft): string {
   ].join("\n");
 }
 
+const ISSUE_COUNT_WORDS = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"];
+function issueCountWord(n: number) {
+  return Number.isInteger(n) && n > 0 ? (ISSUE_COUNT_WORDS[n] || String(n)) : "";
+}
+
+// A subscription price amount, or a missing-flag when the tier leaves it blank.
+function Amount({ value, currency, label }: { value: number | null; currency: "inr" | "usd"; label: string }) {
+  if (value == null) return <MissingFlag label={label} />;
+  return <>{currency === "inr" ? `₹${value.toLocaleString("en-IN")}` : `$${value.toLocaleString("en-US")}`}</>;
+}
+
 function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const legal = useContext(LegalContext)[journal.id];
+  const tiers = useContext(SubscriptionTiersContext);
   const override = draft.paymentOverride?.trim();
   if (override) {
     return (
       <section className="pdf-page payment-reference-page" data-export-group="internal">
         <RichText as="div" className="payment-override" value={draft.paymentOverride} />
-        <PageNumber value={2} />
+        <PageNumber value={3} />
       </section>
     );
   }
@@ -971,9 +995,10 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
   const openAccessIndia = legal?.openAccessIndia;
   const openAccessSaarc = legal?.openAccessSaarc;
   const openAccessOther = legal?.openAccessOther;
-  const modeLabel = (m: string) => (m === "PRINT" ? "Print" : m === "ONLINE" ? "Online" : "Print + Online");
-  const inrPlans = (legal?.plans ?? []).filter((p) => !p.hidden && p.priceInr != null);
-  const usdPlans = (legal?.plans ?? []).filter((p) => !p.hidden && p.priceUsd != null);
+  // Frequency-based pricing: pick the tier matching the journal's issues-per-year.
+  const issuesPerYear = Number(journal.issuesPerYear);
+  const tier = Number.isFinite(issuesPerYear) ? tiers.find((t) => t.issuesPerYear === issuesPerYear) : undefined;
+  const issueWord = issueCountWord(issuesPerYear);
 
   return (
     <section className="pdf-page payment-reference-page" data-export-group="internal">
@@ -989,23 +1014,23 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
       <div className="subscription-columns">
         <div className="subscription-column">
           <p><b>National Subscription</b> (₹, India)</p>
-          {inrPlans.length ? (
+          {tier ? (
             <ul className="checkbox-list">
-              {inrPlans.map((p) => (
-                <li key={`inr-${p.id}`}><b>{modeLabel(p.mode)}</b>: ₹{p.priceInr} per Journal.</li>
-              ))}
+              <li><b>Print</b>: <Amount value={tier.printInr} currency="inr" label="Print price" /> per Journal ({issueWord} Print Issues), Single Issue <Amount value={tier.singleIssueInr} currency="inr" label="Single-issue price" />.</li>
+              <li><b>Online</b>: <Amount value={tier.onlineInr} currency="inr" label="Online price" /> per Journal (Online Access to Current and Back Issues).</li>
+              <li><b>Print + Online</b>: <Amount value={tier.printOnlineInr} currency="inr" label="Print+Online price" /> per Journal ({issueWord} Print Issues and Online Access to Current and Back Issues).</li>
             </ul>
-          ) : <MissingFlag label="National (₹) subscription prices" block />}
+          ) : <MissingFlag label="Subscription pricing — set the journal's Issues per year and a matching pricing tier" block />}
         </div>
         <div className="subscription-column">
           <p><b>International Subscription</b> ($, outside India)</p>
-          {usdPlans.length ? (
+          {tier ? (
             <ul className="checkbox-list">
-              {usdPlans.map((p) => (
-                <li key={`usd-${p.id}`}><b>{modeLabel(p.mode)}</b>: ${p.priceUsd} per Journal.</li>
-              ))}
+              <li><b>Print</b>: Only <Amount value={tier.printUsd} currency="usd" label="Print price" /> ({issueWord} Print Issues)</li>
+              <li><b>Online</b>: Only <Amount value={tier.onlineUsd} currency="usd" label="Online price" /> (Online Access to Current and Back Issues)</li>
+              <li><b>Online + Print</b>: <Amount value={tier.printOnlineUsd} currency="usd" label="Online+Print price" /> ({issueWord} Print Issues and Online Access to Current and Back Issues)</li>
             </ul>
-          ) : <MissingFlag label="International ($) subscription prices" block />}
+          ) : null}
         </div>
       </div>
       <p>
@@ -1132,21 +1157,22 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
         All the legal disputes are subjected to Delhi Jurisdiction only. If you have any questions, please contact the
         Publication Management Team at <ReqText value={legalEmail} label="Publisher e-mail" />; Tel: <ReqText value={legalPhoneDisplay} label="Publisher phone" />.
       </p>
-      <PageNumber value={2} />
+      <PageNumber value={3} />
     </section>
   );
 }
 
 function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const scopeItems = focusScopeItemsForPage(draft);
-  // Closing paragraphs are a single shared block (admin-edited in /admin/about-notes),
-  // rendered for every journal with {journal}/{publisher}/{email} filled in.
-  const aboutNotes = useContext(AboutNotesContext);
+  // Closing paragraphs come from the journal's Publisher (editable per publisher),
+  // falling back to the built-in default until a publisher sets its own. Tokens
+  // {journal}/{publisher}/{email} are filled in per journal.
+  const aboutNotes = journal.publisherAboutNotes.length ? journal.publisherAboutNotes : defaultAboutNotes;
   const legal = useContext(LegalContext)[journal.id];
   const publisherEmail = legal?.publisherEmail || journal.publisherEmail;
   const publisherName = legal?.publisherName || journal.publisher;
-  // Record-only: objectives / salient features / focus come from the journal
-  // record (Setup). No built-in brand lists — blank is flagged.
+  // About / objectives / salient features all come from the Publisher record now;
+  // only focus & scope is per-journal. Blank values are flagged.
   const publisherAbout = journal.publisherAbout?.trim();
   // About is dynamic: the journal's own About, falling back to the Publisher's
   // about when the journal leaves it blank. Flagged only if both are empty.
@@ -1201,7 +1227,7 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
           <RichText as="p" key={index} value={applyBinderTokens(note, journal, draft, publisherEmail)} />
         ))}
       </div>
-      <PageNumber value={3} />
+      <PageNumber value={2} />
     </section>
   );
 }
@@ -1397,26 +1423,17 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
   );
 }
 
-const ORDINAL_WORDS = ["", "First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth", "Eleventh", "Twelfth", "Thirteenth", "Fourteenth", "Fifteenth", "Sixteenth", "Seventeenth", "Eighteenth", "Nineteenth", "Twentieth"];
-
-// "13" -> "Thirteenth"; "25" -> "25th"; non-numeric values are returned as-is.
-function ordinalWord(value: string): string {
-  const v = value.trim();
-  const n = Number(v);
-  if (!Number.isInteger(n) || n < 1 || String(n) !== v) return v;
-  if (n <= 20) return ORDINAL_WORDS[n];
-  const suffix =
-    n % 10 === 1 && n % 100 !== 11 ? "st" :
-    n % 10 === 2 && n % 100 !== 12 ? "nd" :
-    n % 10 === 3 && n % 100 !== 13 ? "rd" : "th";
-  return `${n}${suffix}`;
-}
-
 // Tokens usable in director-desk + focus-note text, filled from the journal/issue.
 function applyBinderTokens(text: string, journal: Journal, draft: BinderDraft, email?: string): string {
+  const abbreviation = draft.journalAbbreviation || journal.abbreviation || journal.shortName;
+  const shortName = journal.shortName || journal.abbreviation || titleCaseName(journal.name);
   return text
+    // "{journal short name}" first — it is not a substring conflict with "{journal}",
+    // but replacing the longer token first keeps intent clear.
+    .replaceAll("{journal short name}", shortName)
     .replaceAll("{journal}", titleCaseName(journal.name))
-    .replaceAll("{volume}", ordinalWord(draft.issueVolume || defaultIssueVolume))
+    .replaceAll("{abbreviation}", abbreviation)
+    .replaceAll("{volume}", draft.issueVolume || defaultIssueVolume)
     .replaceAll("{issue}", draft.issueNumber || defaultIssueNumber)
     .replaceAll("{year}", draft.issueYear || defaultIssueYear)
     .replaceAll("{domain}", journal.domain || "")
@@ -1617,9 +1634,9 @@ function BinderPage({
     case 2:
       return <CoverPage journal={currentJournal} draft={draft} />;
     case 3:
-      return <PaymentPage journal={currentJournal} draft={draft} />;
-    case 4:
       return <JournalDetailsPage journal={currentJournal} draft={draft} />;
+    case 4:
+      return <PaymentPage journal={currentJournal} draft={draft} />;
     case 5:
       return <TeamPage journal={currentJournal} draft={draft} />;
     case 6:
@@ -1651,7 +1668,7 @@ function PageSet({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
 // Issue meta (volume/issue/year/month) is inherently per-issue, so it's excluded.
 const PAGE_RECORD_FIELDS: Record<number, (keyof BinderDraft)[]> = {
   1: ["journalTitle", "journalAbbreviation", "eIssn", "sjif", "icv", "coverImage", "backCoverImage", "journalLogoImage", "footerRightLogoImage", "journalWebsite"],
-  4: ["about", "focusScope"],
+  3: ["about", "focusScope"],
   5: ["managementHeads", "managementMembers", "dispatchContactName", "dispatchContactPhone", "dispatchContactEmail", "salesContactName", "salesContactPhone", "salesContactEmail"],
   6: ["manuscriptNotice"],
   7: ["editorialBoard"],
@@ -1709,6 +1726,8 @@ function SectionEditor({
   profiles: ProfilePick[];
 }) {
   const legalForJournal = useContext(LegalContext)[journal.id];
+  const subscriptionTiers = useContext(SubscriptionTiersContext);
+  const subscriptionTier = subscriptionTiers.find((t) => t.issuesPerYear === Number(journal.issuesPerYear));
   const apiKeys = journalLookupKeys(journal);
   const hasDetails = apiKeys.some((key) => dynamicData.detailsByKey[key]);
   const hasFocus = apiKeys.some((key) => dynamicData.focusByKey[key]);
@@ -2150,11 +2169,11 @@ function SectionEditor({
           </label>
         </>
       ) : null}
-      {activePage === 3 ? (
+      {activePage === 4 ? (
         <>
           <Page3Editor journalId={journal.id} legal={legalForJournal} />
           <div className="editor-note">
-            Page 3 now supports draggable section blocks. If you use the full text override, that override becomes one movable block; otherwise the generated legal/subscription sections can be positioned separately.
+            Page 4 now supports draggable section blocks. If you use the full text override, that override becomes one movable block; otherwise the generated legal/subscription sections can be positioned separately.
           </div>
           <div className="editor-note">
             This subscription &amp; legal page is auto-generated per publisher. To customise it, click &ldquo;Load Current Text&rdquo;, edit, and it will be used instead. Clear the box to return to the generated page.
@@ -2162,7 +2181,7 @@ function SectionEditor({
           <div className="editor-row-head">
             <span>Subscription &amp; legal page</span>
             <div className="editor-row-actions">
-              <button type="button" onClick={() => onChange({ ...draft, paymentOverride: generatePaymentText(journal, draft) })}>Load Current Text</button>
+              <button type="button" onClick={() => onChange({ ...draft, paymentOverride: generatePaymentText(journal, draft, subscriptionTier) })}>Load Current Text</button>
               {draft.paymentOverride ? <button type="button" onClick={() => onChange({ ...draft, paymentOverride: "" })}>Reset to Generated</button> : null}
             </div>
           </div>
@@ -2172,10 +2191,10 @@ function SectionEditor({
           </label>
         </>
       ) : null}
-      {activePage === 4 ? (
+      {activePage === 3 ? (
         <>
           <div className="editor-note">
-            The main journal-details sections on page 4 can also be dragged directly on the canvas and will keep their saved positions for this journal.
+            The main journal-details sections on page 3 can also be dragged directly on the canvas and will keep their saved positions for this journal.
           </div>
           <label>
             <span>About journal</span>
@@ -2211,9 +2230,9 @@ function SectionEditor({
             <span>Additional focus and scope text</span>
           </div>
           <div className="editor-note">
-            The closing paragraphs are now a single shared block for every journal —{" "}
-            <a href="/admin/about-notes" className="board-team-link">edit them in About notes</a>. Tokens{" "}
-            <code>{"{journal}"}</code>, <code>{"{publisher}"}</code> and <code>{"{email}"}</code> are filled in automatically per journal.
+            About, Objectives, Salient features and the closing paragraphs now come from the journal&apos;s{" "}
+            <a href="/admin/publishers" className="board-team-link">Publisher record</a> (shared by all its journals). Tokens{" "}
+            <code>{"{journal}"}</code>, <code>{"{publisher}"}</code> and <code>{"{email}"}</code> are filled in automatically per journal. Only Focus &amp; scope is per-journal.
           </div>
         </>
       ) : null}
@@ -2381,10 +2400,10 @@ function SectionEditor({
             and apply to every issue. The director&apos;s name, role, photo and signature below can still be set per issue.
           </div>
           {!hasDirectorContent(journal.directorDeskParagraphs) ? (
-            <div className="editor-warning" role="alert">
-              ⚠ This journal has no Director&apos;s Desk letter yet. Add it in{" "}
-              <a href={`/journals/${journal.id}/edit`} className="board-team-link">Setup → Director&apos;s Desk letter</a>{" "}
-              — the Director page will stay flagged until it&apos;s filled.
+            <div className="editor-note">
+              Blank = the standard tokenized letter renders automatically (fills{" "}
+              <code>{"{journal}"}</code>, <code>{"{abbreviation}"}</code>, <code>{"{volume}"}</code>, <code>{"{issue}"}</code>, <code>{"{year}"}</code> per issue).
+              Edit it in <a href={`/journals/${journal.id}/edit`} className="board-team-link">Setup</a> to override for this journal.
             </div>
           ) : null}
           {profiles.length > 0 ? (
@@ -2490,7 +2509,7 @@ function SectionEditor({
   );
 }
 
-export default function JournalDashboard({ journals, defaultJournalId, dynamicData, serverDrafts, canEdit, profiles, legalData, manuscriptEngine, aboutNotes }: Props) {
+export default function JournalDashboard({ journals, defaultJournalId, dynamicData, serverDrafts, canEdit, profiles, legalData, manuscriptEngine, subscriptionTiers }: Props) {
   const [selectedId, setSelectedId] = useState(defaultJournalId);
   const [drafts, setDrafts] = useState<Record<string, BinderDraft>>(() => initialDrafts(journals, dynamicData, serverDrafts));
   const [updatedAtById, setUpdatedAtById] = useState<Record<string, string>>(() =>
@@ -2902,7 +2921,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   return (
     <LegalContext.Provider value={legalData}>
     <ManuscriptContext.Provider value={manuscriptEngine}>
-    <AboutNotesContext.Provider value={aboutNotes}>
+    <SubscriptionTiersContext.Provider value={subscriptionTiers}>
     <main className="app-shell">
       <aside className="dashboard-sidebar">
         <div className="dashboard-menu">
@@ -3153,7 +3172,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
         ) : null}
       </section>
     </main>
-    </AboutNotesContext.Provider>
+    </SubscriptionTiersContext.Provider>
     </ManuscriptContext.Provider>
     </LegalContext.Provider>
   );

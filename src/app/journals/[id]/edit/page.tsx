@@ -5,7 +5,6 @@ import { getJournalFormOptions } from "@/lib/journal-options";
 import { updateJournal } from "@/app/actions/journals";
 import JournalForm, { type JournalFormValues } from "@/components/JournalForm";
 import JournalBoardEditor from "@/components/admin/JournalBoardEditor";
-import JournalSubscriptionsEditor from "@/components/admin/JournalSubscriptionsEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +12,7 @@ export default async function EditJournalPage({ params }: { params: Promise<{ id
   await requireRole("EDITOR");
   const { id } = await params;
 
-  const [journal, options, members, plans, overrides] = await Promise.all([
+  const [journal, options, members] = await Promise.all([
     prisma.journal.findUnique({ where: { id } }),
     getJournalFormOptions(),
     prisma.journalMember.findMany({
@@ -21,22 +20,8 @@ export default async function EditJournalPage({ params }: { params: Promise<{ id
       orderBy: [{ role: "asc" }, { order: "asc" }],
       include: { profile: { select: { name: true } } },
     }),
-    prisma.subscription.findMany({ orderBy: { name: "asc" } }),
-    prisma.journalSubscription.findMany({ where: { journalId: id } }),
   ]);
   if (!journal) notFound();
-
-  const overrideByPlan = new Map(overrides.map((o) => [o.subscriptionId, o]));
-  const planRows = plans.map((p) => ({
-    id: p.id,
-    name: p.name,
-    mode: p.mode,
-    globalUsd: p.priceUsd,
-    globalInr: p.priceInr,
-    overrideUsd: overrideByPlan.get(p.id)?.priceUsd ?? null,
-    overrideInr: overrideByPlan.get(p.id)?.priceInr ?? null,
-    hidden: journal.hiddenSubscriptionIds.includes(p.id),
-  }));
 
   const values: JournalFormValues = {
     name: journal.name,
@@ -68,8 +53,6 @@ export default async function EditJournalPage({ params }: { params: Promise<{ id
     publisherId: journal.publisherId ?? "",
     managerId: journal.managerId ?? "",
     focusScope: journal.focusScope.join("\n"),
-    objectives: journal.objectives.join("\n"),
-    salientFeatures: journal.salientFeatures.join("\n"),
   };
 
   return (
@@ -86,7 +69,6 @@ export default async function EditJournalPage({ params }: { params: Promise<{ id
         profiles={options.profiles}
         members={members.map((m) => ({ id: m.id, role: m.role, order: m.order, profileName: m.profile.name }))}
       />
-      <JournalSubscriptionsEditor journalId={id} plans={planRows} />
     </main>
   );
 }

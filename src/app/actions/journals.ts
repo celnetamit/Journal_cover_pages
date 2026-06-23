@@ -49,8 +49,6 @@ const JournalSchema = z.object({
   publisherId: z.string().trim().optional(),
   managerId: z.string().trim().optional(),
   focusScope: z.string().optional(),
-  objectives: z.string().optional(),
-  salientFeatures: z.string().optional(),
 });
 
 const lines = (v: string | undefined) =>
@@ -94,8 +92,6 @@ function parse(formData: FormData) {
     publisherId: formData.get("publisherId") || undefined,
     managerId: formData.get("managerId") || undefined,
     focusScope: formData.get("focusScope") || undefined,
-    objectives: formData.get("objectives") || undefined,
-    salientFeatures: formData.get("salientFeatures") || undefined,
   });
 }
 
@@ -126,8 +122,6 @@ function scalarData(d: z.infer<typeof JournalSchema>) {
     coverBackUrl: blankToNull(d.coverBackUrl),
     logoUrl: blankToNull(d.logoUrl),
     focusScope: lines(d.focusScope),
-    objectives: lines(d.objectives),
-    salientFeatures: lines(d.salientFeatures),
   };
 }
 

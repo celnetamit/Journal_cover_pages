@@ -178,7 +178,10 @@ model Publisher {
   id        String   @id @default(cuid())
   name      String   @unique
   logoUrl   String?
-  about     String? // imprint blurb shown at the top of the journal-details page (Page 3)
+  about     String? // imprint blurb shown at the top of the journal-details page (About)
+  salientFeatures String[] // About-page salient features; publisher-wide (shared by all its journals)
+  objectives      String[] // About-page objectives; publisher-wide
+  aboutNotes      String[] // About-page closing paragraphs; publisher-wide (tokens {journal}/{publisher}/{email})
   email     String? // publisher contact email (used in the Legal Disputes line)
   phone     String? // publisher contact phone (used in the Legal Disputes line)
   website   String? // publisher website (shown on the title page)
@@ -189,6 +192,23 @@ model Publisher {
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   journals Journal[]
+}
+
+// Frequency-based subscription pricing. One tier per "issues per year" value
+// (e.g. 2 or 3). The Subscription page auto-renders the tier matching the
+// journal's issuesPerYear. Editable in /admin/subscription-pricing.
+model SubscriptionTier {
+  id             String   @id @default(cuid())
+  issuesPerYear  Int      @unique
+  printInr       Float?
+  singleIssueInr Float?
+  onlineInr      Float?
+  printOnlineInr Float?
+  printUsd       Float?
+  onlineUsd      Float?
+  printOnlineUsd Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model Domain {

@@ -8,9 +8,8 @@ const ENTITIES = [
   ["Publishers", "A publisher belongs to a company. Holds the publisher name, logo, about paragraph, email and phone. Feeds the cover logos and the About/Subscription pages.", "/admin/publishers"],
   ["Profiles", "People — editors, directors, board and team members, with photos and signatures. Reused across Management, Editorial and the Director's Desk.", "/admin/profiles"],
   ["Domains", "Subject areas (e.g. Management, Law) and the manager assigned to them.", "/admin/domains"],
-  ["Subscriptions", "Global subscription plans and their default prices. Individual journals can override these later.", "/admin/subscriptions"],
+  ["Subscription pricing", "Frequency-based price tiers (by issues per year). A journal's Issues-per-year picks its tier on the Subscription page.", "/admin/subscription-pricing"],
   ["Manuscript engine", "The shared Manuscript-page content and logo, edited once and used by every journal.", "/admin/manuscript-engine"],
-  ["About notes", "Shared closing paragraphs for the About page.", "/admin/about-notes"],
 ];
 
 export default function GuideSetupPage() {
@@ -61,12 +60,12 @@ export default function GuideSetupPage() {
           Add the people you&apos;ll reuse: editors-in-chief, directors, board members and team. Upload photos, and a
           signature image for anyone who signs the Director&apos;s Desk letter.
         </Step>
-        <Step n={4} title="Domains & Subscriptions">
-          Add your subject domains, then the global subscription plans and prices. These become the defaults for new
-          journals.
+        <Step n={4} title="Domains & Subscription pricing">
+          Add your subject domains, then the frequency-based subscription price tiers (by issues per year). Each
+          journal&apos;s Issues-per-year auto-selects its tier on the Subscription page.
         </Step>
-        <Step n={5} title="Manuscript engine & About notes">
-          Set the shared Manuscript-page content and the About-page closing paragraphs once — every journal picks them up.
+        <Step n={5} title="Manuscript engine">
+          Set the shared Manuscript-page content and logo once — every journal picks it up. (About-page text — about, objectives, salient features and closing paragraphs — lives on each Publisher record.)
         </Step>
       </Steps>
 

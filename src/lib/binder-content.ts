@@ -473,21 +473,17 @@ export function defaultPage5Contacts(isLaw: boolean): Page5Contacts {
   };
 }
 
-export const subscriptionPlans = [
-  "Print: Only $44 (Two Print Issues)",
-  "Online: Only $149 (Online Access of Current and Back Issues)",
-  "Print + Online: $200 (Two Print Issues and Online Access of Current and Back Issues)",
-];
 
-// Generic, journal-agnostic letter. Tokens ({journal}, {volume}, {domain},
-// {publisher}) are filled at render time, so the default reads correctly for any
-// journal; it can be overridden per-issue or on the Company in Setup.
+// Generic, journal-agnostic letter. Tokens ({journal}, {abbreviation},
+// {journal short name}, {year}, {volume}, {issue}, {domain}, {publisher}) are
+// filled at render time, so the default reads correctly for any journal; it can
+// be overridden per-journal in Setup.
 export const defaultDirectorParagraphs = [
-  "We are delighted to present, with great pleasure, the {volume} volume of {journal}. Part of the {domain} domain, the journal is devoted to the present scope of its field — from theoretical aspects to application-dependent studies and the validation of emerging technologies. It was established to represent the growing needs of an increasingly vital discipline, now widely recognized as an integral part of scientific and technical investigation, and to become a voice for researchers and practitioners in this area.",
-  "The core vision of {journal}, published by {publisher}, is to propagate novel awareness and know-how for the benefit of all — from academic and professional research societies to industry practitioners across the journal's range of topics. {publisher} acts as a pathfinder for the scientific community to publish their work excellently, in a timely manner, and successfully.",
-  "{journal} focuses on original, high-quality research across the breadth of its scope, welcoming review papers, research papers, case studies and reports on new concepts and developments in the field.",
-  "The journal is intended as a forum for practitioners and researchers to share techniques and solutions in the area. Many scholars have contributed to its creation and success, and we are thankful to everyone in the community who supported the idea of this platform. We are certain this issue will be followed by many others, reporting new developments in the field.",
-  "This issue would not have been possible without the great support of our Editorial Board members, to whom we express our sincere thanks. We are also grateful to the editorial staff of {publisher}, who supported us at every stage. It is our hope that this fine collection of articles will be a valuable resource for our readers and will stimulate further research into this vibrant area.",
+  "It is my privilege to present the print version of {journal} ({abbreviation}), {year} (Volume {volume}, Issue {issue}). The objective of {abbreviation} is to foster an environment that promotes innovation, research, and growth in the field of {journal short name}.",
+  "Timely publication, transparent communication, comprehensive editing, and strong relationships with authors and readers have been the hallmarks of our journals. {journal} provides a platform for publishing scholarly research articles that meet international standards. We strive to publish high-quality papers in a timely manner, establishing ourselves as a trusted leader in scholarly publishing and academic services.",
+  "The aim and scope of {journal} are to provide an academic platform and a valuable reference source for the advancement and dissemination of research findings that support excellence in learning, teaching, and research across scientific, technical, and medical disciplines.",
+  "I would like to express my sincere gratitude to our Editorial Board, Review Board, authors, and Publication Team for their continued support, invaluable contributions, and constructive suggestions. Their efforts in authoring manuscripts, reviewing submissions, and providing insightful feedback have significantly contributed to the advancement of our journals. Owing to their unwavering support and cooperation, we have been able to publish high-quality research and review articles for our readership.",
+  "I hope you will enjoy reading this issue, and we welcome your feedback on any aspect of the Journal.",
 ];
 
 export const lawDirectorParagraphs = [

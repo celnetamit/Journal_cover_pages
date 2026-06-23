@@ -1,8 +1,9 @@
 "use client";
 
 import { EntityForm, Text, Area, ImageField, Select, type FormState, type Option } from "@/components/forms/Fields";
+import { defaultAboutNotes } from "@/lib/binder-content";
 
-type Values = { name: string; logoUrl: string; companyId: string; about: string; email: string; phone: string; website: string };
+type Values = { name: string; logoUrl: string; companyId: string; about: string; salientFeatures: string; objectives: string; aboutNotes: string; email: string; phone: string; website: string };
 
 export default function PublisherForm({ action, values, companies, submitLabel }: {
   action: (prev: FormState, fd: FormData) => Promise<FormState>;
@@ -27,9 +28,30 @@ export default function PublisherForm({ action, values, companies, submitLabel }
       <Select name="companyId" label="Company" defaultValue={values?.companyId} options={companies} />
       <Area
         name="about"
-        label="About (Page 3 top paragraph)"
+        label="About (About-page top paragraph)"
         defaultValue={values?.about}
         rows={4}
+      />
+      <Area
+        name="salientFeatures"
+        label="Salient features (About page)"
+        defaultValue={values?.salientFeatures}
+        rows={5}
+        hint="One item per line. Shared by all this publisher's journals."
+      />
+      <Area
+        name="objectives"
+        label="Objectives (About page)"
+        defaultValue={values?.objectives}
+        rows={4}
+        hint="One item per line. Shared by all this publisher's journals."
+      />
+      <Area
+        name="aboutNotes"
+        label="Closing paragraphs (About page)"
+        defaultValue={values?.aboutNotes || defaultAboutNotes.join("\n")}
+        rows={8}
+        hint="One paragraph per line. Tokens {journal} {publisher} {email} are filled in per journal. Pre-filled with the standard text — edit as needed."
       />
     </EntityForm>
   );

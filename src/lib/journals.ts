@@ -18,6 +18,7 @@ export type Journal = {
   companyLogo: string;
   about: string;
   publisherAbout: string;
+  publisherAboutNotes: string[];
   objectives: string[];
   salientFeatures: string[];
   manuscriptNotice: string;
@@ -102,8 +103,11 @@ export function toLegacyJournal(j: DbJournal): Journal {
     companyLogo: s(company?.logoUrl),
     about: s(j.about),
     publisherAbout: s(j.publisher?.about),
-    objectives: j.objectives,
-    salientFeatures: j.salientFeatures,
+    publisherAboutNotes: j.publisher?.aboutNotes ?? [],
+    // Objectives are publisher-wide now (shared by all the publisher's journals).
+    objectives: j.publisher?.objectives ?? [],
+    // Salient features are publisher-wide now (shared by all the publisher's journals).
+    salientFeatures: j.publisher?.salientFeatures ?? [],
     manuscriptNotice: s(j.manuscriptNotice),
     manuscriptUrl: s(j.manuscriptUrl),
     focusNotes: j.focusNotes,

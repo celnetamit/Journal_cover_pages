@@ -11,11 +11,6 @@ const nul = (v: FormDataEntryValue | null) => {
   const t = str(v);
   return t.length ? t : null;
 };
-const num = (v: FormDataEntryValue | null) => {
-  const t = str(v);
-  return t && Number.isFinite(Number(t)) ? Number(t) : null;
-};
-
 // Update the journal's Company (shared across all journals/issues under it) from
 // the Page 3 editor.
 export async function saveJournalCompany(companyId: string, _prev: Page3State, fd: FormData): Promise<Page3State> {
@@ -61,36 +56,6 @@ export async function saveJournalFocus(journalId: string, _prev: Page3State, fd:
     .map((x) => x.trim())
     .filter(Boolean);
   await prisma.journal.update({ where: { id: journalId }, data: { about: about || null, focusScope } });
-  revalidatePath("/");
-  return { ok: true };
-}
-
-// Update the journal's per-plan subscription prices (JournalSubscription
-// overrides) from the Page 3 editor. Plan ids are read from the usd_/inr_ keys.
-export async function saveJournalPrices(journalId: string, _prev: Page3State, fd: FormData): Promise<Page3State> {
-  await requireRole("EDITOR");
-  const ids = new Set<string>();
-  for (const key of fd.keys()) {
-    const m = /^(?:usd|inr)_(.+)$/.exec(key);
-    if (m) ids.add(m[1]);
-  }
-  // Plans whose "Show" checkbox is unticked become the journal's hidden list.
-  const hiddenSubscriptionIds: string[] = [];
-  for (const id of ids) {
-    const priceUsd = num(fd.get(`usd_${id}`));
-    const priceInr = num(fd.get(`inr_${id}`));
-    if (priceUsd == null && priceInr == null) {
-      await prisma.journalSubscription.deleteMany({ where: { journalId, subscriptionId: id } });
-    } else {
-      await prisma.journalSubscription.upsert({
-        where: { journalId_subscriptionId: { journalId, subscriptionId: id } },
-        update: { priceUsd, priceInr },
-        create: { journalId, subscriptionId: id, priceUsd, priceInr },
-      });
-    }
-    if (fd.get(`show_${id}`) == null) hiddenSubscriptionIds.push(id);
-  }
-  await prisma.journal.update({ where: { id: journalId }, data: { hiddenSubscriptionIds } });
   revalidatePath("/");
   return { ok: true };
 }

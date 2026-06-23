@@ -209,6 +209,21 @@ async function seedSubscriptions(): Promise<Record<SubscriptionMode, string>> {
   return ids;
 }
 
+// Frequency-based subscription pricing tiers, keyed by issues-per-year.
+async function seedSubscriptionTiers() {
+  const tiers = [
+    { issuesPerYear: 2, printInr: 3500, singleIssueInr: 1800, onlineInr: 6500, printOnlineInr: 7315, printUsd: 149, onlineUsd: 149, printOnlineUsd: 200 },
+    { issuesPerYear: 3, printInr: 4500, singleIssueInr: 1750, onlineInr: 7900, printOnlineInr: 8880, printUsd: 299, onlineUsd: 199, printOnlineUsd: 399 },
+  ];
+  for (const tier of tiers) {
+    await prisma.subscriptionTier.upsert({
+      where: { issuesPerYear: tier.issuesPerYear },
+      update: tier,
+      create: tier,
+    });
+  }
+}
+
 // --- main -----------------------------------------------------------------
 
 async function seedJournals(subscriptionIds: Record<SubscriptionMode, string>) {
@@ -392,6 +407,7 @@ async function main() {
   await seedAdmin();
   await seedAllowedDomains();
   const subscriptionIds = await seedSubscriptions();
+  await seedSubscriptionTiers();
   console.log("• Subscription plans ready.");
 
   if (csvExists("journals_list.csv")) {

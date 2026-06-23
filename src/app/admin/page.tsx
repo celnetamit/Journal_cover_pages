@@ -6,12 +6,11 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminHubPage() {
   const session = await requireRole("EDITOR");
-  const [profiles, companies, publishers, domains, subscriptions, journals, users, allowedDomains] = await Promise.all([
+  const [profiles, companies, publishers, domains, journals, users, allowedDomains] = await Promise.all([
     prisma.profile.count(),
     prisma.company.count(),
     prisma.publisher.count(),
     prisma.domain.count(),
-    prisma.subscription.count(),
     prisma.journal.count(),
     prisma.user.count(),
     prisma.allowedDomain.count(),
@@ -23,9 +22,8 @@ export default async function AdminHubPage() {
     { href: "/admin/companies", title: "Companies", count: companies, desc: "Legal entity, bank & registered details" },
     { href: "/admin/publishers", title: "Publishers", count: publishers, desc: "Publisher → company" },
     { href: "/admin/domains", title: "Domains", count: domains, desc: "Subject domains + manager" },
-    { href: "/admin/subscriptions", title: "Subscriptions", count: subscriptions, desc: "Global plans + prices" },
+    { href: "/admin/subscription-pricing", title: "Subscription pricing", count: null, desc: "Frequency-based price tiers (by issues/year)" },
     { href: "/admin/manuscript-engine", title: "Manuscript engine", count: null, desc: "Shared Manuscript-page content + logo" },
-    { href: "/admin/about-notes", title: "About notes", count: null, desc: "Shared About-page closing paragraphs" },
     ...(isAdmin(session.role) ? [{ href: "/admin/users", title: "Users", count: users, desc: "Login accounts & roles" }] : []),
     ...(isAdmin(session.role) ? [{ href: "/admin/auth-domains", title: "Sign-in domains", count: allowedDomains, desc: "Domains allowed for Google sign-in" }] : []),
   ];

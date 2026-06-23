@@ -15,14 +15,14 @@ const SECTIONS: [string, string, string][] = [
     "Printed-by line, publisher address, phone, email and website, registered office and CIN. Most of this is pre-filled from the publisher and company you linked.",
   ],
   [
-    "3. Subscription",
-    "Prices, bank & legal.",
-    "This page is generated automatically from the journal's subscription prices and the company's bank/legal details. Use Load Current Text to turn it into an editable override, or Reset to Generated to go back.",
+    "3. About",
+    "Description & focus.",
+    "Focus & scope is per-journal (edit here, then Save About & Focus to journal). About, Objectives, Salient features and the closing paragraphs come from the journal's Publisher record.",
   ],
   [
-    "4. About",
-    "Description & focus.",
-    "The journal's About text and its Focus & scope. Click Save About & Focus to journal to promote what you typed here back onto the journal record for future issues.",
+    "4. Subscription",
+    "Prices, bank & legal.",
+    "Subscription prices auto-render from the frequency tier matching the journal's Issues-per-year (set in Setup → Subscription pricing). Bank & legal come from the company. Use Load Current Text for an editable override.",
   ],
   [
     "5. Management",
