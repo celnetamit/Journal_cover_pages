@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { FrontCoverLayout } from "@/lib/binder-content";
+import { RichText } from "@/components/RichText";
 
 type Props = {
   abbreviation: string;
@@ -46,7 +47,7 @@ export default function FrontCoverCanvas({
       <div className="front-cover-header">
         <div className="front-cover-top">
           <div className="front-cover-top-left">
-            <div className="front-cover-abbreviation-badge">{abbreviation.toUpperCase()}</div>
+            <RichText className="front-cover-abbreviation-badge" style={{ textTransform: "uppercase" }} value={abbreviation} />
             <div className="front-cover-meta-line">SJIF: {sjif || "Not set"}</div>
             <div className="front-cover-meta-line">ICV: {icv || "Not set"}</div>
           </div>
@@ -57,7 +58,7 @@ export default function FrontCoverCanvas({
           </div>
         </div>
         <div className="front-cover-title-row">
-          <div className={`front-cover-title ${titleClassName}`}>{title}</div>
+          <RichText className={`front-cover-title ${titleClassName}`} value={title} />
           <div className="front-cover-month">{monthRange}</div>
         </div>
       </div>

@@ -3475,6 +3475,18 @@ button {
   }
 }
 
+/* Rich text inline editor (italics, sub/superscript, special characters). */
+.rich-editor:empty::before {
+  content: attr(data-placeholder);
+  color: #94a3b8; /* slate-400 */
+  pointer-events: none;
+}
+.rich-editor sub,
+.rich-editor sup {
+  font-size: 0.75em;
+  line-height: 0;
+}
+
 @media print {
   @page {
     margin: 0;

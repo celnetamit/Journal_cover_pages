@@ -2,6 +2,7 @@
 
 import { useActionState, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { RichTextField } from "@/components/RichTextField";
 
 export type FormState = { error?: string } | undefined;
 export type Option = { id: string; label: string };
@@ -10,24 +11,38 @@ const inputClass =
   "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200";
 const labelClass = "block text-sm font-medium text-slate-700";
 
-export function Text({ name, label, defaultValue, type = "text", required = false, placeholder }: {
+export function Text({ name, label, defaultValue, type = "text", required = false, placeholder, rich }: {
   name: string; label: string; defaultValue?: string; type?: string; required?: boolean; placeholder?: string;
+  // Single-line inputs are identifiers/codes (names, emails, URLs, numbers) that
+  // flow into transforms, lookups and filenames, so they stay plain unless a
+  // caller opts in with rich. Long-form *content* lives in <Area>, which is rich
+  // by default.
+  rich?: boolean;
 }) {
+  const useRich = (rich ?? false) && type === "text";
   return (
     <label className="block">
       <span className={labelClass}>{label}{required && <span className="text-red-500"> *</span>}</span>
-      <input name={name} type={type} required={required} defaultValue={defaultValue} placeholder={placeholder} className={inputClass} />
+      {useRich ? (
+        <RichTextField name={name} defaultValue={defaultValue} placeholder={placeholder} ariaLabel={label} className="mt-1" />
+      ) : (
+        <input name={name} type={type} required={required} defaultValue={defaultValue} placeholder={placeholder} className={inputClass} />
+      )}
     </label>
   );
 }
 
-export function Area({ name, label, defaultValue, rows = 3, hint }: {
-  name: string; label: string; defaultValue?: string; rows?: number; hint?: string;
+export function Area({ name, label, defaultValue, rows = 3, hint, rich = true }: {
+  name: string; label: string; defaultValue?: string; rows?: number; hint?: string; rich?: boolean;
 }) {
   return (
     <label className="block">
       <span className={labelClass}>{label}</span>
-      <textarea name={name} rows={rows} defaultValue={defaultValue} className={inputClass} />
+      {rich ? (
+        <RichTextField name={name} defaultValue={defaultValue} multiline rows={rows} ariaLabel={label} className="mt-1" />
+      ) : (
+        <textarea name={name} rows={rows} defaultValue={defaultValue} className={inputClass} />
+      )}
       {hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
     </label>
   );

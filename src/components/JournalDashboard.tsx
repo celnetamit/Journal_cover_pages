@@ -20,6 +20,9 @@ import { proxiedImage } from "@/lib/image";
 import type { LegalInfo } from "@/lib/legal-data";
 import Page3Editor from "@/components/Page3Editor";
 import SaveFocusToJournal from "@/components/SaveFocusToJournal";
+import { RichTextField } from "@/components/RichTextField";
+import { RichText } from "@/components/RichText";
+import { inlineToPlainText } from "@/lib/rich-text";
 import { exportBookToPdf, type ExportMode } from "@/lib/pdf-export";
 import {
   cleanIcv,
@@ -195,7 +198,9 @@ function defaultCoverImage(journal: Journal) {
 // Process"), not single keywords: strip a leading bullet + collapse whitespace,
 // but keep the whole phrase.
 function normalizeScopePhrase(value: string): string {
-  return value.replace(/^[^a-z0-9]+/i, "").replace(/\s+/g, " ").trim();
+  // Strip leading bullets/punctuation, but keep a leading "<" so inline
+  // formatting tags (e.g. an italicised first word) survive intact.
+  return value.replace(/^[^a-z0-9<]+/i, "").replace(/\s+/g, " ").trim();
 }
 
 // Focus & Scope comes from the journal entry only — its own focusScope field.
@@ -832,7 +837,7 @@ function JournalFrontCover({
         issueLine={`Volume ${volume}  No. ${issue}  ${year}`}
         website={website.replace(/^https?:\/\//i, "")}
         title={coverTitle}
-        titleClassName={frontCoverTitleClass(coverTitle)}
+        titleClassName={frontCoverTitleClass(inlineToPlainText(coverTitle))}
         monthRange={monthRange.replace("-", "–")}
         layout={defaultFrontCoverLayout}
         interactive={interactive}
@@ -888,8 +893,8 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
     <section className="pdf-page cover-page" data-export-group="internal" data-page-title="Journal Name with volume issue page">
       <div className="page-rule" />
       <p className="cover-issn">ISSN: {journal.eIssn || "2582-2888"}</p>
-      <p className="cover-printer">Printed by : {draft.coverPrinter || journal.printedBy || defaultCoverPrinter}</p>
-      <h1>{titleCaseName(journal.name)}</h1>
+      <p className="cover-printer">Printed by : <RichText value={draft.coverPrinter || journal.printedBy || defaultCoverPrinter} /></p>
+      <RichText as="h1" value={draft.journalTitle?.trim() ? draft.journalTitle : titleCaseName(journal.name)} />
       <p className="issue-line">Volume {volume} | Issue {issue}</p>
       <p className="cover-meta">{monthRange} | {year}</p>
       <div className="cover-footer">
@@ -899,10 +904,10 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
         </div>
         <b>{publisherName}</b>
         <strong>{companyName}</strong>
-        <span>{address}</span>
+        <RichText as="span" value={address} />
         <span>Tel. No.: {phone}</span>
         <span>E-mail: {email}; Website: {website}</span>
-        <span>Regd. Office: {registeredOffice}</span>
+        <span>Regd. Office: <RichText value={registeredOffice} /></span>
         <span>CIN No.: {cin}{gst ? `; GST: ${gst}` : ""}</span>
       </div>
       <PageNumber value={1} />
@@ -954,7 +959,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
   if (override) {
     return (
       <section className="pdf-page payment-reference-page" data-export-group="internal">
-        <div className="payment-override">{draft.paymentOverride}</div>
+        <RichText as="div" className="payment-override" value={draft.paymentOverride} />
         <PageNumber value={2} />
       </section>
     );
@@ -1187,32 +1192,32 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
       <PageMasthead journal={journal} />
       {publisherAbout ? (
         <p>
-          <b>{identity.publisherName}</b> {publisherAbout}
-          {aboutText ? ` ${aboutText}` : ""}
+          <b>{identity.publisherName}</b> <RichText value={publisherAbout} />
+          {aboutText ? <> <RichText value={aboutText} /></> : null}
         </p>
       ) : isLaw ? (
         <p>
           <b>Law Journals</b>, an imprint of Consortium E-learning Network Private Ltd. is prepared under the support
           and guidance by our esteemed editorial board members from renowned institutions.{" "}
-          {aboutText || "The journal supports legal research, review articles, case studies, and current thought in the legal domain."}
+          {aboutText ? <RichText value={aboutText} /> : "The journal supports legal research, review articles, case studies, and current thought in the legal domain."}
         </p>
       ) : (
         <p>
           <b>{identity.publisherName}</b> is a bouquet of research publications which disseminates knowledge dealing with
           domains such as Applied Sciences, Medicine, Engineering, Management and Technology.{" "}
-          {aboutText || "We encourage research and thinking, and attempt to contribute to a better perception of academic and professional knowledge across research communities."}
+          {aboutText ? <RichText value={aboutText} /> : "We encourage research and thinking, and attempt to contribute to a better perception of academic and professional knowledge across research communities."}
         </p>
       )}
       <section>
         <h2>Objectives</h2>
         <ul>
-          {objectiveItems.map((item) => <li key={item}>{item}</li>)}
+          {objectiveItems.map((item, index) => <RichText as="li" key={`${item}-${index}`} value={item} />)}
         </ul>
       </section>
       <section>
         <h2>Salient Features</h2>
         <ul>
-          {salientItems.map((item) => <li key={item}>{item}</li>)}
+          {salientItems.map((item, index) => <RichText as="li" key={`${item}-${index}`} value={item} />)}
         </ul>
       </section>
       {scopeItems.length > 0 ? (
@@ -1223,14 +1228,14 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
           <section>
             <h2>Focus and Scope</h2>
             <ul className="focus-list">
-              {scopeItems.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+              {scopeItems.map((item, index) => <RichText as="li" key={`${item}-${index}`} value={item} />)}
             </ul>
           </section>
         </>
       ) : null}
       <div>
         {aboutNotes.map((note, index) => (
-          <p key={index}>{applyBinderTokens(note, journal, draft, publisherEmail)}</p>
+          <RichText as="p" key={index} value={applyBinderTokens(note, journal, draft, publisherEmail)} />
         ))}
       </div>
       <PageNumber value={3} />
@@ -1308,13 +1313,13 @@ function ManagementProfile({ person, featured = false }: { person: ManagementPer
   return (
     <article className={featured ? "management-profile featured" : "management-profile"}>
       {person.photo ? (
-        <Image src={person.photo} alt={person.name} width={90} height={90} unoptimized />
+        <Image src={person.photo} alt={inlineToPlainText(person.name)} width={90} height={90} unoptimized />
       ) : (
-        <span className="management-initials">{initials(person.name || "Member")}</span>
+        <span className="management-initials">{initials(inlineToPlainText(person.name) || "Member")}</span>
       )}
-      <b>{person.name || "Team Member"}</b>
-      <span>{person.role}</span>
-      {person.department ? <small>({person.department})</small> : null}
+      <RichText as="b" value={person.name || "Team Member"} />
+      <RichText as="span" value={person.role} />
+      {person.department ? <small>(<RichText value={person.department} />)</small> : null}
     </article>
   );
 }
@@ -1349,7 +1354,7 @@ function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: Bin
         ) : null}
         <h1>{engine.heading}</h1>
       </div>
-      <p className="lead-text">{engine.leadText}</p>
+      <RichText as="p" className="lead-text" value={engine.leadText} />
       <div className="engine-panel">
         <div>
           <QrCode size={34} />
@@ -1358,11 +1363,11 @@ function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: Bin
           <span>{engine.scanLabel}</span>
         </div>
         <ol>
-          {engine.steps.map((step, index) => <li key={index}>{step}</li>)}
+          {engine.steps.map((step, index) => <RichText as="li" key={index} value={step} />)}
         </ol>
       </div>
       <p className="url-line">{url}</p>
-      <p className="manuscript-notice">{manuscriptNotice}</p>
+      <RichText as="p" className="manuscript-notice" value={manuscriptNotice} />
       <PageNumber value={5} />
     </section>
   );
@@ -1458,7 +1463,7 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
   return (
     <section className="pdf-page director-page" data-export-group="internal" style={pageStyle(pageScale)}>
       <div className="page-rule" />
-      <h1>{effectiveDirectorDesk(journal).title}</h1>
+      <RichText as="h1" value={effectiveDirectorDesk(journal).title} />
       <div className="director-letter">
         <Image
           className="portrait"
@@ -1470,7 +1475,7 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
         />
         <p className="dear-line"><b>Dear Readers,</b></p>
         {paragraphs.map((paragraph, index) => (
-          <p key={index}>{applyBinderTokens(paragraph, journal, draft)}</p>
+          <RichText as="p" key={index} value={applyBinderTokens(paragraph, journal, draft)} />
         ))}
       </div>
       <div className="signature">
@@ -1481,8 +1486,8 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
           height={logoAssets.signature.height}
           unoptimized
         />
-        <span>{draft.directorName}</span>
-        <b>{draft.directorRole}</b>
+        <RichText as="span" value={draft.directorName} />
+        <RichText as="b" value={draft.directorRole} />
       </div>
       <PageNumber value={7} />
     </section>
@@ -1496,7 +1501,7 @@ const CONTENT_FIRST_PAGE_NUMBER = 8;
 function ContentRowCells({ row }: { row: ContentRow }) {
   return (
     <>
-      <td><b>{row.title}</b><span>{row.author}</span></td>
+      <td><RichText as="b" value={row.title} /><RichText as="span" value={row.author} /></td>
       <td>{row.page}</td>
     </>
   );
@@ -1596,9 +1601,13 @@ function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
 function EditorialMemberLine({ member }: { member: EditorialMember }) {
   return (
     <div className="member-line">
-      <b>{member.name}</b>
-      <span>{member.designation || member.department}</span>
-      <small>{[member.affiliation, member.location].filter(Boolean).join(", ")}</small>
+      <RichText as="b" value={member.name} />
+      <RichText as="span" value={member.designation || member.department} />
+      <small>
+        {member.affiliation ? <RichText value={member.affiliation} /> : null}
+        {member.affiliation && member.location ? ", " : null}
+        {member.location ? <RichText value={member.location} /> : null}
+      </small>
     </div>
   );
 }
@@ -1967,17 +1976,19 @@ function SectionEditor({
           </div>
           <label>
             <span>Journal title</span>
-            <input
+            <RichTextField
+              ariaLabel="Journal title"
               value={draft.journalTitle}
-              onChange={(event) => onChange({ ...draft, journalTitle: event.target.value })}
+              onChange={(value) => onChange({ ...draft, journalTitle: value })}
             />
           </label>
           <div className="two-field-grid">
             <label>
               <span>Cover abbreviation</span>
-              <input
+              <RichTextField
+                ariaLabel="Cover abbreviation"
                 value={draft.journalAbbreviation || ""}
-                onChange={(event) => onChange({ ...draft, journalAbbreviation: event.target.value })}
+                onChange={(value) => onChange({ ...draft, journalAbbreviation: value })}
               />
             </label>
             <label>
@@ -2126,11 +2137,11 @@ function SectionEditor({
           </div>
           <label>
             <span>Printed by</span>
-            <input value={draft.coverPrinter || ""} placeholder={journal.printedBy || defaultCoverPrinter} onChange={(event) => onChange({ ...draft, coverPrinter: event.target.value })} />
+            <RichTextField ariaLabel="Printed by" value={draft.coverPrinter || ""} placeholder={journal.printedBy || defaultCoverPrinter} onChange={(value) => onChange({ ...draft, coverPrinter: value })} />
           </label>
           <label>
             <span>Publisher address</span>
-            <textarea rows={2} value={draft.publisherAddress || ""} placeholder={publisherIdentity(journal).address} onChange={(event) => onChange({ ...draft, publisherAddress: event.target.value })} />
+            <RichTextField ariaLabel="Publisher address" multiline rows={2} value={draft.publisherAddress || ""} placeholder={publisherIdentity(journal).address} onChange={(value) => onChange({ ...draft, publisherAddress: value })} />
           </label>
           <div className="two-field-grid">
             <label>
@@ -2148,7 +2159,7 @@ function SectionEditor({
           </label>
           <label>
             <span>Registered office</span>
-            <textarea rows={2} value={draft.registeredOffice || ""} placeholder={defaultRegisteredOffice} onChange={(event) => onChange({ ...draft, registeredOffice: event.target.value })} />
+            <RichTextField ariaLabel="Registered office" multiline rows={2} value={draft.registeredOffice || ""} placeholder={defaultRegisteredOffice} onChange={(value) => onChange({ ...draft, registeredOffice: value })} />
           </label>
           <label>
             <span>CIN No.</span>
@@ -2174,7 +2185,7 @@ function SectionEditor({
           </div>
           <label>
             <span>Page text override</span>
-            <textarea rows={16} value={draft.paymentOverride || ""} placeholder="Leave blank to use the auto-generated subscription & legal page." onChange={(event) => onChange({ ...draft, paymentOverride: event.target.value })} />
+            <RichTextField ariaLabel="Page text override" multiline rows={16} value={draft.paymentOverride || ""} placeholder="Leave blank to use the auto-generated subscription & legal page." onChange={(value) => onChange({ ...draft, paymentOverride: value })} />
           </label>
         </>
       ) : null}
@@ -2185,21 +2196,25 @@ function SectionEditor({
           </div>
           <label>
             <span>About journal</span>
-            <textarea
+            <RichTextField
+              ariaLabel="About journal"
+              multiline
               rows={6}
               value={draft.about}
-              onChange={(event) => onChange({ ...draft, about: event.target.value })}
+              onChange={(value) => onChange({ ...draft, about: value })}
             />
           </label>
           <label>
             <span>Focus and scope</span>
-            <textarea
+            <RichTextField
+              ariaLabel="Focus and scope"
+              multiline
               rows={10}
               value={draft.focusScope.join("\n")}
-              onChange={(event) =>
+              onChange={(value) =>
                 onChange({
                   ...draft,
-                  focusScope: normalizeFocusScopeInput(event.target.value),
+                  focusScope: normalizeFocusScopeInput(value),
                 })
               }
             />
@@ -2259,8 +2274,8 @@ function SectionEditor({
                 </select>
               ) : null}
               <div className="management-edit-row">
-                <input aria-label="Management head name" placeholder="Name" value={head.name} onChange={(event) => updateManagementHead(index, { name: event.target.value })} />
-                <input aria-label="Management head role" placeholder="Role" value={head.role} onChange={(event) => updateManagementHead(index, { role: event.target.value })} />
+                <RichTextField ariaLabel="Management head name" placeholder="Name" value={head.name} onChange={(value) => updateManagementHead(index, { name: value })} />
+                <RichTextField ariaLabel="Management head role" placeholder="Role" value={head.role} onChange={(value) => updateManagementHead(index, { role: value })} />
                 <label className="file-field">
                   <span>Photo</span>
                   <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (photo) => updateManagementHead(index, { photo }))} />
@@ -2279,9 +2294,9 @@ function SectionEditor({
           {draft.managementMembers.map((member, index) => (
             <article className="management-edit-card" key={index}>
               <div className="management-edit-row">
-                <input value={member.name} placeholder="Name" onChange={(event) => updateManagementMember(index, { name: event.target.value })} />
-                <input value={member.role} placeholder="Role" onChange={(event) => updateManagementMember(index, { role: event.target.value })} />
-                <input value={member.department} placeholder="Department specialty" onChange={(event) => updateManagementMember(index, { department: event.target.value })} />
+                <RichTextField ariaLabel="Member name" value={member.name} placeholder="Name" onChange={(value) => updateManagementMember(index, { name: value })} />
+                <RichTextField ariaLabel="Member role" value={member.role} placeholder="Role" onChange={(value) => updateManagementMember(index, { role: value })} />
+                <RichTextField ariaLabel="Member department" value={member.department} placeholder="Department specialty" onChange={(value) => updateManagementMember(index, { department: value })} />
                 <label className="file-field compact">
                   <span>Photo</span>
                   <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (photo) => updateManagementMember(index, { photo }))} />
@@ -2319,10 +2334,12 @@ function SectionEditor({
           </div>
           <label>
             <span>Manuscript submission notification</span>
-            <textarea
+            <RichTextField
+              ariaLabel="Manuscript submission notification"
+              multiline
               rows={9}
               value={draft.manuscriptNotice}
-              onChange={(event) => onChange({ ...draft, manuscriptNotice: event.target.value })}
+              onChange={(value) => onChange({ ...draft, manuscriptNotice: value })}
             />
           </label>
           <div className="editor-note">
@@ -2357,10 +2374,10 @@ function SectionEditor({
                 </select>
                 <button type="button" onClick={() => removeEditorial(index)}>Delete Row</button>
               </div>
-              <input value={member.name} placeholder="Name" onChange={(event) => updateEditorial(index, { name: event.target.value })} />
-              <input value={member.designation} placeholder="Designation" onChange={(event) => updateEditorial(index, { designation: event.target.value })} />
-              <input value={member.affiliation} placeholder="Affiliation" onChange={(event) => updateEditorial(index, { affiliation: event.target.value })} />
-              <input value={member.location} placeholder="Location" onChange={(event) => updateEditorial(index, { location: event.target.value })} />
+              <RichTextField ariaLabel="Board member name" value={member.name} placeholder="Name" onChange={(value) => updateEditorial(index, { name: value })} />
+              <RichTextField ariaLabel="Board member designation" value={member.designation} placeholder="Designation" onChange={(value) => updateEditorial(index, { designation: value })} />
+              <RichTextField ariaLabel="Board member affiliation" value={member.affiliation} placeholder="Affiliation" onChange={(value) => updateEditorial(index, { affiliation: value })} />
+              <RichTextField ariaLabel="Board member location" value={member.location} placeholder="Location" onChange={(value) => updateEditorial(index, { location: value })} />
             </article>
           ))}
           {draft.editorialBoard.length === 0 ? (
@@ -2409,11 +2426,11 @@ function SectionEditor({
           <div className="two-field-grid">
             <label>
               <span>Director name</span>
-              <input value={draft.directorName} onChange={(event) => onChange({ ...draft, directorName: event.target.value })} />
+              <RichTextField ariaLabel="Director name" value={draft.directorName} onChange={(value) => onChange({ ...draft, directorName: value })} />
             </label>
             <label>
               <span>Director role label</span>
-              <input value={draft.directorRole} onChange={(event) => onChange({ ...draft, directorRole: event.target.value })} />
+              <RichTextField ariaLabel="Director role label" value={draft.directorRole} onChange={(value) => onChange({ ...draft, directorRole: value })} />
             </label>
           </div>
           <div className="two-field-grid">
@@ -2450,12 +2467,12 @@ function SectionEditor({
               <article className="content-edit-card" key={index}>
                 <label>
                   <span>Article title</span>
-                  <input value={row.title} onChange={(event) => updateContentRow(index, { title: event.target.value })} />
+                  <RichTextField ariaLabel="Article title" value={row.title} onChange={(value) => updateContentRow(index, { title: value })} />
                 </label>
                 <div className="content-edit-grid">
                   <label>
                     <span>Author(s)</span>
-                    <input value={row.author} onChange={(event) => updateContentRow(index, { author: event.target.value })} />
+                    <RichTextField ariaLabel="Author(s)" value={row.author} onChange={(value) => updateContentRow(index, { author: value })} />
                   </label>
                   <label>
                     <span>Page</span>
