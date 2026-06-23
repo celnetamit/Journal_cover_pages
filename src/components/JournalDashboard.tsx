@@ -1281,7 +1281,7 @@ function ManagementProfile({ person, featured = false }: { person: ManagementPer
       )}
       <RichText as="b" value={person.name || "Team Member"} />
       <RichText as="span" value={person.role} />
-      {person.department ? <small>(<RichText value={person.department} />)</small> : null}
+      {person.department ? <RichText as="small" value={`(${person.department})`} /> : null}
     </article>
   );
 }
@@ -1581,11 +1581,7 @@ function EditorialMemberLine({ member }: { member: EditorialMember }) {
     <div className="member-line">
       <RichText as="b" value={member.name} />
       <RichText as="span" value={member.designation || member.department} />
-      <small>
-        {member.affiliation ? <RichText value={member.affiliation} /> : null}
-        {member.affiliation && member.location ? ", " : null}
-        {member.location ? <RichText value={member.location} /> : null}
-      </small>
+      <RichText as="small" value={[member.affiliation, member.location].filter(Boolean).join(", ")} />
     </div>
   );
 }
