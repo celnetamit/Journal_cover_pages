@@ -386,24 +386,23 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
   // Focus notes mirror the journal record only (no built-in default).
   const withFocusNotes = withFocus.focusNotes?.length ? withFocus : { ...withFocus, focusNotes: journal.focusNotes };
 
-  // Overlay management picked in Setup onto a saved draft that still holds the
-  // seed team (the draft itself doesn't capture later JournalMember changes).
+  // Resolve the management team from the journal's DB members (JournalMember +
+  // Profiles). When the saved draft team is still "default" (empty OR the legacy
+  // hardcoded seed team), use the DB team if present, otherwise clear it to []
+  // so old binders flag the missing team instead of showing the seed sample.
+  // A team the user actually edited inline is left untouched.
   const management = dynamicData ? findDynamicValue(journal, dynamicData.managementByKey) : undefined;
-  const withManagement = management
-    ? {
-        ...withFocusNotes,
-        managementHeads:
-          management.heads?.length && managementHeadsAreDefault(withFocusNotes.managementHeads)
-            ? management.heads
-            : withFocusNotes.managementHeads,
-        managementMembers:
-          management.members?.length && managementMembersAreDefault(withFocusNotes.managementMembers)
-            ? management.members
-            : withFocusNotes.managementMembers,
-      }
-    : withFocusNotes;
-
-  return withManagement;
+  const dbHeads = management?.heads ?? [];
+  const dbMembers = management?.members ?? [];
+  return {
+    ...withFocusNotes,
+    managementHeads: managementHeadsAreDefault(withFocusNotes.managementHeads)
+      ? (dbHeads.length ? dbHeads : [])
+      : withFocusNotes.managementHeads,
+    managementMembers: managementMembersAreDefault(withFocusNotes.managementMembers)
+      ? (dbMembers.length ? dbMembers : [])
+      : withFocusNotes.managementMembers,
+  };
 }
 
 function initialDrafts(
