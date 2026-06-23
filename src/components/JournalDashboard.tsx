@@ -1142,15 +1142,17 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
   const legal = useContext(LegalContext)[journal.id];
   const publisherEmail = legal?.publisherEmail || journal.publisherEmail;
   const publisherName = legal?.publisherName || journal.publisher;
-  // Record-only: about / objectives / salient features / focus come from the
-  // journal record (Setup). No built-in brand lists — blank is flagged.
-  const aboutText = draft.about || journal.about;
+  // Record-only: objectives / salient features / focus come from the journal
+  // record (Setup). No built-in brand lists — blank is flagged.
   const publisherAbout = journal.publisherAbout?.trim();
+  // About is dynamic: the journal's own About, falling back to the Publisher's
+  // about when the journal leaves it blank. Flagged only if both are empty.
+  const aboutText = draft.about || journal.about || publisherAbout;
   const objectiveItems = journal.objectives;
   const salientItems = journal.salientFeatures;
-  const aboutMissing = !hasValue(publisherAbout) && !hasValue(aboutText);
+  const aboutMissing = !hasValue(aboutText);
   const pageScale = pageDensityScale(
-    [publisherAbout ?? "", aboutText, ...scopeItems, ...aboutNotes].join(" ").length,
+    [aboutText ?? "", ...scopeItems, ...aboutNotes].join(" ").length,
     2350,
   );
 
@@ -1158,13 +1160,10 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
     <section className="pdf-page journal-info-page" data-export-group="internal" style={pageStyle(pageScale)}>
       <PageMasthead journal={journal} />
       {aboutMissing ? (
-        <MissingFlag label="About / publisher intro" block />
+        <MissingFlag label="About" block />
       ) : (
         <p>
-          <ReqText as="b" value={publisherName} label="Publisher name" />{" "}
-          {publisherAbout ? <RichText value={publisherAbout} /> : null}
-          {publisherAbout && aboutText ? " " : null}
-          {aboutText ? <RichText value={aboutText} /> : null}
+          <ReqText as="b" value={publisherName} label="Publisher name" /> <RichText value={aboutText} />
         </p>
       )}
       <section>
@@ -2190,6 +2189,7 @@ function SectionEditor({
               multiline
               rows={6}
               value={draft.about}
+              placeholder={journal.publisherAbout?.trim() ? "Blank = uses the Publisher's about text" : ""}
               onChange={(value) => onChange({ ...draft, about: value })}
             />
           </label>
