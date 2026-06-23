@@ -451,34 +451,6 @@ export const lawJournalNames = [
   "Journal of Corporate Governance and International Business Law",
 ];
 
-export const managementMembers: ManagementPerson[] = [
-  { name: "Quaisher J. Hossain", role: "Senior Editor", department: "", photo: "" },
-  { name: "Gautam Goswami", role: "Manager", department: "Quality Control", photo: "" },
-  { name: "Rahul Kumar", role: "Marketing Manager", department: "STM Conferences", photo: "" },
-  { name: "Farha Khan", role: "Commissioning Editor", department: "Nursing", photo: "" },
-  { name: "Rishabh Pandey", role: "Assistant Commissioning Editor", department: "Computer Science & Engineering", photo: "" },
-  { name: "Akash Gupta", role: "Commissioning Editor", department: "Medical & Pharmacy", photo: "" },
-  { name: "Subia Abbasi", role: "Associate Editor", department: "Lifescience & Ayurveda", photo: "" },
-  { name: "Neetu Raghav", role: "Commissioning Editor", department: "Architecture", photo: "" },
-  { name: "Mansi Srivastava", role: "Commissioning Editor", department: "Mechanical Engineering", photo: "" },
-  { name: "Susmita Jahan", role: "Commissioning Editor", department: "Civil Engineering", photo: "" },
-  { name: "Chinku Gautam", role: "Associate Editor", department: "Computer Science & Engineering", photo: "" },
-  { name: "Shivani Sonkar", role: "Commissioning Editor", department: "Chemistry", photo: "" },
-  { name: "Anjul Varshney", role: "Commissioning Editor", department: "Mechanical Engineering", photo: "" },
-  { name: "Vanshika Kardam", role: "Associate Editor", department: "Chemical Engineering & Material Science", photo: "" },
-  { name: "Gauri Kaushik", role: "Associate Editor", department: "Electrical and Electronic", photo: "" },
-  { name: "Alisha", role: "Associate Editor", department: "Biotechnology & Multidisciplinary", photo: "" },
-  { name: "Arun Pratap Singh", role: "Associate Editor", department: "Chemistry", photo: "" },
-  { name: "Nandini Sahu", role: "Associate Editor", department: "Agriculture", photo: "" },
-];
-
-export const lawManagementMembers: ManagementPerson[] = [
-  { name: "Dr. Archana Mehrotra", role: "Group Managing Editor and Managing Director", department: "CELNET, Delhi, India", photo: "" },
-  { name: "Quaisher J. Hossain", role: "Senior Editor", department: "", photo: "" },
-  { name: "Gagan Kumar", role: "Associate Editor", department: "Law Journals | cle@celnet.in", photo: "" },
-  { name: "Gautam Goswami", role: "Manager", department: "Quality Control", photo: "" },
-];
-
 export type Page5Contacts = {
   dispatchContactName: string;
   dispatchContactPhone: string;

@@ -40,8 +40,6 @@ import {
   type ContentRow,
   boardMembers,
   lawJournalNames,
-  managementMembers,
-  lawManagementMembers,
   defaultPage5Contacts,
   subscriptionPlans,
   defaultDirectorParagraphs,
@@ -324,14 +322,20 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
   };
 }
 
-// A saved draft only carries the generic seed team until the user picks profiles
-// in Setup, so detect that untouched seed. When it's still the seed we let dynamic
-// JournalMember data replace it; a team the user edited inline is left alone.
+// Name-only fingerprints of the legacy hardcoded seed teams that older binders
+// baked into their saved draft. Kept solely to recognise and clear that seed on
+// load (the actual sample team data has been removed) — never rendered.
+const LEGACY_SEED_TEAM_SIGNATURES = [
+  "Quaisher J. Hossain|Gautam Goswami|Rahul Kumar|Farha Khan|Rishabh Pandey|Akash Gupta|Subia Abbasi|Neetu Raghav|Mansi Srivastava|Susmita Jahan|Chinku Gautam|Shivani Sonkar|Anjul Varshney|Vanshika Kardam|Gauri Kaushik|Alisha|Arun Pratap Singh|Nandini Sahu",
+  "Dr. Archana Mehrotra|Quaisher J. Hossain|Gagan Kumar|Gautam Goswami",
+];
+
+// A saved draft is "default" when it is empty or still carries one of the legacy
+// seed teams. In that case dynamic JournalMember data replaces it (or it clears);
+// a team the user edited inline has a different signature and is left alone.
 function managementMembersAreDefault(members: ManagementPerson[]) {
   if (!members.length) return true; // empty = replaceable by dynamic JournalMember data
-  const sig = (list: ManagementPerson[]) => list.map((m) => m.name).join("|");
-  const current = sig(members);
-  return current === sig(managementMembers) || current === sig(lawManagementMembers);
+  return LEGACY_SEED_TEAM_SIGNATURES.includes(members.map((m) => m.name).join("|"));
 }
 
 function managementHeadsAreDefault(heads: ManagementPerson[] | undefined) {
@@ -1815,10 +1819,6 @@ function SectionEditor({
     });
   }
 
-  function useLawManagementTeam() {
-    onChange({ ...draft, managementMembers: lawManagementMembers });
-  }
-
   function removeManagementMember(index: number) {
     onChange({
       ...draft,
@@ -2271,7 +2271,6 @@ function SectionEditor({
           <div className="editor-row-head">
             <span>Publication Management Officers ({draft.managementMembers.length})</span>
             <div className="editor-row-actions">
-              {isLawJournal(journal) ? <button type="button" onClick={useLawManagementTeam}>Use Law Team</button> : null}
               <button type="button" onClick={addManagementMember}>Add Member</button>
             </div>
           </div>
