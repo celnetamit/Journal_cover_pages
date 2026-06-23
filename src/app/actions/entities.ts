@@ -206,8 +206,6 @@ function companyData(fd: FormData) {
     openAccessIndia: nul(str(fd.get("openAccessIndia"))),
     openAccessSaarc: nul(str(fd.get("openAccessSaarc"))),
     openAccessOther: nul(str(fd.get("openAccessOther"))),
-    directorDeskTitle: nul(str(fd.get("directorDeskTitle"))),
-    directorDeskParagraphs: textLines(str(fd.get("directorDeskParagraphs"))),
     dispatchContactName: nul(str(fd.get("dispatchContactName"))),
     dispatchContactPhone: nul(str(fd.get("dispatchContactPhone"))),
     dispatchContactEmail: nul(str(fd.get("dispatchContactEmail"))),

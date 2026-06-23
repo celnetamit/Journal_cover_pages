@@ -9,7 +9,6 @@ type Values = {
   bankName: string; bankBranch: string; bankSwift: string; directorId: string;
   printedBy: string;
   openAccessIndia: string; openAccessSaarc: string; openAccessOther: string;
-  directorDeskTitle: string; directorDeskParagraphs: string;
   dispatchContactName: string; dispatchContactPhone: string; dispatchContactEmail: string;
   salesContactName: string; salesContactPhone: string; salesContactEmail: string;
 };
@@ -38,20 +37,14 @@ export default function CompanyForm({ action, values, profiles, submitLabel }: {
         hint="Title-page logo. PNG with a transparent background (or SVG), landscape orientation. Recommended ≥ 600×400px, max ~2 MB."
       />
       <Select name="directorId" label="Director (profile)" defaultValue={values?.directorId} options={profiles} />
+      <p className="px-1 text-xs text-slate-500">
+        The Director&apos;s Desk message (heading + letter) is set per journal in the journal&apos;s Setup.
+        The director&apos;s name, role, photo &amp; signature come from the profile selected above.
+      </p>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Area name="registeredAddress" label="Registered address" defaultValue={values?.registeredAddress} rows={2} />
         <Area name="salesAddress" label="Sales address" defaultValue={values?.salesAddress} rows={2} />
       </div>
-
-      <fieldset className="rounded-xl border border-slate-200 p-4">
-        <legend className="px-2 text-sm font-medium text-slate-700">Director&apos;s Desk (Page 7)</legend>
-        <p className="mb-3 px-1 text-xs text-slate-500">
-          Signed by the director profile selected above (name, role, photo &amp; signature come from that profile).
-          One paragraph per line; use <code>{"{journal}"}</code> for the journal name.
-        </p>
-        <Text name="directorDeskTitle" label="Heading" defaultValue={values?.directorDeskTitle} placeholder="From the Director's Desk" />
-        <Area name="directorDeskParagraphs" label="Message paragraphs" defaultValue={values?.directorDeskParagraphs} rows={6} />
-      </fieldset>
 
       <fieldset className="rounded-xl border border-slate-200 p-4">
         <legend className="px-2 text-sm font-medium text-slate-700">Open Access charges (subscription page)</legend>

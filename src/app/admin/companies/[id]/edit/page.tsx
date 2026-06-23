@@ -39,8 +39,6 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ id
           openAccessIndia: c.openAccessIndia ?? "",
           openAccessSaarc: c.openAccessSaarc ?? "",
           openAccessOther: c.openAccessOther ?? "",
-          directorDeskTitle: c.directorDeskTitle ?? "",
-          directorDeskParagraphs: c.directorDeskParagraphs.join("\n"),
           dispatchContactName: c.dispatchContactName ?? "",
           dispatchContactPhone: c.dispatchContactPhone ?? "",
           dispatchContactEmail: c.dispatchContactEmail ?? "",
