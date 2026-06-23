@@ -51,19 +51,11 @@ const JournalSchema = z.object({
   focusScope: z.string().optional(),
   objectives: z.string().optional(),
   salientFeatures: z.string().optional(),
-  keywords: z.string().optional(),
-  indexing: z.string().optional(),
 });
 
 const lines = (v: string | undefined) =>
   (v ?? "")
     .split(/\r?\n/)
-    .map((x) => x.trim())
-    .filter(Boolean);
-
-const commas = (v: string | undefined) =>
-  (v ?? "")
-    .split(",")
     .map((x) => x.trim())
     .filter(Boolean);
 
@@ -104,8 +96,6 @@ function parse(formData: FormData) {
     focusScope: formData.get("focusScope") || undefined,
     objectives: formData.get("objectives") || undefined,
     salientFeatures: formData.get("salientFeatures") || undefined,
-    keywords: formData.get("keywords") || undefined,
-    indexing: formData.get("indexing") || undefined,
   });
 }
 
@@ -138,8 +128,6 @@ function scalarData(d: z.infer<typeof JournalSchema>) {
     focusScope: lines(d.focusScope),
     objectives: lines(d.objectives),
     salientFeatures: lines(d.salientFeatures),
-    keywords: commas(d.keywords),
-    indexing: commas(d.indexing),
   };
 }
 

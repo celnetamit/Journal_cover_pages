@@ -38,8 +38,6 @@ export type JournalFormValues = {
   focusScope: string;
   objectives: string;
   salientFeatures: string;
-  keywords: string;
-  indexing: string;
 };
 
 type Option = { id: string; label: string };
@@ -158,8 +156,6 @@ export default function JournalForm({
         <Area name="focusScope" label="Focus & scope" defaultValue={v.focusScope} rows={5} hint="One item per line" />
         <Area name="objectives" label="Objectives" defaultValue={v.objectives} rows={4} hint="One item per line" />
         <Area name="salientFeatures" label="Salient features" defaultValue={v.salientFeatures} rows={4} hint="One item per line" />
-        <Area name="keywords" label="Keywords" defaultValue={v.keywords} rows={2} hint="Comma-separated" rich={false} />
-        <Area name="indexing" label="Indexing" defaultValue={v.indexing} rows={2} hint="Comma-separated" rich={false} />
         <Area name="manuscriptNotice" label="Manuscript notice" defaultValue={v.manuscriptNotice} rows={3} hint="Use {email} for the auto-filled publisher email." />
         <Area name="directorDeskTitle" label="Director's Desk heading" defaultValue={v.directorDeskTitle} rows={1} hint="Blank = use the Company/brand default" />
         <Area name="directorDeskParagraphs" label="Director's Desk letter" defaultValue={v.directorDeskParagraphs} rows={8} hint="One paragraph per line. Tokens: {journal} {volume} {domain} {publisher}. Blank = Company default." />

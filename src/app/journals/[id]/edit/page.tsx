@@ -70,8 +70,6 @@ export default async function EditJournalPage({ params }: { params: Promise<{ id
     focusScope: journal.focusScope.join("\n"),
     objectives: journal.objectives.join("\n"),
     salientFeatures: journal.salientFeatures.join("\n"),
-    keywords: journal.keywords.join(", "),
-    indexing: journal.indexing.join(", "),
   };
 
   return (
