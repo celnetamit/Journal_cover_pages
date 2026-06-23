@@ -3507,6 +3507,38 @@ button {
   font-style: italic;
 }
 
+/* Inline "missing required data" flag rendered into the binder page (shows in
+   preview + exported PDF). Required fields use this; optional ISSN/SJIF/ICV do
+   not flag in the PDF — they only warn in the editor. */
+.binder-missing {
+  display: inline-block;
+  color: #b91c1c; /* red-700 */
+  background: #fef2f2; /* red-50 */
+  border: 1px dashed #dc2626; /* red-600 */
+  border-radius: 0.35rem;
+  padding: 0 0.35rem;
+  font-size: 0.85em;
+  font-style: italic;
+  font-weight: 500;
+  white-space: normal;
+}
+.binder-missing-block {
+  display: block;
+  margin: 0.25rem 0;
+  padding: 0.4rem 0.6rem;
+}
+/* Editor-side hint for optional fields (ISSN/SJIF/ICV) left blank. Never shown
+   in the printed page — purely an authoring reminder. */
+.editor-hint-optional {
+  margin: 0.4rem 0;
+  color: #92400e; /* amber-800 */
+  background: #fffbeb; /* amber-50 */
+  border: 1px solid #fcd34d; /* amber-300 */
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.8rem;
+}
+
 @media print {
   @page {
     margin: 0;

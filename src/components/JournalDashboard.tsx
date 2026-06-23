@@ -21,7 +21,7 @@ import type { LegalInfo } from "@/lib/legal-data";
 import Page3Editor from "@/components/Page3Editor";
 import SaveFocusToJournal from "@/components/SaveFocusToJournal";
 import { RichTextField } from "@/components/RichTextField";
-import { RichText } from "@/components/RichText";
+import { RichText, ReqText, MissingFlag, hasValue } from "@/components/RichText";
 import { inlineToPlainText } from "@/lib/rich-text";
 import { exportBookToPdf, type ExportMode } from "@/lib/pdf-export";
 import {
@@ -39,11 +39,6 @@ import {
   type ManagementPerson,
   type ContentRow,
   boardMembers,
-  contents,
-  objectives,
-  salientFeatures,
-  lawObjectives,
-  lawSalientFeatures,
   lawJournalNames,
   managementMembers,
   lawManagementMembers,
@@ -51,9 +46,7 @@ import {
   subscriptionPlans,
   defaultDirectorParagraphs,
   lawDirectorParagraphs,
-  defaultFocusNotes,
   defaultAboutNotes,
-  defaultManuscriptNotice,
   defaultManuscriptEngine,
   type ManuscriptEngineSettings,
   logoAssets,
@@ -278,24 +271,22 @@ function directorParagraphsForJournal(journal: Journal) {
   return effectiveDirectorDesk(journal).paragraphs;
 }
 
-function defaultManagementHead(): ManagementPerson {
-  return { name: "Puneet Mehrotra", role: "Chairman and Director", department: "", photo: logoAssets.director.src };
-}
-
 function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): BinderDraft {
   const details = findDynamicValue(journal, dynamicData.detailsByKey);
   const focus = findDynamicValue(journal, dynamicData.focusByKey);
   const editorialBoard = findDynamicValue(journal, dynamicData.editorialByKey) || [];
   const management = findDynamicValue(journal, dynamicData.managementByKey);
   const directorDesk = effectiveDirectorDesk(journal);
-  const contacts = effectivePage5Contacts(journal);
 
+  // Seed strictly from real records (dynamic CSV / journal). No hardcoded brand
+  // defaults — blank stays blank so the binder pages flag missing data. (The
+  // optional eIssn/sjif/icv just render empty.)
   return {
     journalTitle: details?.name || journal.name,
     journalAbbreviation: details?.abbreviation || journal.abbreviation || journal.shortName,
-    eIssn: details?.eIssn || journal.eIssn || "2582-2888",
-    sjif: journal.impactFactor || "6.017",
-    icv: journal.icv.replace(/^ICV\s*:\s*/i, "") || "62.07",
+    eIssn: details?.eIssn || journal.eIssn || "",
+    sjif: journal.impactFactor || "",
+    icv: journal.icv.replace(/^ICV\s*:\s*/i, "") || "",
     coverImage: defaultCoverImage(journal),
     backCoverImage: journal.coverBack ? proxiedImage(journal.coverBack) : defaultBackCoverImage(),
     journalLogoImage: proxiedImage(journal.publisherLogo),
@@ -304,27 +295,24 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     frontCoverLayoutCustomized: false,
     pageLayouts: defaultBinderPageLayouts,
     journalWebsite: defaultCoverWebsite(journal),
-    issueVolume: defaultIssueVolume,
-    issueNumber: defaultIssueNumber,
-    issueMonthRange: defaultIssueMonthRange,
-    issueYear: defaultIssueYear,
+    issueVolume: "",
+    issueNumber: "",
+    issueMonthRange: "",
+    issueYear: "",
     about: focus?.about || details?.about || journal.about || "",
     focusScope: journalFocusScope(focus),
-    focusNotes: journal.focusNotes.length ? journal.focusNotes : defaultFocusNotes,
+    focusNotes: journal.focusNotes,
     editorialBoard,
-    managementHeads: management?.heads?.length ? management.heads : [defaultManagementHead()],
-    managementMembers: management?.members?.length
-      ? management.members
-      : isLawJournal(journal) ? lawManagementMembers : managementMembers,
-    ...contacts,
+    managementHeads: management?.heads?.length ? management.heads : [],
+    managementMembers: management?.members?.length ? management.members : [],
     directorTitle: directorDesk.title,
     directorName: directorDesk.name,
     directorRole: directorDesk.role,
     directorParagraphs: directorDesk.paragraphs,
     directorPhotoImage: directorDesk.photo || undefined,
     directorSignatureImage: directorDesk.signature || undefined,
-    manuscriptNotice: journal.manuscriptNotice || defaultManuscriptNotice,
-    contentRows: contents,
+    manuscriptNotice: journal.manuscriptNotice || "",
+    contentRows: [],
     coverPrinter: "",
     publisherAddress: "",
     publisherPhone: "",
@@ -336,17 +324,11 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
   };
 }
 
-function hasGenericManagementMembers(draft: BinderDraft) {
-  return draft.managementMembers.length > 8 ||
-    draft.managementMembers.some((member) =>
-      ["STM Conferences", "Nursing", "Computer Science & Engineering", "Medical & Pharmacy"].includes(member.department),
-    );
-}
-
 // A saved draft only carries the generic seed team until the user picks profiles
 // in Setup, so detect that untouched seed. When it's still the seed we let dynamic
 // JournalMember data replace it; a team the user edited inline is left alone.
 function managementMembersAreDefault(members: ManagementPerson[]) {
+  if (!members.length) return true; // empty = replaceable by dynamic JournalMember data
   const sig = (list: ManagementPerson[]) => list.map((m) => m.name).join("|");
   const current = sig(members);
   return current === sig(managementMembers) || current === sig(lawManagementMembers);
@@ -362,7 +344,7 @@ function managementHeadsAreDefault(heads: ManagementPerson[] | undefined) {
 function migratedManagementHeads(draft: BinderDraft): ManagementPerson[] {
   if (Array.isArray(draft.managementHeads)) return draft.managementHeads;
   const legacy = (draft as unknown as { managementHead?: ManagementPerson }).managementHead;
-  return legacy ? [legacy] : [defaultManagementHead()];
+  return legacy ? [legacy] : [];
 }
 
 function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicData?: DynamicBinderData) {
@@ -401,8 +383,8 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
         focusScope: journalFocusScope(focus),
       }
     : hydratedDraft;
-  const fallbackFocusNotes = journal.focusNotes.length ? journal.focusNotes : defaultFocusNotes;
-  const withFocusNotes = withFocus.focusNotes?.length ? withFocus : { ...withFocus, focusNotes: fallbackFocusNotes };
+  // Focus notes mirror the journal record only (no built-in default).
+  const withFocusNotes = withFocus.focusNotes?.length ? withFocus : { ...withFocus, focusNotes: journal.focusNotes };
 
   // Overlay management picked in Setup onto a saved draft that still holds the
   // seed team (the draft itself doesn't capture later JournalMember changes).
@@ -421,15 +403,7 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
       }
     : withFocusNotes;
 
-  if (!isLawJournal(journal) || !hasGenericManagementMembers(withManagement)) return withManagement;
-
-  return {
-    ...withManagement,
-    managementMembers: lawManagementMembers,
-    directorTitle: withManagement.directorTitle === "From the Director's Desk" ? directorDesk.title : withManagement.directorTitle,
-    directorRole: withManagement.directorRole === "Managing Director" ? directorDesk.role : withManagement.directorRole,
-    directorParagraphs: hasDirectorContent(withManagement.directorParagraphs) ? withManagement.directorParagraphs : directorDesk.paragraphs,
-  };
+  return withManagement;
 }
 
 function initialDrafts(
@@ -823,7 +797,8 @@ function JournalFrontCover({
   const issue = draft.issueNumber || defaultIssueNumber;
   const monthRange = draft.issueMonthRange || defaultIssueMonthRange;
   const year = draft.issueYear || defaultIssueYear;
-  const abbreviation = draft.journalAbbreviation || journal.abbreviation || journal.shortName || "JOADMS";
+  // No hardcoded brand fallback: blank abbreviation is flagged on the cover.
+  const abbreviation = draft.journalAbbreviation || journal.abbreviation || journal.shortName || "";
   const website = normalizeCoverWebsite(draft.journalWebsite, journal);
   const coverImage = draft.coverImage || defaultCoverImage(journal);
   const shouldMaskEmbeddedFooter = coverHasEmbeddedFooterLogos(coverImage);
@@ -873,45 +848,45 @@ function CoverSpreadPage({
 }
 
 function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
-  const identity = publisherIdentity(journal);
+  const identity = publisherIdentity(journal); // used only for logoMode (styling)
   const legal = useContext(LegalContext)[journal.id];
-  const volume = draft.issueVolume || defaultIssueVolume;
-  const issue = draft.issueNumber || defaultIssueNumber;
-  const monthRange = draft.issueMonthRange || defaultIssueMonthRange;
-  const year = draft.issueYear || defaultIssueYear;
 
-  // Precedence: per-issue draft override → journal's Company (DB) → static default.
-  const publisherName = legal?.publisherName || identity.publisherName;
-  const companyName = legal?.companyName || identity.companyName;
-  const address = draft.publisherAddress || legal?.salesAddress || legal?.registeredAddress || identity.address;
-  // Title-page contact details come from the Publisher record (not the Company).
-  const phone = draft.publisherPhone || legal?.publisherPhone || identity.phone;
-  const email = draft.publisherEmail || legal?.publisherEmail || identity.email;
-  const website = draft.publisherWebsite || legal?.publisherWebsite || identity.website;
-  const registeredOffice = draft.registeredOffice || legal?.registeredAddress || defaultRegisteredOffice;
-  const cin = draft.cin || legal?.cin || defaultCin;
+  // Record-only resolution: per-issue draft → Company/Publisher (DB) → journal
+  // record. NO hardcoded brand fallback — blank values are flagged on the page.
+  const eIssn = draft.eIssn || journal.eIssn; // optional — blank renders empty
+  const printer = draft.coverPrinter || journal.printedBy;
+  const title = draft.journalTitle?.trim() ? draft.journalTitle : titleCaseName(journal.name);
+  const publisherName = legal?.publisherName || journal.publisher;
+  const companyName = legal?.companyName || journal.imprint;
+  const address = draft.publisherAddress || legal?.salesAddress || legal?.registeredAddress || journal.salesAddress || journal.address;
+  const phone = draft.publisherPhone || legal?.publisherPhone || journal.publisherPhone;
+  const email = draft.publisherEmail || legal?.publisherEmail || journal.publisherEmail;
+  const website = draft.publisherWebsite || legal?.publisherWebsite || journal.companyWebsite;
+  const registeredOffice = draft.registeredOffice || legal?.registeredAddress || journal.address;
+  const cin = draft.cin || legal?.cin;
   const gst = legal?.gst;
 
   return (
     <section className="pdf-page cover-page" data-export-group="internal" data-page-title="Journal Name with volume issue page">
       <div className="page-rule" />
-      <p className="cover-issn">ISSN: {journal.eIssn || "2582-2888"}</p>
-      <p className="cover-printer">Printed by : <RichText value={draft.coverPrinter || journal.printedBy || defaultCoverPrinter} /></p>
-      <RichText as="h1" value={draft.journalTitle?.trim() ? draft.journalTitle : titleCaseName(journal.name)} />
-      <p className="issue-line">Volume {volume} | Issue {issue}</p>
-      <p className="cover-meta">{monthRange} | {year}</p>
+      {/* e-ISSN is optional — render blank when unset (no PDF flag). */}
+      <p className="cover-issn">ISSN: {eIssn}</p>
+      <p className="cover-printer">Printed by : <ReqText value={printer} label="Printed by" /></p>
+      <ReqText as="h1" value={title} label="Journal title" />
+      <p className="issue-line">Volume <ReqText value={draft.issueVolume} label="Volume" /> | Issue <ReqText value={draft.issueNumber} label="Issue" /></p>
+      <p className="cover-meta"><ReqText value={draft.issueMonthRange} label="Month range" /> | <ReqText value={draft.issueYear} label="Year" /></p>
       <div className="cover-footer">
         <div className="publisher-logo-row">
           <PublisherLogo mode={identity.logoMode} side="publisher" src={proxiedImage(journal.publisherLogo)} />
           <PublisherLogo mode={identity.logoMode} side="company" src={proxiedImage(journal.companyLogo)} />
         </div>
-        <b>{publisherName}</b>
-        <strong>{companyName}</strong>
-        <RichText as="span" value={address} />
-        <span>Tel. No.: {phone}</span>
-        <span>E-mail: {email}; Website: {website}</span>
-        <span>Regd. Office: <RichText value={registeredOffice} /></span>
-        <span>CIN No.: {cin}{gst ? `; GST: ${gst}` : ""}</span>
+        <ReqText as="b" value={publisherName} label="Publisher name" />
+        <ReqText as="strong" value={companyName} label="Company name" />
+        <ReqText as="span" value={address} label="Publisher address" />
+        <span>Tel. No.: <ReqText value={phone} label="Publisher phone" /></span>
+        <span>E-mail: <ReqText value={email} label="Publisher email" />; Website: <ReqText value={website} label="Website" /></span>
+        <span>Regd. Office: <ReqText value={registeredOffice} label="Registered office" /></span>
+        <span>CIN No.: <ReqText value={cin} label="CIN" />{gst ? `; GST: ${gst}` : ""}</span>
       </div>
       <PageNumber value={1} />
     </section>
@@ -958,6 +933,7 @@ function generatePaymentText(journal: Journal, draft: BinderDraft): string {
 }
 
 function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+  const legal = useContext(LegalContext)[journal.id];
   const override = draft.paymentOverride?.trim();
   if (override) {
     return (
@@ -968,30 +944,30 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
     );
   }
 
-  const identity = publisherIdentity(journal);
+  const identity = publisherIdentity(journal); // logoMode → brand-variant wording
   const isJournalsPub = identity.logoMode === "journalspub";
   const isLaw = identity.logoMode === "law";
-  const paymentPublisherName = isJournalsPub ? "Journals Pub" : identity.publisherName;
-  const legalPhone = isJournalsPub ? "+91 120-4781200" : isLaw ? "+91 120-4781211" : identity.phone;
-  const subscriptionYear = draft.issueYear || defaultIssueYear;
+  const subscriptionYear = draft.issueYear;
 
-  // Dynamic legal/subscription data from the DB (publisher → company + the
-  // journal's subscription plans). Each field falls back to the previous static
-  // default when the company/plan data hasn't been filled in.
-  const legal = useContext(LegalContext)[journal.id];
-  const companyName = legal?.companyName || "Consortium e-Learning Network Pvt. Ltd.";
+  // All legal/subscription DATA comes from the DB (publisher → company + the
+  // journal's subscription plans). No hardcoded brand defaults — blank values
+  // are flagged on the page. (The surrounding policy narrative is standard text.)
+  const publisherName = legal?.publisherName || journal.publisher;
+  const paymentPublisherName = isJournalsPub ? "Journals Pub" : publisherName;
+  const companyName = legal?.companyName || journal.imprint;
   const payeeBankName = legal?.bankAccountName || companyName;
-  const bankAccountNo = legal?.bankAccountNo || "03942000001153";
-  const bankName = legal?.bankName || "HDFC";
-  const bankBranch = legal?.bankBranch || "HDFC Bank, Sector-62, Noida, U.P., India";
-  const bankIfsc = legal?.bankIfsc || "HDFC0002649";
-  const bankSwift = legal?.bankSwift || "HDFCINBBXXX";
-  const sendToAddress = legal?.salesAddress || legal?.registeredAddress || "A-118, Level 1, Sector-63, Noida, 201 301, U.P., India";
-  const legalPhoneDisplay = legal?.phone || legalPhone;
-  const marketingOffice = legal?.registeredAddress || defaultRegisteredOffice;
-  const openAccessIndia = legal?.openAccessIndia || "₹1500";
-  const openAccessSaarc = legal?.openAccessSaarc || "$100";
-  const openAccessOther = legal?.openAccessOther || "$200";
+  const bankAccountNo = legal?.bankAccountNo;
+  const bankName = legal?.bankName;
+  const bankBranch = legal?.bankBranch;
+  const bankIfsc = legal?.bankIfsc;
+  const bankSwift = legal?.bankSwift;
+  const sendToAddress = legal?.salesAddress || legal?.registeredAddress || journal.salesAddress || journal.address;
+  const legalPhoneDisplay = legal?.phone || journal.publisherPhone;
+  const legalEmail = legal?.publisherEmail || journal.publisherEmail;
+  const marketingOffice = legal?.registeredAddress || journal.address;
+  const openAccessIndia = legal?.openAccessIndia;
+  const openAccessSaarc = legal?.openAccessSaarc;
+  const openAccessOther = legal?.openAccessOther;
   const modeLabel = (m: string) => (m === "PRINT" ? "Print" : m === "ONLINE" ? "Online" : "Print + Online");
   const inrPlans = (legal?.plans ?? []).filter((p) => !p.hidden && p.priceInr != null);
   const usdPlans = (legal?.plans ?? []).filter((p) => !p.hidden && p.priceUsd != null);
@@ -1006,7 +982,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
           : `${paymentPublisherName} (an imprint of ${companyName}) having its marketing office located at ${marketingOffice}, is the Publisher of Journals. The author(s) or editor(s) expressed in the Journal reflect the views of the author(s) and are not the opinion of ${paymentPublisherName} unless so stated.`}
       </p>
 
-      <h1>SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, {subscriptionYear})</h1>
+      <h1>SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, <ReqText value={subscriptionYear} label="Year" />)</h1>
       <div className="subscription-columns">
         <div className="subscription-column">
           <p><b>National Subscription</b> (₹, India)</p>
@@ -1016,13 +992,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
                 <li key={`inr-${p.id}`}><b>{modeLabel(p.mode)}</b>: ₹{p.priceInr} per Journal.</li>
               ))}
             </ul>
-          ) : (
-            <p>
-              Print: ₹3500 per Journal (Two Print Issues), Single Issue ₹1800.<br />
-              Online: ₹6500 per Journal (Online Access of Current and Back Issues).<br />
-              Print + Online: ₹7315 per Journal (Two Print and Online Access of Current and Back Issues).
-            </p>
-          )}
+          ) : <MissingFlag label="National (₹) subscription prices" block />}
         </div>
         <div className="subscription-column">
           <p><b>International Subscription</b> ($, outside India)</p>
@@ -1032,26 +1002,22 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
                 <li key={`usd-${p.id}`}><b>{modeLabel(p.mode)}</b>: ${p.priceUsd} per Journal.</li>
               ))}
             </ul>
-          ) : (
-            <ul className="checkbox-list">
-              {subscriptionPlans.map((item) => <li key={item}>{item}</li>)}
-            </ul>
-          )}
+          ) : <MissingFlag label="International ($) subscription prices" block />}
         </div>
       </div>
       <p>
-        To purchase print compilation of back issues, please send your query at {identity.email}. Subscription must be
+        To purchase print compilation of back issues, please send your query at <ReqText value={legalEmail} label="Publisher e-mail" />. Subscription must be
         prepaid. Rates outside of India include delivery. Prices subject to change without notice.
       </p>
 
       <h2>MODE OF PAYMENT</h2>
       <p><b>Pay Through NEFT/RTGS/Online Transfer</b></p>
       <p>
-        Account Number: {bankAccountNo}<br />
-        Account Name: {payeeBankName}<br />
-        Bank Name: {bankName}<br />
-        Bank Branch: {bankBranch}<br />
-        IFSC Code: {bankIfsc}, Swift Code: {bankSwift}
+        Account Number: <ReqText value={bankAccountNo} label="Bank account no." /><br />
+        Account Name: <ReqText value={payeeBankName} label="Account name" /><br />
+        Bank Name: <ReqText value={bankName} label="Bank name" /><br />
+        Bank Branch: <ReqText value={bankBranch} label="Bank branch" /><br />
+        IFSC Code: <ReqText value={bankIfsc} label="IFSC code" />, Swift Code: <ReqText value={bankSwift} label="Swift code" />
       </p>
       <p>
         <b>Pay Through Cheque/Demand Draft</b><br />
@@ -1081,23 +1047,23 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
             publication at nominal cost as follows.
           </p>
           <p>
-            India: {openAccessIndia} includes single hard copy of Author&apos;s Journal.<br />
-            SAARC and African Countries: {openAccessSaarc} includes single hard copy of Author&apos;s Journal.<br />
-            Other Countries: {openAccessOther} includes single hard copy of Author&apos;s Journal.
+            India: <ReqText value={openAccessIndia} label="Open access (India)" /> includes single hard copy of Author&apos;s Journal.<br />
+            SAARC and African Countries: <ReqText value={openAccessSaarc} label="Open access (SAARC)" /> includes single hard copy of Author&apos;s Journal.<br />
+            Other Countries: <ReqText value={openAccessOther} label="Open access (other)" /> includes single hard copy of Author&apos;s Journal.
           </p>
         </>
       ) : (
         <>
           <p>
             <b>For Authors</b><br />
-            For grant of Open Access publication, maximum citation and wide publicity to the authors work, {identity.publisherName} also
+            For grant of Open Access publication, maximum citation and wide publicity to the authors work, {publisherName} also
             have Open Access Policy, authors who would like to get their work open access can opt for Optional Open Access
             publication at nominal charges.
           </p>
           <p>
-            India: {openAccessIndia} includes single hard copy of Author&apos;s Journal.<br />
-            SAARC and African Countries: {openAccessSaarc} includes single hard copy of Author&apos;s Journal.<br />
-            Other Countries: {openAccessOther} including single hard copy of Author&apos;s Journal.
+            India: <ReqText value={openAccessIndia} label="Open access (India)" /> includes single hard copy of Author&apos;s Journal.<br />
+            SAARC and African Countries: <ReqText value={openAccessSaarc} label="Open access (SAARC)" /> includes single hard copy of Author&apos;s Journal.<br />
+            Other Countries: <ReqText value={openAccessOther} label="Open access (other)" /> including single hard copy of Author&apos;s Journal.
           </p>
         </>
       )}
@@ -1141,7 +1107,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
         </p>
       ) : (
         <p>
-          {identity.publisherName} with wide circulation and visibility offer an excellent media for showcasing/promotion of your
+          {publisherName} with wide circulation and visibility offer an excellent media for showcasing/promotion of your
           products, services and events namely, Conferences, Symposia/Seminars, etc. These Journals have very high potential
           to deliver the message across the targeted audience regularly with each published issue. The advertisements on bulk
           subscriptions, gift subscriptions or reprint purchases for distribution, etc. are also most welcome.
@@ -1161,7 +1127,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
       <h2>{isJournalsPub || isLaw ? "LEGAL DISPUTES" : "LEGAL DISPUTE"}</h2>
       <p>
         All the legal disputes are subjected to Delhi Jurisdiction only. If you have any questions, please contact the
-        Publication Management Team at {legal?.publisherEmail || identity.email}; Tel: {legal?.publisherPhone || legalPhoneDisplay}.
+        Publication Management Team at <ReqText value={legalEmail} label="Publisher e-mail" />; Tel: <ReqText value={legalPhoneDisplay} label="Publisher phone" />.
       </p>
       <PageNumber value={2} />
     </section>
@@ -1169,22 +1135,20 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
 }
 
 function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
-  const identity = publisherIdentity(journal);
-  const isLaw = identity.logoMode === "law";
   const scopeItems = focusScopeItemsForPage(draft);
-  // Closing paragraphs are a single shared block (admin-edited), rendered for
-  // every journal with {journal}/{publisher}/{email} filled in per-journal.
+  // Closing paragraphs are a single shared block (admin-edited in /admin/about-notes),
+  // rendered for every journal with {journal}/{publisher}/{email} filled in.
   const aboutNotes = useContext(AboutNotesContext);
   const legal = useContext(LegalContext)[journal.id];
-  const publisherEmail = legal?.publisherEmail || identity.email;
+  const publisherEmail = legal?.publisherEmail || journal.publisherEmail;
+  const publisherName = legal?.publisherName || journal.publisher;
+  // Record-only: about / objectives / salient features / focus come from the
+  // journal record (Setup). No built-in brand lists — blank is flagged.
   const aboutText = draft.about || journal.about;
-  // Objectives + salient features come from the journal record (Setup), falling
-  // back to the built-in per-brand lists when the journal leaves them blank.
-  const objectiveItems = journal.objectives.length ? journal.objectives : isLaw ? lawObjectives : objectives;
-  const salientItems = journal.salientFeatures.length ? journal.salientFeatures : isLaw ? lawSalientFeatures : salientFeatures;
-  // Top "about" paragraph is sourced from the publisher's about text when set,
-  // otherwise the built-in imprint blurb below is used.
   const publisherAbout = journal.publisherAbout?.trim();
+  const objectiveItems = journal.objectives;
+  const salientItems = journal.salientFeatures;
+  const aboutMissing = !hasValue(publisherAbout) && !hasValue(aboutText);
   const pageScale = pageDensityScale(
     [publisherAbout ?? "", aboutText, ...scopeItems, ...aboutNotes].join(" ").length,
     2350,
@@ -1193,49 +1157,43 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
   return (
     <section className="pdf-page journal-info-page" data-export-group="internal" style={pageStyle(pageScale)}>
       <PageMasthead journal={journal} />
-      {publisherAbout ? (
-        <p>
-          <b>{identity.publisherName}</b> <RichText value={publisherAbout} />
-          {aboutText ? <> <RichText value={aboutText} /></> : null}
-        </p>
-      ) : isLaw ? (
-        <p>
-          <b>Law Journals</b>, an imprint of Consortium E-learning Network Private Ltd. is prepared under the support
-          and guidance by our esteemed editorial board members from renowned institutions.{" "}
-          {aboutText ? <RichText value={aboutText} /> : "The journal supports legal research, review articles, case studies, and current thought in the legal domain."}
-        </p>
+      {aboutMissing ? (
+        <MissingFlag label="About / publisher intro" block />
       ) : (
         <p>
-          <b>{identity.publisherName}</b> is a bouquet of research publications which disseminates knowledge dealing with
-          domains such as Applied Sciences, Medicine, Engineering, Management and Technology.{" "}
-          {aboutText ? <RichText value={aboutText} /> : "We encourage research and thinking, and attempt to contribute to a better perception of academic and professional knowledge across research communities."}
+          <ReqText as="b" value={publisherName} label="Publisher name" />{" "}
+          {publisherAbout ? <RichText value={publisherAbout} /> : null}
+          {publisherAbout && aboutText ? " " : null}
+          {aboutText ? <RichText value={aboutText} /> : null}
         </p>
       )}
       <section>
         <h2>Objectives</h2>
-        <ul>
-          {objectiveItems.map((item, index) => <RichText as="li" key={`${item}-${index}`} value={item} />)}
-        </ul>
+        {objectiveItems.length ? (
+          <ul>
+            {objectiveItems.map((item, index) => <RichText as="li" key={`${item}-${index}`} value={item} />)}
+          </ul>
+        ) : <MissingFlag label="Objectives" block />}
       </section>
       <section>
         <h2>Salient Features</h2>
-        <ul>
-          {salientItems.map((item, index) => <RichText as="li" key={`${item}-${index}`} value={item} />)}
-        </ul>
+        {salientItems.length ? (
+          <ul>
+            {salientItems.map((item, index) => <RichText as="li" key={`${item}-${index}`} value={item} />)}
+          </ul>
+        ) : <MissingFlag label="Salient features" block />}
       </section>
-      {scopeItems.length > 0 ? (
-        <>
-          <p className="journal-focus-intro">
-            <b>{journal.name.toUpperCase()}</b>, is focused towards the rapid publication in the following areas.
-          </p>
-          <section>
-            <h2>Focus and Scope</h2>
-            <ul className="focus-list">
-              {scopeItems.map((item, index) => <RichText as="li" key={`${item}-${index}`} value={item} />)}
-            </ul>
-          </section>
-        </>
-      ) : null}
+      <section>
+        <p className="journal-focus-intro">
+          <b>{journal.name.toUpperCase()}</b>, is focused towards the rapid publication in the following areas.
+        </p>
+        <h2>Focus and Scope</h2>
+        {scopeItems.length > 0 ? (
+          <ul className="focus-list">
+            {scopeItems.map((item, index) => <RichText as="li" key={`${item}-${index}`} value={item} />)}
+          </ul>
+        ) : <MissingFlag label="Focus & scope" block />}
+      </section>
       <div>
         {aboutNotes.map((note, index) => (
           <RichText as="p" key={index} value={applyBinderTokens(note, journal, draft, publisherEmail)} />
@@ -1247,24 +1205,22 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
 }
 
 function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
-  const identity = publisherIdentity(journal);
+  const identity = publisherIdentity(journal); // logoMode only
   const isLaw = identity.logoMode === "law";
-  const fallbackContacts = effectivePage5Contacts(journal);
+  const legal = useContext(LegalContext)[journal.id];
+  // Record-only: per-issue draft → Company (DB). No hardcoded contact defaults.
   const contacts = {
-    dispatchContactName: draft.dispatchContactName?.trim() || fallbackContacts.dispatchContactName,
-    dispatchContactPhone: draft.dispatchContactPhone?.trim() || fallbackContacts.dispatchContactPhone,
-    dispatchContactEmail: draft.dispatchContactEmail?.trim() || fallbackContacts.dispatchContactEmail,
-    salesContactName: draft.salesContactName?.trim() || fallbackContacts.salesContactName,
-    salesContactPhone: draft.salesContactPhone?.trim() || fallbackContacts.salesContactPhone,
-    salesContactEmail: draft.salesContactEmail?.trim() || fallbackContacts.salesContactEmail,
+    dispatchContactName: draft.dispatchContactName?.trim() || journal.dispatchContactName,
+    dispatchContactPhone: draft.dispatchContactPhone?.trim() || journal.dispatchContactPhone,
+    dispatchContactEmail: draft.dispatchContactEmail?.trim() || journal.dispatchContactEmail,
+    salesContactName: draft.salesContactName?.trim() || journal.salesContactName,
+    salesContactPhone: draft.salesContactPhone?.trim() || journal.salesContactPhone,
+    salesContactEmail: draft.salesContactEmail?.trim() || journal.salesContactEmail,
   };
+  const website = legal?.website || journal.companyWebsite;
+  const phone = legal?.phone || journal.publisherPhone;
   const pageScale = pageDensityScale(
-    [
-      identity.website,
-      identity.phone,
-      identity.email,
-      ...(isLaw ? lawJournalNames : []),
-    ].join(" ").length,
+    [website, phone, ...(isLaw ? lawJournalNames : [])].join(" ").length,
     1500,
   );
 
@@ -1272,17 +1228,21 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
     <section className="pdf-page management-page" data-export-group="internal" style={pageStyle(pageScale)}>
       <div className="page-rule" />
       <h1>Publication and Management Team</h1>
-      <div className={draft.managementHeads.length > 1 ? "management-head-row multi" : "management-head-row"}>
-        {draft.managementHeads.map((head, index) => (
-          <ManagementProfile key={index} person={head} featured />
-        ))}
-      </div>
+      {draft.managementHeads.length ? (
+        <div className={draft.managementHeads.length > 1 ? "management-head-row multi" : "management-head-row"}>
+          {draft.managementHeads.map((head, index) => (
+            <ManagementProfile key={index} person={head} featured />
+          ))}
+        </div>
+      ) : <MissingFlag label="Management head(s)" block />}
       <div className="management-band">Members</div>
-      <div className="management-photo-grid">
-        {draft.managementMembers.map((member, index) => (
-          <ManagementProfile key={index} person={member} />
-        ))}
-      </div>
+      {draft.managementMembers.length ? (
+        <div className="management-photo-grid">
+          {draft.managementMembers.map((member, index) => (
+            <ManagementProfile key={index} person={member} />
+          ))}
+        </div>
+      ) : <MissingFlag label="Management members" block />}
       {isLaw ? (
         <section className="law-journal-roster">
           <h2>Law Journals</h2>
@@ -1294,17 +1254,17 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
       <div className="management-contact-boxes">
         <div>
           <b>For any query related to Dispatch and Online Access, please contact</b>
-          <span>{contacts.dispatchContactName}</span>
-          <span>Tel.: {contacts.dispatchContactPhone}</span>
-          <span>E-mail: {contacts.dispatchContactEmail}</span>
-          <strong>Website: {identity.website}</strong>
+          <ReqText as="span" value={contacts.dispatchContactName} label="Dispatch contact name" />
+          <span>Tel.: <ReqText value={contacts.dispatchContactPhone} label="Dispatch phone" /></span>
+          <span>E-mail: <ReqText value={contacts.dispatchContactEmail} label="Dispatch e-mail" /></span>
+          <strong>Website: <ReqText value={website} label="Website" /></strong>
         </div>
         <div>
           <b>For any query related to Sales and Marketing, please contact</b>
-          <span>{contacts.salesContactName}</span>
-          <span>Tel.: {contacts.salesContactPhone}</span>
-          <span>E-mail: {contacts.salesContactEmail}</span>
-          <strong>Tel. no.: {identity.phone}</strong>
+          <ReqText as="span" value={contacts.salesContactName} label="Sales contact name" />
+          <span>Tel.: <ReqText value={contacts.salesContactPhone} label="Sales phone" /></span>
+          <span>E-mail: <ReqText value={contacts.salesContactEmail} label="Sales e-mail" /></span>
+          <strong>Tel. no.: <ReqText value={phone} label="Sales phone" /></strong>
         </div>
       </div>
       <PageNumber value={4} />
@@ -1334,8 +1294,9 @@ function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: Bin
   const engineLogo = proxiedImage(engine.logoUrl);
   // The closing notice is static text, but its {email} renders the publisher email.
   const legal = useContext(LegalContext)[journal.id];
-  const publisherEmail = legal?.publisherEmail || publisherIdentity(journal).email;
-  const manuscriptNotice = applyBinderTokens(draft.manuscriptNotice, journal, draft, publisherEmail);
+  const publisherEmail = legal?.publisherEmail || journal.publisherEmail;
+  const noticeRaw = draft.manuscriptNotice || journal.manuscriptNotice;
+  const manuscriptNotice = applyBinderTokens(noticeRaw, journal, draft, publisherEmail);
   // The QR encodes the journal's manuscript-submission URL (falling back to the
   // journal website); the printed link shows the journal website.
   const submissionUrl = journal.manuscriptUrl?.trim() || journal.website?.trim() || "";
@@ -1369,8 +1330,10 @@ function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: Bin
           {engine.steps.map((step, index) => <RichText as="li" key={index} value={step} />)}
         </ol>
       </div>
-      <p className="url-line">{url}</p>
-      <RichText as="p" className="manuscript-notice" value={manuscriptNotice} />
+      <p className="url-line">{hasValue(url) ? url : <MissingFlag label="Journal website / manuscript URL" />}</p>
+      {hasValue(noticeRaw)
+        ? <RichText as="p" className="manuscript-notice" value={manuscriptNotice} />
+        : <MissingFlag label="Manuscript notice" block />}
       <PageNumber value={5} />
     </section>
   );
@@ -1559,8 +1522,9 @@ function paginateContentByHeight(container: HTMLElement, rows: ContentRow[]): Co
 }
 
 function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
-  const rows = draft.contentRows.length ? draft.contentRows : contents;
-  const issueLine = `Volume ${draft.issueVolume || defaultIssueVolume} | Issue ${draft.issueNumber || defaultIssueNumber} | ${(draft.issueMonthRange || defaultIssueMonthRange).replace("-", "–")}`;
+  // Record-only: no hardcoded sample rows; an empty list is flagged below.
+  const rows = draft.contentRows;
+  const issueLine = `Volume ${draft.issueVolume} | Issue ${draft.issueNumber} | ${draft.issueMonthRange.replace("-", "–")}`;
   const rowsKey = rows.map((row) => `${row.title}|${row.author}|${row.page}`).join("\n");
   const measureRef = useRef<HTMLDivElement>(null);
   const [chunks, setChunks] = useState<ContentRow[][]>([rows]);
@@ -1599,11 +1563,13 @@ function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
         >
           <PageMasthead journal={journal} subtitle={issueLine} />
           <h1>{pageIndex === 0 ? "Contents" : "Contents (continued)"}</h1>
-          <table className="contents-table">
-            <tbody>
-              {pageRows.map((row, index) => <tr key={`${row.title}-${index}`}><ContentRowCells row={row} /></tr>)}
-            </tbody>
-          </table>
+          {pageRows.length ? (
+            <table className="contents-table">
+              <tbody>
+                {pageRows.map((row, index) => <tr key={`${row.title}-${index}`}><ContentRowCells row={row} /></tr>)}
+              </tbody>
+            </table>
+          ) : <MissingFlag label="Contents / article list" block />}
           <PageNumber value={CONTENT_FIRST_PAGE_NUMBER + pageIndex} />
         </section>
       ))}
@@ -1987,6 +1953,16 @@ function SectionEditor({
           <div className="editor-note">
             The front cover uses a fixed layout. Edit the values below; they render at their preset positions on the cover.
           </div>
+          {(!hasValue(draft.eIssn) || !hasValue(draft.sjif) || !hasValue(cleanIcv(draft.icv))) ? (
+            <div className="editor-hint-optional" role="note">
+              Optional metrics left blank{": "}
+              {[
+                !hasValue(draft.eIssn) ? "e-ISSN" : null,
+                !hasValue(draft.sjif) ? "SJIF" : null,
+                !hasValue(cleanIcv(draft.icv)) ? "ICV" : null,
+              ].filter(Boolean).join(", ")}. These are not flagged on the cover or PDF — they just render blank. Fill them in if available.
+            </div>
+          ) : null}
           <label>
             <span>Journal title</span>
             <RichTextField

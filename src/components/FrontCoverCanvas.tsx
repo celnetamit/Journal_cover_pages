@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { FrontCoverLayout } from "@/lib/binder-content";
-import { RichText } from "@/components/RichText";
+import { ReqText } from "@/components/RichText";
 
 type Props = {
   abbreviation: string;
@@ -47,18 +47,20 @@ export default function FrontCoverCanvas({
       <div className="front-cover-header">
         <div className="front-cover-top">
           <div className="front-cover-top-left">
-            <RichText className="front-cover-abbreviation-badge" style={{ textTransform: "uppercase" }} value={abbreviation} />
-            <div className="front-cover-meta-line">SJIF: {sjif || "Not set"}</div>
-            <div className="front-cover-meta-line">ICV: {icv || "Not set"}</div>
+            <ReqText className="front-cover-abbreviation-badge" style={{ textTransform: "uppercase" }} value={abbreviation} label="Abbreviation" />
+            {/* SJIF / ICV are optional — render blank when unset (no PDF flag). */}
+            <div className="front-cover-meta-line">SJIF: {sjif}</div>
+            <div className="front-cover-meta-line">ICV: {icv}</div>
           </div>
           <div className="front-cover-top-right">
-            <div className="front-cover-issn">ISSN: {eIssn || "Not set"}</div>
+            {/* e-ISSN is optional — render blank when unset (no PDF flag). */}
+            <div className="front-cover-issn">ISSN: {eIssn}</div>
             <div className="front-cover-issue-line">{issueLine}</div>
             <div className="front-cover-website-line">{website}</div>
           </div>
         </div>
         <div className="front-cover-title-row">
-          <RichText className={`front-cover-title ${titleClassName}`} value={title} />
+          <ReqText className={`front-cover-title ${titleClassName}`} value={title} label="Journal title" />
           <div className="front-cover-month">{monthRange}</div>
         </div>
       </div>
