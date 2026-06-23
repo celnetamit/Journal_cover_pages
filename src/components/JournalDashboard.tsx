@@ -242,10 +242,13 @@ function defaultDirectorDesk(journal: Journal) {
 function effectiveDirectorDesk(journal: Journal) {
   const base = defaultDirectorDesk(journal);
   return {
+    // Heading keeps a standard label default so the section title is never empty.
     title: journal.directorDeskTitle?.trim() || base.title,
     name: journal.directorName?.trim() || base.name,
     role: journal.directorRole?.trim() || base.role,
-    paragraphs: journal.directorDeskParagraphs.length ? journal.directorDeskParagraphs : base.paragraphs,
+    // Letter is journal-record-only — NO built-in/Company fallback. When the
+    // journal leaves it blank, the Director page flags it for update.
+    paragraphs: journal.directorDeskParagraphs.filter((paragraph) => paragraph.trim()),
     photo: journal.directorPhoto?.trim() || "",
     signature: journal.directorSignature?.trim() || "",
   };
@@ -1458,6 +1461,7 @@ function applyBinderTokens(text: string, journal: Journal, draft: BinderDraft, e
 
 function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const paragraphs = directorParagraphsForJournal(journal).filter((paragraph) => paragraph.trim());
+  const letterMissing = paragraphs.length === 0;
   const pageScale = pageDensityScale(paragraphs.join(" ").length, 3600);
 
   return (
@@ -1473,10 +1477,19 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
           height={logoAssets.director.height}
           unoptimized
         />
-        <p className="dear-line"><b>Dear Readers,</b></p>
-        {paragraphs.map((paragraph, index) => (
-          <RichText as="p" key={index} value={applyBinderTokens(paragraph, journal, draft)} />
-        ))}
+        {letterMissing ? (
+          <p className="director-letter-missing" role="alert">
+            ⚠ Director&apos;s Desk letter is not set for this journal. Please add it in the
+            journal Setup → &ldquo;Director&apos;s Desk letter&rdquo;.
+          </p>
+        ) : (
+          <>
+            <p className="dear-line"><b>Dear Readers,</b></p>
+            {paragraphs.map((paragraph, index) => (
+              <RichText as="p" key={index} value={applyBinderTokens(paragraph, journal, draft)} />
+            ))}
+          </>
+        )}
       </div>
       <div className="signature">
         <Image
@@ -2397,6 +2410,13 @@ function SectionEditor({
             <a href={`/journals/${journal.id}/edit`} className="board-team-link">Setup (Director&apos;s Desk letter)</a>{" "}
             and apply to every issue. The director&apos;s name, role, photo and signature below can still be set per issue.
           </div>
+          {!hasDirectorContent(journal.directorDeskParagraphs) ? (
+            <div className="editor-warning" role="alert">
+              ⚠ This journal has no Director&apos;s Desk letter yet. Add it in{" "}
+              <a href={`/journals/${journal.id}/edit`} className="board-team-link">Setup → Director&apos;s Desk letter</a>{" "}
+              — the Director page will stay flagged until it&apos;s filled.
+            </div>
+          ) : null}
           {profiles.length > 0 ? (
             <label>
               <span>Fill director from a saved profile</span>

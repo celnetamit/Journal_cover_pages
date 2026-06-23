@@ -107,12 +107,15 @@ export function toLegacyJournal(j: DbJournal): Journal {
     manuscriptNotice: s(j.manuscriptNotice),
     manuscriptUrl: s(j.manuscriptUrl),
     focusNotes: j.focusNotes,
+    // Name/role/photo/signature stay sourced from the Company's director Profile.
     directorName: s(company?.director?.name),
     directorRole: s(company?.director?.designation),
     directorPhoto: s(company?.director?.photoUrl),
     directorSignature: s(company?.director?.signatureUrl),
-    directorDeskTitle: s(j.directorDeskTitle) || s(company?.directorDeskTitle),
-    directorDeskParagraphs: j.directorDeskParagraphs.length ? j.directorDeskParagraphs : (company?.directorDeskParagraphs ?? []),
+    // The Director's Desk message (heading + letter) is per-journal: it maps ONLY
+    // from the journal record — no Company fallback. Blank is surfaced as a flag.
+    directorDeskTitle: s(j.directorDeskTitle),
+    directorDeskParagraphs: j.directorDeskParagraphs,
     dispatchContactName: s(company?.dispatchContactName),
     dispatchContactPhone: s(company?.dispatchContactPhone),
     dispatchContactEmail: s(company?.dispatchContactEmail),

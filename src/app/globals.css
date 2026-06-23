@@ -3487,6 +3487,26 @@ button {
   line-height: 0;
 }
 
+/* Flag shown when a journal has no Director's Desk letter set. */
+.editor-warning {
+  margin: 0.5rem 0;
+  border: 1px solid #f59e0b; /* amber-500 */
+  background: #fffbeb; /* amber-50 */
+  color: #92400e; /* amber-800 */
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+.director-letter-missing {
+  border: 1px dashed #dc2626; /* red-600 */
+  background: #fef2f2; /* red-50 */
+  color: #b91c1c; /* red-700 */
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-style: italic;
+}
+
 @media print {
   @page {
     margin: 0;
