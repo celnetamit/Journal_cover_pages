@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import type { JournalActionState } from "@/app/actions/journals";
 import { ImageField } from "@/components/forms/Fields";
+import { RichTextField } from "@/components/RichTextField";
 
 export type JournalFormValues = {
   name: string;
@@ -61,14 +62,18 @@ function Text({ name, label, defaultValue, type = "text", required = false, hint
   );
 }
 
-function Area({ name, label, defaultValue, rows = 3, hint }: {
-  name: string; label: string; defaultValue?: string; rows?: number; hint?: string;
+function Area({ name, label, defaultValue, rows = 3, hint, rich = true }: {
+  name: string; label: string; defaultValue?: string; rows?: number; hint?: string; rich?: boolean;
 }) {
   return (
     <label className="block">
       <span className={labelClass}>{label}</span>
       {hint && <span className="block text-xs text-slate-400">{hint}</span>}
-      <textarea name={name} rows={rows} defaultValue={defaultValue} className={input} />
+      {rich ? (
+        <RichTextField name={name} defaultValue={defaultValue} multiline rows={rows} ariaLabel={label} className="mt-1" />
+      ) : (
+        <textarea name={name} rows={rows} defaultValue={defaultValue} className={input} />
+      )}
     </label>
   );
 }
@@ -153,8 +158,8 @@ export default function JournalForm({
         <Area name="focusScope" label="Focus & scope" defaultValue={v.focusScope} rows={5} hint="One item per line" />
         <Area name="objectives" label="Objectives" defaultValue={v.objectives} rows={4} hint="One item per line" />
         <Area name="salientFeatures" label="Salient features" defaultValue={v.salientFeatures} rows={4} hint="One item per line" />
-        <Area name="keywords" label="Keywords" defaultValue={v.keywords} rows={2} hint="Comma-separated" />
-        <Area name="indexing" label="Indexing" defaultValue={v.indexing} rows={2} hint="Comma-separated" />
+        <Area name="keywords" label="Keywords" defaultValue={v.keywords} rows={2} hint="Comma-separated" rich={false} />
+        <Area name="indexing" label="Indexing" defaultValue={v.indexing} rows={2} hint="Comma-separated" rich={false} />
         <Area name="manuscriptNotice" label="Manuscript notice" defaultValue={v.manuscriptNotice} rows={3} hint="Use {email} for the auto-filled publisher email." />
         <Area name="directorDeskTitle" label="Director's Desk heading" defaultValue={v.directorDeskTitle} rows={1} hint="Blank = use the Company/brand default" />
         <Area name="directorDeskParagraphs" label="Director's Desk letter" defaultValue={v.directorDeskParagraphs} rows={8} hint="One paragraph per line. Tokens: {journal} {volume} {domain} {publisher}. Blank = Company default." />
