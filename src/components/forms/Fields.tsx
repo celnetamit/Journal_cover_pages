@@ -64,6 +64,84 @@ export function Select({ name, label, defaultValue, options, placeholder = "— 
   );
 }
 
+// Type-ahead combobox over Option[]. Submits the chosen id via a hidden input so
+// it works inside plain <form>/server-action FormData like the native Select.
+export function SearchableSelect({ name, label, defaultValue, options, placeholder = "Search…", hint }: {
+  name: string; label: string; defaultValue?: string; options: Option[]; placeholder?: string; hint?: string;
+}) {
+  const initialLabel = options.find((o) => o.id === defaultValue)?.label ?? "";
+  const [selectedId, setSelectedId] = useState(defaultValue ?? "");
+  const [query, setQuery] = useState(initialLabel);
+  const [open, setOpen] = useState(false);
+  const q = query.trim().toLowerCase();
+  const filtered = (q ? options.filter((o) => o.label.toLowerCase().includes(q)) : options).slice(0, 50);
+
+  return (
+    <label className="block">
+      <span className={labelClass}>{label}</span>
+      <div className="relative mt-1">
+        <input type="hidden" name={name} value={selectedId} />
+        <input
+          type="text"
+          className={inputClass}
+          placeholder={placeholder}
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setSelectedId(""); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => window.setTimeout(() => setOpen(false), 120)}
+          aria-label={label}
+          autoComplete="off"
+        />
+        {selectedId && (
+          <button
+            type="button"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+            onClick={() => { setSelectedId(""); setQuery(""); }}
+            aria-label="Clear selection"
+          >
+            ×
+          </button>
+        )}
+        {open && (
+          <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg">
+            {filtered.length === 0 ? (
+              <li className="px-3 py-2 text-slate-500">No matches</li>
+            ) : (
+              filtered.map((o) => (
+                <li key={o.id}>
+                  <button
+                    type="button"
+                    className={`block w-full px-3 py-2 text-left hover:bg-slate-100 ${o.id === selectedId ? "bg-slate-50 font-medium" : ""}`}
+                    onMouseDown={(e) => { e.preventDefault(); setSelectedId(o.id); setQuery(o.label); setOpen(false); }}
+                  >
+                    {o.label}
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+        )}
+      </div>
+      {hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
+    </label>
+  );
+}
+
+// Boolean checkbox. Submits "on" when checked; the key is absent when unchecked.
+export function Checkbox({ name, label, defaultChecked, hint }: {
+  name: string; label: string; defaultChecked?: boolean; hint?: string;
+}) {
+  return (
+    <label className="flex items-start gap-2">
+      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="mt-1 h-4 w-4 rounded border-slate-300" />
+      <span>
+        <span className={labelClass}>{label}</span>
+        {hint && <span className="mt-0.5 block text-xs text-slate-500">{hint}</span>}
+      </span>
+    </label>
+  );
+}
+
 // Select over a fixed set of value/label pairs (no empty option).
 export function NativeSelect({ name, label, defaultValue, options }: {
   name: string; label: string; defaultValue?: string; options: [string, string][];

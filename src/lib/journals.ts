@@ -4,9 +4,19 @@ import { prisma } from "@/lib/prisma";
 
 // Legacy flat shape consumed by the dashboard + formatting helpers. Kept stable
 // so the binder UI is unaffected; the data now comes from Postgres, not CSV.
+// A person shown in the management-page contact boxes (sourced from a Profile).
+export type ContactPerson = {
+  name: string;
+  designation: string;
+  phone: string;
+  email: string;
+  photo: string;
+};
+
 export type Journal = {
   id: string;
   domain: string;
+  domainLogo: string;
   name: string;
   abbreviation: string;
   shortName: string;
@@ -19,11 +29,10 @@ export type Journal = {
   companySeal: string;
   about: string;
   publisherAbout: string;
-  publisherAboutNotes: string[];
   objectives: string[];
   salientFeatures: string[];
-  manuscriptNotice: string;
   manuscriptUrl: string;
+  editorialBoardUrl: string;
   focusNotes: string[];
   // Director's Desk — shared via the journal's Company (+ its director Profile).
   directorName: string;
@@ -62,6 +71,13 @@ export type Journal = {
   editorName: string;
   editorPhone: string;
   editorEmail: string;
+  // Management-page contact boxes (profiles selected on the journal/publisher).
+  journalManager: ContactPerson;
+  dispatchManager: ContactPerson;
+  subscriptionManager: ContactPerson;
+  // When set on the publisher, the management page lists its journals (2 cols).
+  showPublisherJournals: boolean;
+  publisherJournalNames: string[];
 };
 
 const DEFAULT_EDITOR_NAME = "Gaurav Tiwari";
@@ -71,7 +87,14 @@ const DEFAULT_EDITOR_EMAIL = "info@mbajournals.in";
 // Query shape for the relations we flatten into the legacy Journal.
 const journalInclude = {
   domain: true,
-  publisher: { include: { company: { include: { director: true } } } },
+  publisher: {
+    include: {
+      company: { include: { director: true } },
+      subscriptionManager: true,
+      dispatchManager: true,
+      journals: { select: { name: true }, orderBy: { name: "asc" } },
+    },
+  },
   manager: true,
 } as const;
 
@@ -88,11 +111,24 @@ function s(value: string | null | undefined): string {
   return value ?? "";
 }
 
+// Map a Profile (or null) into a contact-box person.
+type ProfileLike = { name: string; designation: string | null; phone: string | null; email: string | null; photoUrl: string | null } | null | undefined;
+function toContactPerson(p: ProfileLike): ContactPerson {
+  return {
+    name: s(p?.name),
+    designation: s(p?.designation),
+    phone: s(p?.phone),
+    email: s(p?.email),
+    photo: s(p?.photoUrl),
+  };
+}
+
 export function toLegacyJournal(j: DbJournal): Journal {
   const company = j.publisher?.company ?? null;
   return {
     id: j.id,
     domain: s(j.domain?.name),
+    domainLogo: s(j.domain?.logoUrl),
     name: j.name,
     abbreviation: j.abbreviation,
     shortName: s(j.shortName),
@@ -105,13 +141,12 @@ export function toLegacyJournal(j: DbJournal): Journal {
     companySeal: s(company?.sealUrl),
     about: s(j.about),
     publisherAbout: s(j.publisher?.about),
-    publisherAboutNotes: j.publisher?.aboutNotes ?? [],
     // Objectives are publisher-wide now (shared by all the publisher's journals).
     objectives: j.publisher?.objectives ?? [],
     // Salient features are publisher-wide now (shared by all the publisher's journals).
     salientFeatures: j.publisher?.salientFeatures ?? [],
-    manuscriptNotice: s(j.manuscriptNotice),
     manuscriptUrl: s(j.manuscriptUrl),
+    editorialBoardUrl: s(j.editorialBoardUrl),
     focusNotes: j.focusNotes,
     // Name/role/photo/signature stay sourced from the Company's director Profile.
     directorName: s(company?.director?.name),
@@ -151,6 +186,11 @@ export function toLegacyJournal(j: DbJournal): Journal {
     editorName: j.manager?.name || DEFAULT_EDITOR_NAME,
     editorPhone: DEFAULT_EDITOR_PHONE,
     editorEmail: j.manager?.email || DEFAULT_EDITOR_EMAIL,
+    journalManager: toContactPerson(j.manager),
+    dispatchManager: toContactPerson(j.publisher?.dispatchManager),
+    subscriptionManager: toContactPerson(j.publisher?.subscriptionManager),
+    showPublisherJournals: j.publisher?.showJournalsOnManagement ?? false,
+    publisherJournalNames: (j.publisher?.journals ?? []).map((x) => x.name),
   };
 }
 

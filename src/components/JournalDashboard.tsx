@@ -15,7 +15,7 @@ import {
 import FrontCoverCanvas from "@/components/FrontCoverCanvas";
 import { journalLookupKeys } from "@/lib/lookup";
 import type { DynamicBinderData, EditorialMember } from "@/lib/formidable";
-import type { Journal } from "@/lib/journals";
+import type { Journal, ContactPerson } from "@/lib/journals";
 import { proxiedImage } from "@/lib/image";
 import type { LegalInfo } from "@/lib/legal-data";
 import Page3Editor from "@/components/Page3Editor";
@@ -46,7 +46,6 @@ import {
   defaultPage5Contacts,
   defaultDirectorParagraphs,
   lawDirectorParagraphs,
-  defaultAboutNotes,
   defaultManuscriptEngine,
   type ManuscriptEngineSettings,
   logoAssets,
@@ -292,7 +291,7 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     coverImage: defaultCoverImage(journal),
     backCoverImage: journal.coverBack ? proxiedImage(journal.coverBack) : defaultBackCoverImage(),
     journalLogoImage: proxiedImage(journal.publisherLogo),
-    footerRightLogoImage: proxiedImage(journal.journalLogo),
+    footerRightLogoImage: proxiedImage(journal.domainLogo),
     frontCoverLayout: defaultFrontCoverLayout,
     frontCoverLayoutCustomized: false,
     spineMm: defaultSpineMm,
@@ -314,7 +313,6 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     directorParagraphs: directorDesk.paragraphs,
     directorPhotoImage: directorDesk.photo || undefined,
     directorSignatureImage: directorDesk.signature || undefined,
-    manuscriptNotice: journal.manuscriptNotice || "",
     contentRows: [],
     coverPrinter: "",
     publisherAddress: "",
@@ -365,7 +363,7 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
     coverImage: draft.coverImage && draft.coverImage !== journal.logo ? draft.coverImage : defaultCoverImage(journal),
     backCoverImage: draft.backCoverImage || (journal.coverBack ? proxiedImage(journal.coverBack) : defaultBackCoverImage()),
     journalLogoImage: draft.journalLogoImage || proxiedImage(journal.publisherLogo),
-    footerRightLogoImage: draft.footerRightLogoImage || proxiedImage(journal.journalLogo),
+    footerRightLogoImage: draft.footerRightLogoImage || proxiedImage(journal.domainLogo),
     frontCoverLayout: draft.frontCoverLayoutCustomized
       ? normalizeFrontCoverLayout(draft.frontCoverLayout)
       : defaultFrontCoverLayout,
@@ -843,15 +841,12 @@ function CoverSpreadPage({
   onLayoutChange?: (layout: BinderDraft["frontCoverLayout"]) => void;
 }) {
   const spineMm = draft.spineMm ?? defaultSpineMm;
-  // Plain text (decode entities / strip inline tags) since the spine renders raw.
-  const spineTitle = inlineToPlainText(draft.journalTitle?.trim() || titleCaseName(journal.name));
   return (
     <section className="pdf-page cover-spread-page" data-export-group="cover" data-page-title="Digital library back and journal front cover">
       <DigitalLibraryBackCover draft={draft} />
-      {/* Printed spine — sits between the back and front cover panels. */}
-      <div className="cover-spine" style={{ width: `${spineMm}mm` }} aria-label={`Spine ${spineMm}mm`}>
-        <span className="cover-spine-text">{spineTitle}</span>
-      </div>
+      {/* Printed spine — sits between the back and front cover panels.
+          (Journal-name text on the spine is hidden for now.) */}
+      <div className="cover-spine" style={{ width: `${spineMm}mm` }} aria-label={`Spine ${spineMm}mm`} />
       <JournalFrontCover journal={journal} draft={draft} interactive={interactive} onLayoutChange={onLayoutChange} />
     </section>
   );
@@ -998,9 +993,6 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
   const legalPhoneDisplay = legal?.phone || journal.publisherPhone;
   const legalEmail = legal?.publisherEmail || journal.publisherEmail;
   const marketingOffice = legal?.registeredAddress || journal.address;
-  const openAccessIndia = legal?.openAccessIndia;
-  const openAccessSaarc = legal?.openAccessSaarc;
-  const openAccessOther = legal?.openAccessOther;
   // Frequency-based pricing: pick the tier matching the journal's issues-per-year.
   const issuesPerYear = Number(journal.issuesPerYear);
   const tier = Number.isFinite(issuesPerYear) ? tiers.find((t) => t.issuesPerYear === issuesPerYear) : undefined;
@@ -1039,9 +1031,18 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
           ) : null}
         </div>
       </div>
+      {/* Static for all journals: single hard copy charges for the author. */}
+      <div className="author-copy-block">
+        <p><b>For Author&apos;s Copy</b></p>
+        <ul className="checkbox-list">
+          <li>India: ₹1,500 includes single hard copy of Author&apos;s Journal.</li>
+          <li>SAARC and African Countries: $100 includes single hard copy of Author&apos;s Journal.</li>
+          <li>Other Countries: $200 includes single hard copy of Author&apos;s Journal.</li>
+        </ul>
+      </div>
       <p>
-        To purchase print compilation of back issues, please send your query at <ReqText value={legalEmail} label="Publisher e-mail" />. Subscription must be
-        prepaid. Rates outside of India include delivery. Prices subject to change without notice.
+        To purchase print compilations of any back issues, please send your query to <ReqText value={legalEmail} label="Publisher e-mail" />. Subscriptions must be
+        prepaid. Rates for deliveries outside India exclude shipping charges. Please note that all prices are subject to change without prior notice.
       </p>
 
       <h2>MODE OF PAYMENT</h2>
@@ -1072,35 +1073,12 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
       ) : null}
 
       <h2>ONLINE ACCESS POLICY</h2>
-      {isJournalsPub || isLaw ? (
-        <>
-          <p>
-            <b>For Authors</b><br />
-            In order to provide maximum citation and wide publicity to the authors work, {isLaw ? "Law Journals" : "Journals Pub"} also have Open
-            Access Policy, authors who would like to get their work open access can opt for Optional Open Access
-            publication at nominal cost as follows.
-          </p>
-          <p>
-            India: <ReqText value={openAccessIndia} label="Open access (India)" /> includes single hard copy of Author&apos;s Journal.<br />
-            SAARC and African Countries: <ReqText value={openAccessSaarc} label="Open access (SAARC)" /> includes single hard copy of Author&apos;s Journal.<br />
-            Other Countries: <ReqText value={openAccessOther} label="Open access (other)" /> includes single hard copy of Author&apos;s Journal.
-          </p>
-        </>
-      ) : (
-        <>
-          <p>
-            <b>For Authors</b><br />
-            For grant of Open Access publication, maximum citation and wide publicity to the authors work, {publisherName} also
-            have Open Access Policy, authors who would like to get their work open access can opt for Optional Open Access
-            publication at nominal charges.
-          </p>
-          <p>
-            India: <ReqText value={openAccessIndia} label="Open access (India)" /> includes single hard copy of Author&apos;s Journal.<br />
-            SAARC and African Countries: <ReqText value={openAccessSaarc} label="Open access (SAARC)" /> includes single hard copy of Author&apos;s Journal.<br />
-            Other Countries: <ReqText value={openAccessOther} label="Open access (other)" /> including single hard copy of Author&apos;s Journal.
-          </p>
-        </>
-      )}
+      <p>
+        <b>For Authors</b><br />
+        In order to provide maximum citations and wide publicity to the authors&apos; work, {publisherName} also have Open
+        Access Policy, authors who would like to get their work open access can opt for Optional Open Access publication
+        at nominal cost.
+      </p>
       <p>
         <b>For Subscribers</b>
       </p>
@@ -1130,7 +1108,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
         </>
       )}
 
-      <h2>ADVERTISING AND COMMERCIAL REPRINT INQUIRIES</h2>
+      <h2 className="no-divider">ADVERTISING AND COMMERCIAL REPRINT INQUIRIES</h2>
       {isJournalsPub || isLaw ? (
         <p>
           {isLaw ? "Law Journals" : "Journals Pub"} with wide circulation and visibility offer an excellent media for showcasing/promotion of your
@@ -1148,7 +1126,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
         </p>
       )}
 
-      <h2>LOST ISSUE CLAIMS</h2>
+      <h2 className="no-divider">LOST ISSUE CLAIMS</h2>
       <p><i>Please note the following when applying for lost or missing issues:</i></p>
       <ul className="checkbox-list">
         <li>Claims for print copies lost will be honored only after 45 days of the dispatch date and before publication of the next issue as per the frequency.</li>
@@ -1158,7 +1136,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
         <li>Refund requests will not be entertained.</li>
       </ul>
 
-      <h2>{isJournalsPub || isLaw ? "LEGAL DISPUTES" : "LEGAL DISPUTE"}</h2>
+      <h2 className="no-divider">{isJournalsPub || isLaw ? "LEGAL DISPUTES" : "LEGAL DISPUTE"}</h2>
       <p>
         All the legal disputes are subjected to Delhi Jurisdiction only. If you have any questions, please contact the
         Publication Management Team at <ReqText value={legalEmail} label="Publisher e-mail" />; Tel: <ReqText value={legalPhoneDisplay} label="Publisher phone" />.
@@ -1170,13 +1148,20 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
 
 function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const scopeItems = focusScopeItemsForPage(draft);
-  // Closing paragraphs come from the journal's Publisher (editable per publisher),
-  // falling back to the built-in default until a publisher sets its own. Tokens
-  // {journal}/{publisher}/{email} are filled in per journal.
-  const aboutNotes = journal.publisherAboutNotes.length ? journal.publisherAboutNotes : defaultAboutNotes;
   const legal = useContext(LegalContext)[journal.id];
   const publisherEmail = legal?.publisherEmail || journal.publisherEmail;
   const publisherName = legal?.publisherName || journal.publisher;
+  const companyName = legal?.companyName || journal.imprint;
+  const issueWord = issueCountWord(Number(journal.issuesPerYear)) || "—";
+  const closingWebsite = journal.website || legal?.website || journal.companyWebsite;
+  // About-page closing paragraphs — fixed template filled with dynamic values.
+  const aboutNotes = [
+    `The ${journal.name} is published ${issueWord} times a year by ${publisherName} (a strong initiative of ${companyName}), India.`,
+    "The views and opinions expressed in the articles are those of the respective author(s) and do not necessarily reflect the views or opinions of the Editor, Editorial Board, or Publisher.",
+    "All rights reserved. No part of this publication may be reproduced, stored in a retrieval system, or transmitted in any form or by any means, whether electronic, mechanical, photocopying, recording, or otherwise, without prior written permission of the Publisher.",
+    "To cite any material published in this journal, either in English or in translation, please provide the complete bibliographic reference to the original work.",
+    `For permissions, reprints, subscriptions, advertising inquiries, or reuse of published content, contact ${publisherName} at ${publisherEmail} or visit ${closingWebsite}.`,
+  ];
   // About / objectives / salient features all come from the Publisher record now;
   // only focus & scope is per-journal. Blank values are flagged.
   const publisherAbout = journal.publisherAbout?.trim();
@@ -1193,7 +1178,6 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
 
   return (
     <section className="pdf-page journal-info-page" data-export-group="internal" style={pageStyle(pageScale)}>
-      <PageMasthead journal={journal} />
       {aboutMissing ? (
         <MissingFlag label="About" block />
       ) : (
@@ -1218,9 +1202,14 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
         ) : <MissingFlag label="Salient features" block />}
       </section>
       <section>
-        <p className="journal-focus-intro">
-          <b>{journal.name.toUpperCase()}</b>, is focused towards the rapid publication in the following areas.
-        </p>
+        <div className="journal-info-title-block">
+          <h2 className="journal-info-name">{journal.name}</h2>
+          {(journal.eIssn || journal.pIssn) ? (
+            <p className="journal-info-issn">
+              {[journal.eIssn ? `ISSN: ${journal.eIssn} (Online)` : null, journal.pIssn ? `ISSN: ${journal.pIssn} (Print)` : null].filter(Boolean).join(", ")}
+            </p>
+          ) : null}
+        </div>
         <h2>Focus and Scope</h2>
         {scopeItems.length > 0 ? (
           <ul className="focus-list">
@@ -1230,7 +1219,7 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
       </section>
       <div>
         {aboutNotes.map((note, index) => (
-          <RichText as="p" key={index} value={applyBinderTokens(note, journal, draft, publisherEmail)} />
+          <p key={index}>{note}</p>
         ))}
       </div>
       <PageNumber value={2} />
@@ -1242,19 +1231,12 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
   const identity = publisherIdentity(journal); // logoMode only
   const isLaw = identity.logoMode === "law";
   const legal = useContext(LegalContext)[journal.id];
-  // Record-only: per-issue draft → Company (DB). No hardcoded contact defaults.
-  const contacts = {
-    dispatchContactName: draft.dispatchContactName?.trim() || journal.dispatchContactName,
-    dispatchContactPhone: draft.dispatchContactPhone?.trim() || journal.dispatchContactPhone,
-    dispatchContactEmail: draft.dispatchContactEmail?.trim() || journal.dispatchContactEmail,
-    salesContactName: draft.salesContactName?.trim() || journal.salesContactName,
-    salesContactPhone: draft.salesContactPhone?.trim() || journal.salesContactPhone,
-    salesContactEmail: draft.salesContactEmail?.trim() || journal.salesContactEmail,
-  };
-  const website = legal?.website || journal.companyWebsite;
+  // Contact-box footers: journal website, publisher phone, publisher email.
+  const journalWebsite = journal.website || legal?.website || journal.companyWebsite;
   const phone = legal?.phone || journal.publisherPhone;
+  const pubEmail = legal?.publisherEmail || journal.publisherEmail;
   const pageScale = pageDensityScale(
-    [website, phone, ...(isLaw ? lawJournalNames : [])].join(" ").length,
+    [journalWebsite, phone, pubEmail, ...(isLaw ? lawJournalNames : [])].join(" ").length,
     1500,
   );
 
@@ -1269,7 +1251,7 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
           ))}
         </div>
       ) : <MissingFlag label="Management head(s)" block />}
-      <div className="management-band">Members</div>
+      <div className="management-band">Internal Members</div>
       {draft.managementMembers.length ? (
         <div className="management-photo-grid">
           {draft.managementMembers.map((member, index) => (
@@ -1285,24 +1267,64 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
           </div>
         </section>
       ) : null}
+      <h2 className="management-journal-name">{journal.name}</h2>
+      {journal.showPublisherJournals && journal.publisherJournalNames.length ? (
+        <ul className="management-journal-list">
+          {journal.publisherJournalNames.map((name) => <li key={name}>{name}</li>)}
+        </ul>
+      ) : null}
       <div className="management-contact-boxes">
-        <div>
-          <b>For any query related to Dispatch and Online Access, please contact</b>
-          <ReqText as="span" value={contacts.dispatchContactName} label="Dispatch contact name" />
-          <span>Tel.: <ReqText value={contacts.dispatchContactPhone} label="Dispatch phone" /></span>
-          <span>E-mail: <ReqText value={contacts.dispatchContactEmail} label="Dispatch e-mail" /></span>
-          <strong>Website: <ReqText value={website} label="Website" /></strong>
-        </div>
-        <div>
-          <b>For any query related to Sales and Marketing, please contact</b>
-          <ReqText as="span" value={contacts.salesContactName} label="Sales contact name" />
-          <span>Tel.: <ReqText value={contacts.salesContactPhone} label="Sales phone" /></span>
-          <span>E-mail: <ReqText value={contacts.salesContactEmail} label="Sales e-mail" /></span>
-          <strong>Tel. no.: <ReqText value={phone} label="Sales phone" /></strong>
-        </div>
+        <ContactBox
+          heading="For any query or information related to publication of article, please contact:"
+          person={journal.journalManager}
+          footerLabel="Website: "
+          footerValue={journalWebsite}
+        />
+        <ContactBox
+          heading="For any query or information related to Dispatch / online access / publication / sales, escalated to:"
+          person={journal.dispatchManager}
+          footerLabel="Tel. No.: "
+          footerValue={phone}
+        />
+        <ContactBox
+          heading="For any query or information related to Sales / marketing, please contact:"
+          person={journal.subscriptionManager}
+          showPhoto={false}
+          footerLabel="E-mail: "
+          footerValue={pubEmail}
+        />
       </div>
       <PageNumber value={4} />
     </section>
+  );
+}
+
+// One management-page contact box: heading, an optional photo, the person's
+// name/designation/tel/email, and a journal/publisher-level footer line.
+function ContactBox({ heading, person, showPhoto = true, footerLabel, footerValue }: {
+  heading: string;
+  person: ContactPerson;
+  showPhoto?: boolean;
+  footerLabel: string;
+  footerValue: string;
+}) {
+  const name = inlineToPlainText(person.name);
+  return (
+    <div className="contact-box">
+      <b className="contact-box-heading">{heading}</b>
+      {showPhoto ? (
+        person.photo ? (
+          <Image className="contact-box-photo" src={proxiedImage(person.photo)} alt={name} width={90} height={90} unoptimized />
+        ) : (
+          <span className="contact-box-photo contact-box-photo-placeholder">{initials(name || "—")}</span>
+        )
+      ) : null}
+      {person.name ? <RichText as="span" className="contact-box-name" value={person.name} /> : <MissingFlag label="Contact name" />}
+      {person.designation ? <RichText as="span" className="contact-box-role" value={person.designation} /> : null}
+      {person.phone ? <span>Tel.: {person.phone}</span> : null}
+      {person.email ? <span>E-mail: {person.email}</span> : null}
+      {footerValue ? <strong className="contact-box-footer">{footerLabel}{footerValue}</strong> : null}
+    </div>
   );
 }
 
@@ -1310,7 +1332,7 @@ function ManagementProfile({ person, featured = false }: { person: ManagementPer
   return (
     <article className={featured ? "management-profile featured" : "management-profile"}>
       {person.photo ? (
-        <Image src={person.photo} alt={inlineToPlainText(person.name)} width={90} height={90} unoptimized />
+        <Image src={proxiedImage(person.photo)} alt={inlineToPlainText(person.name)} width={90} height={90} unoptimized />
       ) : (
         <span className="management-initials">{initials(inlineToPlainText(person.name) || "Member")}</span>
       )}
@@ -1321,16 +1343,15 @@ function ManagementProfile({ person, featured = false }: { person: ManagementPer
   );
 }
 
-function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+function ManuscriptEnginePage({ journal }: { journal: Journal }) {
   // Shared content (heading, lead text, steps, logo) comes from the global
   // Manuscript-engine settings; the QR + URL + notice are per-journal.
   const engine = useContext(ManuscriptContext);
   const engineLogo = proxiedImage(engine.logoUrl);
-  // The closing notice is static text, but its {email} renders the publisher email.
+  // Fixed closing notice; only the contact email is dynamic (publisher email).
   const legal = useContext(LegalContext)[journal.id];
   const publisherEmail = legal?.publisherEmail || journal.publisherEmail;
-  const noticeRaw = draft.manuscriptNotice || journal.manuscriptNotice;
-  const manuscriptNotice = applyBinderTokens(noticeRaw, journal, draft, publisherEmail);
+  const noticePrefix = "Please don't hesitate to reach out to us. For any inquiries regarding APID and Manuscript submission, please contact us at ";
   // The QR encodes the journal's manuscript-submission URL (falling back to the
   // journal website); the printed link shows the journal website.
   const submissionUrl = journal.manuscriptUrl?.trim() || journal.website?.trim() || "";
@@ -1339,7 +1360,7 @@ function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: Bin
     ? `/api/qr?data=${encodeURIComponent(submissionUrl)}`
     : logoAssets.manuscriptQr.src;
   const pageScale = pageDensityScale(
-    `${url} ${engine.leadText} ${engine.steps.join(" ")} ${manuscriptNotice}`.length,
+    `${url} ${engine.leadText} ${engine.steps.join(" ")} ${noticePrefix}${publisherEmail}`.length,
     340,
   );
   return (
@@ -1365,9 +1386,9 @@ function ManuscriptEnginePage({ journal, draft }: { journal: Journal; draft: Bin
         </ol>
       </div>
       <p className="url-line">{hasValue(url) ? url : <MissingFlag label="Journal website / manuscript URL" />}</p>
-      {hasValue(noticeRaw)
-        ? <RichText as="p" className="manuscript-notice" value={manuscriptNotice} />
-        : <MissingFlag label="Manuscript notice" block />}
+      <p className="manuscript-notice">
+        {noticePrefix}{hasValue(publisherEmail) ? publisherEmail : <MissingFlag label="Publisher email" />}
+      </p>
       <PageNumber value={5} />
     </section>
   );
@@ -1383,8 +1404,13 @@ const EDITORIAL_SECTIONS: { heading: string; match: (role: string) => boolean }[
   { heading: "Reviewers", match: (r) => r.includes("reviewer") },
 ];
 
+const MAX_EDITORIAL_MEMBERS = 12;
+
 function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
-  const members = draft.editorialBoard;
+  // Show at most 12 members; the rest are pointed to the full board online.
+  const members = draft.editorialBoard.slice(0, MAX_EDITORIAL_MEMBERS);
+  const truncated = draft.editorialBoard.length > MAX_EDITORIAL_MEMBERS;
+  const boardUrl = (journal.editorialBoardUrl || journal.website || "").replace(/^https?:\/\//i, "");
 
   const buckets = EDITORIAL_SECTIONS.map((s) => ({ heading: s.heading, members: [] as EditorialMember[] }));
   const editors: EditorialMember[] = [];
@@ -1409,7 +1435,10 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
 
   return (
     <section className="pdf-page editorial-page" data-export-group="internal" style={pageStyle(pageScale)}>
-      <PageMasthead journal={journal} subtitle="Editorial Board Members" />
+      <header className="editorial-header">
+        <h1 className="editorial-journal-name">{journal.name}</h1>
+        <h2 className="editorial-board-title">Editorial Board Members</h2>
+      </header>
       {members.length === 0 ? <p className="editorial-empty">No editorial board members have been added for this journal yet.</p> : null}
       {groups.map((group) => {
         // The Editor-in-Chief (one per journal) is centered rather than placed in
@@ -1424,6 +1453,9 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
           </section>
         );
       })}
+      {truncated && boardUrl ? (
+        <p className="editorial-more">For the complete Editorial Board, please visit {boardUrl}</p>
+      ) : null}
       <PageNumber value={6} />
     </section>
   );
@@ -1557,12 +1589,25 @@ function paginateContentByHeight(container: HTMLElement, rows: ContentRow[]): Co
   return pages.length ? pages : [[]];
 }
 
+// Content-page header: "Contents" on the left; journal name, volume/issue and
+// month/year stacked right-aligned (mirrors the cover meta).
+function ContentHeader({ journal, draft, title }: { journal: Journal; draft: BinderDraft; title: string }) {
+  const period = [draft.issueMonthRange.replace("-", "–"), draft.issueYear].filter((v) => v.trim()).join(" ");
+  return (
+    <header className="content-masthead">
+      <h1 className="content-title">{title}</h1>
+      <div className="content-meta">
+        <div className="content-journal-name">{journal.name}</div>
+        <div className="content-issue">Volume {draft.issueVolume} | Issue {draft.issueNumber}</div>
+        {period ? <div className="content-period">{period}</div> : null}
+      </div>
+    </header>
+  );
+}
+
 function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   // Record-only: no hardcoded sample rows; an empty list is flagged below.
   const rows = draft.contentRows;
-  // Mirror the cover-page meta: month range + year, sourced from the same draft.
-  const period = [draft.issueMonthRange.replace("-", "–"), draft.issueYear].filter((v) => v.trim()).join(" ");
-  const issueLine = `Volume ${draft.issueVolume} | Issue ${draft.issueNumber}${period ? ` | ${period}` : ""}`;
   const rowsKey = rows.map((row) => `${row.title}|${row.author}|${row.page}`).join("\n");
   const measureRef = useRef<HTMLDivElement>(null);
   const [chunks, setChunks] = useState<ContentRow[][]>([rows]);
@@ -1583,8 +1628,7 @@ function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
         style={{ position: "absolute", left: -99999, top: 0, visibility: "hidden", pointerEvents: "none" }}
       >
         <section className="pdf-page content-page">
-          <PageMasthead journal={journal} subtitle={issueLine} />
-          <h1>Contents</h1>
+          <ContentHeader journal={journal} draft={draft} title="Contents" />
           <table className="contents-table">
             <tbody>
               {rows.map((row, index) => <tr key={index}><ContentRowCells row={row} /></tr>)}
@@ -1599,8 +1643,7 @@ function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
           className="pdf-page content-page"
           data-export-group="internal"
         >
-          <PageMasthead journal={journal} subtitle={issueLine} />
-          <h1>{pageIndex === 0 ? "Contents" : "Contents (continued)"}</h1>
+          <ContentHeader journal={journal} draft={draft} title={pageIndex === 0 ? "Contents" : "Contents (continued)"} />
           {pageRows.length ? (
             <table className="contents-table">
               <tbody>
@@ -1659,7 +1702,7 @@ function BinderPage({
     case 5:
       return <TeamPage journal={currentJournal} draft={draft} />;
     case 6:
-      return <ManuscriptEnginePage journal={currentJournal} draft={draft} />;
+      return <ManuscriptEnginePage journal={currentJournal} />;
     case 7:
       return <EditorialPage journal={currentJournal} draft={draft} />;
     case 8:
@@ -1689,7 +1732,6 @@ const PAGE_RECORD_FIELDS: Record<number, (keyof BinderDraft)[]> = {
   1: ["journalTitle", "journalAbbreviation", "eIssn", "sjif", "icv", "coverImage", "backCoverImage", "journalLogoImage", "footerRightLogoImage", "journalWebsite"],
   3: ["about", "focusScope"],
   5: ["managementHeads", "managementMembers", "dispatchContactName", "dispatchContactPhone", "dispatchContactEmail", "salesContactName", "salesContactPhone", "salesContactEmail"],
-  6: ["manuscriptNotice"],
   7: ["editorialBoard"],
   8: ["directorName", "directorRole", "directorPhotoImage", "directorSignatureImage"],
 };
@@ -2142,7 +2184,7 @@ function SectionEditor({
               <small className="field-hint">Publisher logo (defaults from the Publisher record). PNG with a transparent background, landscape or square, ≥ 300px.</small>
             </div>
             <div className="logo-input-section">
-              <strong>Bottom-right cover logo (journal logo)</strong>
+              <strong>Bottom-right cover logo (domain logo)</strong>
               <label className="file-field">
                 <span>Upload bottom-right logo</span>
                 <input type="file" accept="image/*" onChange={(event) => readPhoto(event.target.files?.[0], (footerRightLogoImage) => onChange({ ...draft, footerRightLogoImage }))} />
@@ -2155,7 +2197,7 @@ function SectionEditor({
                 />
               </label>
               <LogoThumb src={draft.footerRightLogoImage} label="Bottom-right logo" />
-              <small className="field-hint">Journal logo (defaults from the journal&apos;s Logo URL). PNG with a transparent background, landscape or square, ≥ 300px.</small>
+              <small className="field-hint">Domain logo (defaults from the journal&apos;s Domain record). PNG with a transparent background, landscape or square, ≥ 300px.</small>
             </div>
           </div>
           <div className="editor-note">
@@ -2374,24 +2416,10 @@ function SectionEditor({
         </div>
       ) : null}
       {activePage === 6 ? (
-        <>
-          <div className="editor-note">
-            Update the manuscript engine text here. Page 6 now uses a fixed layout in the PDF preview.
-          </div>
-          <label>
-            <span>Manuscript submission notification</span>
-            <RichTextField
-              ariaLabel="Manuscript submission notification"
-              multiline
-              rows={9}
-              value={draft.manuscriptNotice}
-              onChange={(value) => onChange({ ...draft, manuscriptNotice: value })}
-            />
-          </label>
-          <div className="editor-note">
-            Use <code>{"{email}"}</code> for the publisher email — it is filled in automatically.
-          </div>
-        </>
+        <div className="editor-note">
+          The Manuscript page content (heading, lead text, steps, logo) is shared — edit it in
+          Admin → Manuscript Engine. The closing notice is fixed; only the publisher contact email is dynamic.
+        </div>
       ) : null}
       {activePage === 7 ? (
         <div className="editor-repeater">

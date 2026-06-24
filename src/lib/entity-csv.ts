@@ -121,10 +121,10 @@ export const ENTITY_SPECS: Record<EntityKey, Spec> = {
 
   publishers: {
     filename: "publishers.csv",
-    headers: ["name", "logoUrl", "about", "salientFeatures", "objectives", "aboutNotes", "email", "phone", "website", "company"],
+    headers: ["name", "logoUrl", "about", "salientFeatures", "objectives", "email", "phone", "website", "company"],
     async exportRows() {
       const rows = await prisma.publisher.findMany({ orderBy: { name: "asc" }, include: { company: true } });
-      return rows.map((p) => [p.name, p.logoUrl ?? "", p.about ?? "", list(p.salientFeatures), list(p.objectives), list(p.aboutNotes), p.email ?? "", p.phone ?? "", p.website ?? "", p.company?.name ?? ""]);
+      return rows.map((p) => [p.name, p.logoUrl ?? "", p.about ?? "", list(p.salientFeatures), list(p.objectives), p.email ?? "", p.phone ?? "", p.website ?? "", p.company?.name ?? ""]);
     },
     async importRecords(records) {
       const out = emptySummary();
@@ -133,7 +133,7 @@ export const ENTITY_SPECS: Record<EntityKey, Spec> = {
         const name = s(r.name);
         if (!name) { out.errors.push(`Row ${i + 2}: missing name`); out.skipped++; continue; }
         const companyId = r.company ? resolveCompany(r.company) : null;
-        const data = { name, logoUrl: nul(r.logoUrl), about: nul(r.about), salientFeatures: unlist(r.salientFeatures), objectives: unlist(r.objectives), aboutNotes: unlist(r.aboutNotes), email: nul(r.email), phone: nul(r.phone), website: nul(r.website), companyId };
+        const data = { name, logoUrl: nul(r.logoUrl), about: nul(r.about), salientFeatures: unlist(r.salientFeatures), objectives: unlist(r.objectives), email: nul(r.email), phone: nul(r.phone), website: nul(r.website), companyId };
         const existing = await prisma.publisher.findUnique({ where: { name } });
         if (existing) { await prisma.publisher.update({ where: { name }, data }); out.updated++; }
         else { await prisma.publisher.create({ data }); out.created++; }
@@ -168,10 +168,10 @@ export const ENTITY_SPECS: Record<EntityKey, Spec> = {
 
   companies: {
     filename: "companies.csv",
-    headers: ["name", "email", "phone", "website", "cin", "gst", "printedBy", "openAccessIndia", "openAccessSaarc", "openAccessOther", "registeredAddress", "salesAddress", "bankAccountName", "bankAccountNo", "bankIfsc", "bankName", "bankBranch", "bankSwift", "directorDeskTitle", "directorDeskParagraphs", "dispatchContactName", "dispatchContactPhone", "dispatchContactEmail", "salesContactName", "salesContactPhone", "salesContactEmail", "director"],
+    headers: ["name", "email", "phone", "website", "cin", "gst", "printedBy", "registeredAddress", "salesAddress", "bankAccountName", "bankAccountNo", "bankIfsc", "bankName", "bankBranch", "bankSwift", "directorDeskTitle", "directorDeskParagraphs", "dispatchContactName", "dispatchContactPhone", "dispatchContactEmail", "salesContactName", "salesContactPhone", "salesContactEmail", "director"],
     async exportRows() {
       const rows = await prisma.company.findMany({ orderBy: { name: "asc" }, include: { director: true } });
-      return rows.map((c) => [c.name, c.email ?? "", c.phone ?? "", c.website ?? "", c.cin ?? "", c.gst ?? "", c.printedBy ?? "", c.openAccessIndia ?? "", c.openAccessSaarc ?? "", c.openAccessOther ?? "", c.registeredAddress ?? "", c.salesAddress ?? "", c.bankAccountName ?? "", c.bankAccountNo ?? "", c.bankIfsc ?? "", c.bankName ?? "", c.bankBranch ?? "", c.bankSwift ?? "", c.directorDeskTitle ?? "", list(c.directorDeskParagraphs), c.dispatchContactName ?? "", c.dispatchContactPhone ?? "", c.dispatchContactEmail ?? "", c.salesContactName ?? "", c.salesContactPhone ?? "", c.salesContactEmail ?? "", c.director?.email || c.director?.name || ""]);
+      return rows.map((c) => [c.name, c.email ?? "", c.phone ?? "", c.website ?? "", c.cin ?? "", c.gst ?? "", c.printedBy ?? "", c.registeredAddress ?? "", c.salesAddress ?? "", c.bankAccountName ?? "", c.bankAccountNo ?? "", c.bankIfsc ?? "", c.bankName ?? "", c.bankBranch ?? "", c.bankSwift ?? "", c.directorDeskTitle ?? "", list(c.directorDeskParagraphs), c.dispatchContactName ?? "", c.dispatchContactPhone ?? "", c.dispatchContactEmail ?? "", c.salesContactName ?? "", c.salesContactPhone ?? "", c.salesContactEmail ?? "", c.director?.email || c.director?.name || ""]);
     },
     async importRecords(records) {
       const out = emptySummary();
@@ -183,7 +183,6 @@ export const ENTITY_SPECS: Record<EntityKey, Spec> = {
         const data = {
           name, email: nul(r.email), phone: nul(r.phone), website: nul(r.website), cin: nul(r.cin), gst: nul(r.gst),
           printedBy: nul(r.printedBy),
-          openAccessIndia: nul(r.openAccessIndia), openAccessSaarc: nul(r.openAccessSaarc), openAccessOther: nul(r.openAccessOther),
           registeredAddress: nul(r.registeredAddress), salesAddress: nul(r.salesAddress),
           bankAccountName: nul(r.bankAccountName), bankAccountNo: nul(r.bankAccountNo), bankIfsc: nul(r.bankIfsc),
           bankName: nul(r.bankName), bankBranch: nul(r.bankBranch), bankSwift: nul(r.bankSwift), directorId,
@@ -202,13 +201,13 @@ export const ENTITY_SPECS: Record<EntityKey, Spec> = {
 
   journals: {
     filename: "journals.csv",
-    headers: ["slug", "name", "abbreviation", "shortName", "website", "manuscriptUrl", "issnPrint", "issnOnline", "sjif", "icv", "doi", "impactFactor", "frequency", "issuesPerYear", "about", "manuscriptNotice", "directorDeskTitle", "directorDeskParagraphs", "focusScope", "focusNotes", "objectives", "salientFeatures", "keywords", "indexing", "domain", "publisher", "manager"],
+    headers: ["slug", "name", "abbreviation", "shortName", "website", "manuscriptUrl", "issnPrint", "issnOnline", "sjif", "icv", "doi", "impactFactor", "frequency", "issuesPerYear", "about", "directorDeskTitle", "directorDeskParagraphs", "focusScope", "focusNotes", "objectives", "salientFeatures", "keywords", "indexing", "domain", "publisher", "manager"],
     async exportRows() {
       const rows = await prisma.journal.findMany({ orderBy: { name: "asc" }, include: { domain: true, publisher: true, manager: true } });
       return rows.map((j) => [
         j.slug, j.name, j.abbreviation, j.shortName ?? "", j.website ?? "", j.manuscriptUrl ?? "", j.issnPrint ?? "", j.issnOnline ?? "",
         j.sjif ?? "", j.icv ?? "", j.doi ?? "", j.impactFactor ?? "", j.frequency, j.issuesPerYear != null ? String(j.issuesPerYear) : "",
-        j.about ?? "", j.manuscriptNotice ?? "", j.directorDeskTitle ?? "", list(j.directorDeskParagraphs), list(j.focusScope), list(j.focusNotes), list(j.objectives), list(j.salientFeatures), list(j.keywords), list(j.indexing),
+        j.about ?? "", j.directorDeskTitle ?? "", list(j.directorDeskParagraphs), list(j.focusScope), list(j.focusNotes), list(j.objectives), list(j.salientFeatures), list(j.keywords), list(j.indexing),
         j.domain?.name ?? "", j.publisher?.name ?? "", j.manager?.email || j.manager?.name || "",
       ]);
     },
@@ -229,7 +228,7 @@ export const ENTITY_SPECS: Record<EntityKey, Spec> = {
           name, abbreviation, slug,
           shortName: nul(r.shortName), website: nul(r.website), manuscriptUrl: nul(r.manuscriptUrl), issnPrint: nul(r.issnPrint), issnOnline: nul(r.issnOnline),
           sjif: nul(r.sjif), icv: nul(r.icv), doi: nul(r.doi), impactFactor: nul(r.impactFactor),
-          frequency, issuesPerYear: num(r.issuesPerYear), about: nul(r.about), manuscriptNotice: nul(r.manuscriptNotice),
+          frequency, issuesPerYear: num(r.issuesPerYear), about: nul(r.about),
           directorDeskTitle: nul(r.directorDeskTitle), directorDeskParagraphs: unlist(r.directorDeskParagraphs),
           focusScope: unlist(r.focusScope), focusNotes: unlist(r.focusNotes), objectives: unlist(r.objectives), salientFeatures: unlist(r.salientFeatures), keywords: unlist(r.keywords), indexing: unlist(r.indexing),
           domainId: r.domain ? resolveDomain(r.domain) : null,

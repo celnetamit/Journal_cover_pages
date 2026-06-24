@@ -26,6 +26,7 @@ function profileData(fd: FormData) {
   return {
     name: str(fd.get("name")),
     email: nul(str(fd.get("email"))),
+    phone: nul(str(fd.get("phone"))),
     designation: nul(str(fd.get("designation"))),
     department: nul(str(fd.get("department"))),
     affiliation: nul(str(fd.get("affiliation"))),
@@ -103,11 +104,13 @@ export async function createPublisher(_p: FormState, fd: FormData): Promise<Form
         about: nul(str(fd.get("about"))),
         salientFeatures: textLines(str(fd.get("salientFeatures"))),
         objectives: textLines(str(fd.get("objectives"))),
-        aboutNotes: textLines(str(fd.get("aboutNotes"))),
         email: nul(str(fd.get("email"))),
         phone: nul(str(fd.get("phone"))),
         website: nul(str(fd.get("website"))),
         company: rel(str(fd.get("companyId"))),
+        subscriptionManager: rel(str(fd.get("subscriptionManagerId"))),
+        dispatchManager: rel(str(fd.get("dispatchManagerId"))),
+        showJournalsOnManagement: fd.get("showJournalsOnManagement") === "on",
       },
     });
   } catch (e) {
@@ -132,11 +135,13 @@ export async function updatePublisher(id: string, _p: FormState, fd: FormData): 
         about: nul(str(fd.get("about"))),
         salientFeatures: textLines(str(fd.get("salientFeatures"))),
         objectives: textLines(str(fd.get("objectives"))),
-        aboutNotes: textLines(str(fd.get("aboutNotes"))),
         email: nul(str(fd.get("email"))),
         phone: nul(str(fd.get("phone"))),
         website: nul(str(fd.get("website"))),
         company: relOrClear(str(fd.get("companyId"))),
+        subscriptionManager: relOrClear(str(fd.get("subscriptionManagerId"))),
+        dispatchManager: relOrClear(str(fd.get("dispatchManagerId"))),
+        showJournalsOnManagement: fd.get("showJournalsOnManagement") === "on",
       },
     });
   } catch (e) {
@@ -169,9 +174,6 @@ function companyData(fd: FormData) {
     bankBranch: nul(str(fd.get("bankBranch"))),
     bankSwift: nul(str(fd.get("bankSwift"))),
     printedBy: nul(str(fd.get("printedBy"))),
-    openAccessIndia: nul(str(fd.get("openAccessIndia"))),
-    openAccessSaarc: nul(str(fd.get("openAccessSaarc"))),
-    openAccessOther: nul(str(fd.get("openAccessOther"))),
     dispatchContactName: nul(str(fd.get("dispatchContactName"))),
     dispatchContactPhone: nul(str(fd.get("dispatchContactPhone"))),
     dispatchContactEmail: nul(str(fd.get("dispatchContactEmail"))),

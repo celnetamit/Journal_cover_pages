@@ -19,8 +19,8 @@ export type JournalFormValues = {
   doi: string;
   impactFactor: string;
   about: string;
-  manuscriptNotice: string;
   manuscriptUrl: string;
+  editorialBoardUrl: string;
   directorDeskTitle: string;
   directorDeskParagraphs: string;
   frequency: string;
@@ -113,6 +113,7 @@ export default function JournalForm({
         <Text name="slug" label="Slug (blank = auto)" defaultValue={v.slug} />
         <Text name="website" label="Website" defaultValue={v.website} />
         <Text name="manuscriptUrl" label="Manuscript submission URL (QR)" defaultValue={v.manuscriptUrl} />
+        <Text name="editorialBoardUrl" label="Editorial board URL (full list)" defaultValue={v.editorialBoardUrl} />
         <Text name="doi" label="DOI" defaultValue={v.doi} />
         <Text name="issnPrint" label="ISSN (print)" defaultValue={v.issnPrint} />
         <Text name="issnOnline" label="ISSN (online)" defaultValue={v.issnOnline} />
@@ -152,7 +153,6 @@ export default function JournalForm({
       <section className="space-y-4">
         <Area name="about" label="About" defaultValue={v.about} rows={4} />
         <Area name="focusScope" label="Focus & scope" defaultValue={v.focusScope} rows={5} hint="One item per line" />
-        <Area name="manuscriptNotice" label="Manuscript notice" defaultValue={v.manuscriptNotice} rows={3} hint="Use {email} for the auto-filled publisher email." />
         <Area name="directorDeskTitle" label="Director's Desk heading" defaultValue={v.directorDeskTitle} rows={1} hint="Blank = use the Company/brand default" />
         <Area name="directorDeskParagraphs" label="Director's Desk letter" defaultValue={v.directorDeskParagraphs} rows={8} hint="One paragraph per line. Tokens: {journal} {abbreviation} {journal short name} {year} {volume} {issue} {domain} {publisher}. Blank = standard default letter." />
       </section>

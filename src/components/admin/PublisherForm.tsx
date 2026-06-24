@@ -1,14 +1,14 @@
 "use client";
 
-import { EntityForm, Text, Area, ImageField, Select, type FormState, type Option } from "@/components/forms/Fields";
-import { defaultAboutNotes } from "@/lib/binder-content";
+import { EntityForm, Text, Area, ImageField, Select, SearchableSelect, Checkbox, type FormState, type Option } from "@/components/forms/Fields";
 
-type Values = { name: string; logoUrl: string; companyId: string; about: string; salientFeatures: string; objectives: string; aboutNotes: string; email: string; phone: string; website: string };
+type Values = { name: string; logoUrl: string; companyId: string; about: string; salientFeatures: string; objectives: string; email: string; phone: string; website: string; subscriptionManagerId: string; dispatchManagerId: string; showJournalsOnManagement: boolean };
 
-export default function PublisherForm({ action, values, companies, submitLabel }: {
+export default function PublisherForm({ action, values, companies, profiles, submitLabel }: {
   action: (prev: FormState, fd: FormData) => Promise<FormState>;
   values?: Partial<Values>;
   companies: Option[];
+  profiles: Option[];
   submitLabel: string;
 }) {
   return (
@@ -26,6 +26,28 @@ export default function PublisherForm({ action, values, companies, submitLabel }
         hint="Title-page logo. PNG with a transparent background (or SVG), landscape orientation. Recommended ≥ 600×400px, max ~2 MB."
       />
       <Select name="companyId" label="Company" defaultValue={values?.companyId} options={companies} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <SearchableSelect
+          name="subscriptionManagerId"
+          label="Subscription manager (profile)"
+          defaultValue={values?.subscriptionManagerId}
+          options={profiles}
+          placeholder="Search profiles by name…"
+        />
+        <SearchableSelect
+          name="dispatchManagerId"
+          label="Dispatch manager (profile)"
+          defaultValue={values?.dispatchManagerId}
+          options={profiles}
+          placeholder="Search profiles by name…"
+        />
+      </div>
+      <Checkbox
+        name="showJournalsOnManagement"
+        label="Show this publisher's journals on the management page"
+        defaultChecked={values?.showJournalsOnManagement}
+        hint="When enabled, the management page lists all of this publisher's journals (two columns) below the journal name."
+      />
       <Area
         name="about"
         label="About (About-page top paragraph)"
@@ -45,13 +67,6 @@ export default function PublisherForm({ action, values, companies, submitLabel }
         defaultValue={values?.objectives}
         rows={4}
         hint="One item per line. Shared by all this publisher's journals."
-      />
-      <Area
-        name="aboutNotes"
-        label="Closing paragraphs (About page)"
-        defaultValue={values?.aboutNotes || defaultAboutNotes.join("\n")}
-        rows={8}
-        hint="One paragraph per line. Tokens {journal} {publisher} {email} are filled in per journal. Pre-filled with the standard text — edit as needed."
       />
     </EntityForm>
   );

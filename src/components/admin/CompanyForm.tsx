@@ -8,7 +8,6 @@ type Values = {
   bankAccountName: string; bankAccountNo: string; bankIfsc: string;
   bankName: string; bankBranch: string; bankSwift: string; directorId: string;
   printedBy: string;
-  openAccessIndia: string; openAccessSaarc: string; openAccessOther: string;
   dispatchContactName: string; dispatchContactPhone: string; dispatchContactEmail: string;
   salesContactName: string; salesContactPhone: string; salesContactEmail: string;
 };
@@ -51,15 +50,6 @@ export default function CompanyForm({ action, values, profiles, submitLabel }: {
         <Area name="registeredAddress" label="Registered address" defaultValue={values?.registeredAddress} rows={2} />
         <Area name="salesAddress" label="Sales address" defaultValue={values?.salesAddress} rows={2} />
       </div>
-
-      <fieldset className="rounded-xl border border-slate-200 p-4">
-        <legend className="px-2 text-sm font-medium text-slate-700">Open Access charges (subscription page)</legend>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Text name="openAccessIndia" label="India" defaultValue={values?.openAccessIndia} placeholder="₹1500" />
-          <Text name="openAccessSaarc" label="SAARC & African" defaultValue={values?.openAccessSaarc} placeholder="$100" />
-          <Text name="openAccessOther" label="Other countries" defaultValue={values?.openAccessOther} placeholder="$200" />
-        </div>
-      </fieldset>
 
       <fieldset className="rounded-xl border border-slate-200 p-4">
         <legend className="px-2 text-sm font-medium text-slate-700">Page 5 contact boxes</legend>

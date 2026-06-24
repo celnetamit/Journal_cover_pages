@@ -23,9 +23,6 @@ export type LegalInfo = {
   bankName: string;
   bankBranch: string;
   bankSwift: string;
-  openAccessIndia: string;
-  openAccessSaarc: string;
-  openAccessOther: string;
 };
 
 const s = (v: string | null | undefined) => v ?? "";
@@ -58,9 +55,6 @@ export async function getJournalLegalData(): Promise<Record<string, LegalInfo>> 
       bankName: s(c?.bankName),
       bankBranch: s(c?.bankBranch),
       bankSwift: s(c?.bankSwift),
-      openAccessIndia: s(c?.openAccessIndia),
-      openAccessSaarc: s(c?.openAccessSaarc),
-      openAccessOther: s(c?.openAccessOther),
     };
   }
   return map;

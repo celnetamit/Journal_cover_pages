@@ -20,6 +20,7 @@ export default async function EditProfilePage({ params }: { params: Promise<{ id
         values={{
           name: p.name,
           email: p.email ?? "",
+          phone: p.phone ?? "",
           designation: p.designation ?? "",
           department: p.department ?? "",
           affiliation: p.affiliation ?? "",

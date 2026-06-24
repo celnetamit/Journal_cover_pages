@@ -109,6 +109,7 @@ model Profile {
   id          String   @id @default(cuid())
   name        String
   email       String?
+  phone       String? // contact tel. shown on the management-page contact boxes
   photoUrl    String?
   signatureUrl String? // handwritten signature image, used on the Director's Desk page
   designation String?
@@ -123,6 +124,8 @@ model Profile {
   directorOfCompanies Company[]       @relation("CompanyDirector")
   managedDomains      Domain[]        @relation("DomainManager")
   managedJournals     Journal[]       @relation("JournalManager")
+  subscriptionManagerOf Publisher[]   @relation("PublisherSubscriptionManager")
+  dispatchManagerOf     Publisher[]   @relation("PublisherDispatchManager")
 
   @@index([email])
   @@index([name])
@@ -153,11 +156,6 @@ model Company {
 
   printedBy String? // print vendor shown on the title page ("Printed by")
 
-  // Optional Open Access (APC) charges shown on the subscription page.
-  openAccessIndia String?
-  openAccessSaarc String?
-  openAccessOther String?
-
   // Page 5 contact boxes (shared across the company's journals).
   dispatchContactName  String?
   dispatchContactPhone String?
@@ -182,15 +180,22 @@ model Publisher {
   about     String? // imprint blurb shown at the top of the journal-details page (About)
   salientFeatures String[] // About-page salient features; publisher-wide (shared by all its journals)
   objectives      String[] // About-page objectives; publisher-wide
-  aboutNotes      String[] // About-page closing paragraphs; publisher-wide (tokens {journal}/{publisher}/{email})
   email     String? // publisher contact email (used in the Legal Disputes line)
   phone     String? // publisher contact phone (used in the Legal Disputes line)
   website   String? // publisher website (shown on the title page)
+  // When true, the management page lists this publisher's journals (two columns).
+  showJournalsOnManagement Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  // Profiles responsible for subscriptions and dispatch (selected per publisher).
+  subscriptionManagerId String?
+  subscriptionManager   Profile? @relation("PublisherSubscriptionManager", fields: [subscriptionManagerId], references: [id], onDelete: SetNull)
+  dispatchManagerId     String?
+  dispatchManager       Profile? @relation("PublisherDispatchManager", fields: [dispatchManagerId], references: [id], onDelete: SetNull)
 
   journals Journal[]
 }
@@ -294,8 +299,8 @@ model Journal {
   objectives       String[]
   salientFeatures  String[]
   keywords         String[]
-  manuscriptNotice String?
   manuscriptUrl    String? // submission page encoded in the Manuscript page QR code
+  editorialBoardUrl String? // full editorial-board page, linked when the board is truncated
 
   // Per-journal Director's Desk content (overrides the Company-level default).
   directorDeskTitle      String?

@@ -3,7 +3,7 @@
 import { EntityForm, Text, Area, ImageField, type FormState } from "@/components/forms/Fields";
 
 type Values = {
-  name: string; email: string; designation: string; department: string;
+  name: string; email: string; phone: string; designation: string; department: string;
   affiliation: string; address: string; biography: string; photoUrl: string;
   signatureUrl: string;
 };
@@ -18,6 +18,7 @@ export default function ProfileForm({ action, values, submitLabel }: {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Text name="name" label="Full name" defaultValue={values?.name} required />
         <Text name="email" label="Email" type="email" defaultValue={values?.email} />
+        <Text name="phone" label="Phone / Tel." defaultValue={values?.phone} />
         <Text name="designation" label="Designation" defaultValue={values?.designation} />
         <Text name="department" label="Department" defaultValue={values?.department} />
         <Text name="affiliation" label="Affiliation" defaultValue={values?.affiliation} />

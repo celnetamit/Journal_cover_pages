@@ -37,7 +37,7 @@ export default async function EditJournalPage({ params }: { params: Promise<{ id
     impactFactor: journal.impactFactor ?? "",
     about: journal.about ?? "",
     manuscriptUrl: journal.manuscriptUrl ?? "",
-    manuscriptNotice: journal.manuscriptNotice ?? "",
+    editorialBoardUrl: journal.editorialBoardUrl ?? "",
     directorDeskTitle: journal.directorDeskTitle ?? "",
     directorDeskParagraphs: journal.directorDeskParagraphs.join("\n"),
     frequency: journal.frequency,
