@@ -2,7 +2,7 @@
 
 import { EntityForm, Text, Area, ImageField, Select, SearchableSelect, Checkbox, type FormState, type Option } from "@/components/forms/Fields";
 
-type Values = { name: string; logoUrl: string; companyId: string; about: string; salientFeatures: string; objectives: string; email: string; phone: string; website: string; subscriptionManagerId: string; dispatchManagerId: string; showJournalsOnManagement: boolean };
+type Values = { name: string; logoUrl: string; sealUrl: string; companyId: string; about: string; salientFeatures: string; objectives: string; email: string; phone: string; website: string; subscriptionManagerId: string; dispatchManagerId: string; showJournalsOnManagement: boolean };
 
 export default function PublisherForm({ action, values, companies, profiles, submitLabel }: {
   action: (prev: FormState, fd: FormData) => Promise<FormState>;
@@ -24,6 +24,12 @@ export default function PublisherForm({ action, values, companies, profiles, sub
         label="Logo"
         defaultValue={values?.logoUrl}
         hint="Title-page logo. PNG with a transparent background (or SVG), landscape orientation. Recommended ≥ 600×400px, max ~2 MB."
+      />
+      <ImageField
+        name="sealUrl"
+        label="Publisher seal"
+        defaultValue={values?.sealUrl}
+        hint="Official seal/stamp shown near the Director's signature. PNG with a transparent background, roughly square. Recommended ≥ 400×400px, max ~2 MB."
       />
       <Select name="companyId" label="Company" defaultValue={values?.companyId} options={companies} />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -1487,13 +1487,13 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
 
   const identity = publisherIdentity(journal);
   const companyLogo = proxiedImage(journal.companyLogo);
-  const seal = proxiedImage(journal.companySeal);
+  const seal = proxiedImage(journal.publisherSeal);
 
   return (
     <section className="pdf-page director-page" data-export-group="internal" style={pageStyle(pageScale)}>
       <div className="page-rule" />
       <RichText as="h1" value={effectiveDirectorDesk(journal).title} />
-      {/* Two-column brand band: company logo (left) + company seal (right). */}
+      {/* Two-column brand band: company logo (left) + publisher seal (right). */}
       <div className="director-brands">
         <div className="director-brand-col">
           <PublisherLogo mode={identity.logoMode} side="company" src={companyLogo} />
@@ -1501,9 +1501,9 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
         <div className="director-brand-col">
           {seal ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img className="director-seal" src={seal} alt="Company seal" crossOrigin="anonymous" />
+            <img className="director-seal" src={seal} alt="Publisher seal" crossOrigin="anonymous" />
           ) : (
-            <span className="director-seal-missing">⚠ Company seal not set — add it in Company setup.</span>
+            <span className="director-seal-missing">⚠ Publisher seal not set — add it in Publisher setup.</span>
           )}
         </div>
       </div>

@@ -22,7 +22,7 @@ export default async function EditPublisherPage({ params }: { params: Promise<{ 
       <h1 className="mb-6 text-xl font-semibold text-slate-900">Edit publisher</h1>
       <PublisherForm
         action={updatePublisher.bind(null, id)}
-        values={{ name: pub.name, logoUrl: pub.logoUrl ?? "", companyId: pub.companyId ?? "", about: pub.about ?? "", salientFeatures: pub.salientFeatures.join("\n"), objectives: pub.objectives.join("\n"), email: pub.email ?? "", phone: pub.phone ?? "", website: pub.website ?? "", subscriptionManagerId: pub.subscriptionManagerId ?? "", dispatchManagerId: pub.dispatchManagerId ?? "", showJournalsOnManagement: pub.showJournalsOnManagement }}
+        values={{ name: pub.name, logoUrl: pub.logoUrl ?? "", sealUrl: pub.sealUrl ?? "", companyId: pub.companyId ?? "", about: pub.about ?? "", salientFeatures: pub.salientFeatures.join("\n"), objectives: pub.objectives.join("\n"), email: pub.email ?? "", phone: pub.phone ?? "", website: pub.website ?? "", subscriptionManagerId: pub.subscriptionManagerId ?? "", dispatchManagerId: pub.dispatchManagerId ?? "", showJournalsOnManagement: pub.showJournalsOnManagement }}
         companies={companies}
         profiles={profiles}
         submitLabel="Save changes"

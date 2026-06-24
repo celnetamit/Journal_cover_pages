@@ -138,7 +138,6 @@ model Company {
   phone             String?
   website           String?
   logoUrl           String?
-  sealUrl           String? // company seal/stamp image (used near signatures)
   registeredAddress String?
   salesAddress      String?
   cin               String?
@@ -177,6 +176,7 @@ model Publisher {
   id        String   @id @default(cuid())
   name      String   @unique
   logoUrl   String?
+  sealUrl   String? // publisher seal/stamp image (shown near the Director's signature)
   about     String? // imprint blurb shown at the top of the journal-details page (About)
   salientFeatures String[] // About-page salient features; publisher-wide (shared by all its journals)
   objectives      String[] // About-page objectives; publisher-wide

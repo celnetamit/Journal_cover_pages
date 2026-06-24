@@ -101,6 +101,7 @@ export async function createPublisher(_p: FormState, fd: FormData): Promise<Form
       data: {
         name,
         logoUrl: nul(str(fd.get("logoUrl"))),
+        sealUrl: nul(str(fd.get("sealUrl"))),
         about: nul(str(fd.get("about"))),
         salientFeatures: textLines(str(fd.get("salientFeatures"))),
         objectives: textLines(str(fd.get("objectives"))),
@@ -132,6 +133,7 @@ export async function updatePublisher(id: string, _p: FormState, fd: FormData): 
       data: {
         name,
         logoUrl: nul(str(fd.get("logoUrl"))),
+        sealUrl: nul(str(fd.get("sealUrl"))),
         about: nul(str(fd.get("about"))),
         salientFeatures: textLines(str(fd.get("salientFeatures"))),
         objectives: textLines(str(fd.get("objectives"))),
@@ -162,7 +164,6 @@ function companyData(fd: FormData) {
     phone: nul(str(fd.get("phone"))),
     website: nul(str(fd.get("website"))),
     logoUrl: nul(str(fd.get("logoUrl"))),
-    sealUrl: nul(str(fd.get("sealUrl"))),
     registeredAddress: nul(str(fd.get("registeredAddress"))),
     salesAddress: nul(str(fd.get("salesAddress"))),
     cin: nul(str(fd.get("cin"))),

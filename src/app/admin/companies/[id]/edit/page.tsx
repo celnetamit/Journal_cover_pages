@@ -24,7 +24,6 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ id
           phone: c.phone ?? "",
           website: c.website ?? "",
           logoUrl: c.logoUrl ?? "",
-          sealUrl: c.sealUrl ?? "",
           registeredAddress: c.registeredAddress ?? "",
           salesAddress: c.salesAddress ?? "",
           cin: c.cin ?? "",
