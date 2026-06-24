@@ -866,6 +866,38 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.spine-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.spine-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.spine-presets button {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  color: #334155;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.spine-presets button:hover {
+  background: #e2e8f0;
+}
+
+.spine-presets button.is-active {
+  background: #1d3165;
+  border-color: #1d3165;
+  color: #fff;
+}
+
 .editor-note {
   background: #fff8e7;
   border: 1px solid #f3d999;
@@ -1570,25 +1602,49 @@ button {
   flex-direction: row;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 7.5mm;
+  /* Hinge gap on each side of the spine (Back | hinge | Spine | hinge | Front). */
+  gap: 3mm;
   overflow: hidden;
   background: #fff;
   box-sizing: border-box;
 }
 
-.cover-spread-page .digital-library-cover,
-.cover-spread-page .journal-front-cover {
+/* Printed spine between the back and front cover panels. Width is set inline
+   from the per-issue draft.spineMm (default 5.5mm). */
+.cover-spine {
+  align-self: stretch;
+  background: #fff;
+  box-sizing: border-box;
+  color: #1d3165;
   height: 279.4mm;
-  display: block;
+  overflow: hidden;
   position: relative;
 }
 
-.cover-spread-page .digital-library-cover {
-  width: 199mm;
+/* Rotated (not writing-mode) so html2canvas renders it as one clean line in the
+   exported PDF instead of stacking each letter. rotate(90deg) reads top→bottom. */
+.cover-spine-text {
+  font-family: "Arial Narrow", Arial, sans-serif;
+  font-size: 10pt;
+  font-weight: 700;
+  left: 50%;
+  letter-spacing: 0.2px;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(90deg);
+  transform-origin: center;
+  white-space: nowrap;
 }
 
+.cover-spread-page .digital-library-cover,
 .cover-spread-page .journal-front-cover {
-  width: 199mm;
+  height: 279.4mm;
+  /* Share the space left over after the spine equally, so a wider spine shrinks
+     the covers instead of overflowing/clipping them. */
+  flex: 1 1 0;
+  min-width: 0;
+  display: block;
+  position: relative;
 }
 
 .cover-spread-page .cover-panel-image {
@@ -1690,6 +1746,29 @@ button {
   margin-top: 4.8%;
 }
 
+/* Middle section: holds the cover artwork between the header and footer. */
+.front-cover-middle {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+.front-cover-middle-image {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  width: 100%;
+}
+
+.front-cover-middle-placeholder {
+  background: #e2e8f0;
+  height: 100%;
+  width: 100%;
+}
+
 .front-cover-footer {
   align-items: center;
   background: #fff;
@@ -1777,10 +1856,13 @@ button {
 .front-cover-abbreviation-badge {
   color: #fff200;
   font-family: "Arial Narrow", "Helvetica Neue Condensed", Arial, sans-serif;
-  font-size: 25.5pt;
-  font-weight: 800;
+  /* STM spec: Arial Narrow, 40pt, Bold. */
+  font-size: 40pt;
+  font-weight: 700;
   letter-spacing: -0.3px;
   line-height: 0.88;
+  /* Small breathing room so SJIF/ICV don't crowd the badge in print. */
+  margin-bottom: 1.6mm;
   white-space: nowrap;
 }
 
@@ -1796,7 +1878,8 @@ button {
 
 .front-cover-issn {
   font-family: Tahoma, Arial, sans-serif;
-  font-size: 8pt;
+  /* STM spec: Tahoma, 10pt, Normal. */
+  font-size: 10pt;
   font-weight: 400;
   line-height: 1.1;
   padding: 0;
@@ -1806,8 +1889,9 @@ button {
 
 .front-cover-title {
   color: #fff;
-  font-size: 24.8pt;
-  font-weight: 650;
+  /* STM spec: Arial Narrow (inherited), 31.5pt, Bold. */
+  font-size: 31.5pt;
+  font-weight: 700;
   line-height: 1.01;
   margin: 0;
   padding: 0;
@@ -1815,25 +1899,25 @@ button {
   width: 80%;
 }
 
+/* Auto-shrink tiers for long titles, scaled up from the 31.5pt spec base. */
 .front-cover-title.balanced {
-  font-size: 22.5pt;
+  font-size: 28.5pt;
   line-height: 1;
 }
 
 .front-cover-title.compact {
-  font-size: 19.2pt;
+  font-size: 24.5pt;
   line-height: 0.99;
 }
 
 .front-cover-title.ultra-compact {
-  font-size: 16.4pt;
+  font-size: 21pt;
   line-height: 0.99;
 }
 
 .front-cover-issue-line,
 .front-cover-website-line {
   font-family: Tahoma, Arial, sans-serif;
-  font-size: 11.6pt;
   font-weight: 400;
   line-height: 1.01;
   padding: 0;
@@ -1841,16 +1925,23 @@ button {
   white-space: nowrap;
 }
 
+/* STM spec: Volume/Issue/Year — Tahoma, 15pt, Normal. */
+.front-cover-issue-line {
+  font-size: 15pt;
+}
+
+/* STM spec: Website — Tahoma, 14pt, Normal. */
 .front-cover-website-line {
-  font-size: 10.4pt;
+  font-size: 14pt;
 }
 
 .front-cover-month {
   color: #fff200;
   flex: 1;
   font-family: Tahoma, Arial, sans-serif;
-  font-size: 9.6pt;
-  font-weight: 700;
+  /* STM spec: Publication Period — Tahoma, 12pt, Normal. */
+  font-size: 12pt;
+  font-weight: 400;
   line-height: 1.1;
   padding: 0 0 1mm;
   text-align: right;
@@ -2525,15 +2616,20 @@ button {
 }
 
 .management-profile b {
-  font-size: calc(7.4pt * var(--page-scale));
+  /* STM spec: Name — Arial, 9pt, Bold. */
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: calc(9pt * var(--page-scale));
+  font-weight: 700;
   line-height: 1.08;
   max-width: 100%;
 }
 
 .management-profile span,
 .management-profile small {
-  font-size: calc(6.2pt * var(--page-scale));
-  font-weight: 700;
+  /* STM spec: designation / department — Arial, 9pt, Normal. */
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: calc(9pt * var(--page-scale));
+  font-weight: 400;
   line-height: 1.08;
   max-width: 100%;
 }
@@ -2798,7 +2894,10 @@ button {
 }
 
 .cover-issn {
-  font-size: 9.4pt;
+  /* STM spec: ISSN — Arial MT, 10pt, Normal. */
+  font-family: "Arial MT", "ArialMT", Arial, Helvetica, sans-serif;
+  font-size: 10pt;
+  font-weight: 400;
   letter-spacing: 1px;
   margin: 5mm 0 0;
   position: absolute;
@@ -2820,8 +2919,10 @@ button {
 }
 
 .cover-page h1 {
-  font-size: 24.5pt;
-  font-weight: 800;
+  /* STM spec: Journal name — Arial, 22pt, Bold. */
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 22pt;
+  font-weight: 700;
   letter-spacing: 0;
   line-height: 1.08;
   margin: 29mm auto 6mm;
@@ -3073,9 +3174,13 @@ button {
   width: 14mm;
 }
 
+.contents-table td b {
+  font-style: italic;
+}
+
 .contents-table span {
   display: block;
-  font-style: italic;
+  font-style: normal;
   margin-top: 1mm;
 }
 
@@ -3139,6 +3244,49 @@ button {
   width: 100%;
 }
 
+/* Two-column brand band under the title: company logo | company seal. */
+.director-brands {
+  align-items: center;
+  display: flex;
+  gap: calc(10mm * var(--page-scale));
+  justify-content: space-between;
+  margin: calc(3mm * var(--page-scale)) 0 calc(7mm * var(--page-scale));
+  width: 100%;
+}
+
+.director-brand-col {
+  align-items: center;
+  display: flex;
+  flex: 1 1 0;
+  justify-content: center;
+  min-width: 0;
+}
+
+.director-brands .publisher-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.director-brands .publisher-logo img {
+  height: auto;
+  max-height: calc(30mm * var(--page-scale));
+  object-fit: contain;
+  width: auto;
+}
+
+.director-seal {
+  height: calc(34mm * var(--page-scale));
+  object-fit: contain;
+  width: auto;
+}
+
+.director-seal-missing {
+  color: #b45309;
+  font-size: calc(8.5pt * var(--page-scale));
+  text-align: center;
+}
+
 .director-page p {
   margin: 0 0 calc(2mm * var(--page-scale));
   text-align: justify;
@@ -3160,18 +3308,20 @@ button {
 }
 
 .signature {
-  align-self: flex-start;
+  align-self: flex-end;
   font-size: calc(9.8pt * var(--page-scale));
   margin-bottom: calc(4mm * var(--page-scale));
-  margin-left: calc(2mm * var(--page-scale));
+  margin-right: calc(2mm * var(--page-scale));
   margin-top: auto;
   position: static;
+  text-align: right;
 }
 
 .signature img {
   display: block;
   height: auto;
   margin-bottom: calc(0.6mm * var(--page-scale));
+  margin-left: auto;
   width: 37mm;
 }
 
@@ -3184,6 +3334,11 @@ button {
 
 .signature b {
   display: block;
+}
+
+.signature i {
+  display: block;
+  font-style: normal;
 }
 
 .editorial-page {
@@ -3263,15 +3418,21 @@ button {
 }
 
 .member-line b {
+  /* STM spec: Name — Arial, 9pt, Bold. */
   color: #222;
-  font-size: calc(8.7pt * var(--page-scale));
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: calc(9pt * var(--page-scale));
+  font-weight: 700;
   line-height: 1.2;
   margin-bottom: calc(0.6mm * var(--page-scale));
 }
 
 .member-line span,
 .member-line small {
-  font-size: calc(7.35pt * var(--page-scale));
+  /* STM spec: designation / department — Arial, 9pt, Normal. */
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: calc(9pt * var(--page-scale));
+  font-weight: 400;
   line-height: 1.3;
 }
 

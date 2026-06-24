@@ -14,7 +14,7 @@ type Props = {
   title: string;
   titleClassName: string;
   monthRange: string;
-  showEmbeddedFooterMask?: boolean;
+  coverImage?: string;
   publisherMark: ReactNode;
   excellenceMark: ReactNode;
   // Retained so existing call sites keep compiling; the cover layout is now
@@ -37,24 +37,23 @@ export default function FrontCoverCanvas({
   title,
   titleClassName,
   monthRange,
-  showEmbeddedFooterMask = false,
+  coverImage,
   publisherMark,
   excellenceMark,
 }: Props) {
   return (
     <div className="front-cover-dynamic-layer">
-      {showEmbeddedFooterMask ? <div className="front-cover-embedded-footer-mask" aria-hidden="true" /> : null}
       <div className="front-cover-header">
         <div className="front-cover-top">
           <div className="front-cover-top-left">
             <ReqText className="front-cover-abbreviation-badge" style={{ textTransform: "uppercase" }} value={abbreviation} label="Abbreviation" />
-            {/* SJIF / ICV are optional — render blank when unset (no PDF flag). */}
-            <div className="front-cover-meta-line">SJIF: {sjif}</div>
-            <div className="front-cover-meta-line">ICV: {icv}</div>
+            {/* SJIF / ICV are optional — the whole line is hidden when unset. */}
+            {sjif.trim() ? <div className="front-cover-meta-line">SJIF: {sjif}</div> : null}
+            {icv.trim() ? <div className="front-cover-meta-line">ICV: {icv}</div> : null}
           </div>
           <div className="front-cover-top-right">
-            {/* e-ISSN is optional — render blank when unset (no PDF flag). */}
-            <div className="front-cover-issn">ISSN: {eIssn}</div>
+            {/* e-ISSN is optional — the whole line is hidden when unset. */}
+            {eIssn.trim() ? <div className="front-cover-issn">ISSN: {eIssn}</div> : null}
             <div className="front-cover-issue-line">{issueLine}</div>
             <div className="front-cover-website-line">{website}</div>
           </div>
@@ -63,6 +62,16 @@ export default function FrontCoverCanvas({
           <ReqText className={`front-cover-title ${titleClassName}`} value={title} label="Journal title" />
           <div className="front-cover-month">{monthRange}</div>
         </div>
+      </div>
+      {/* Middle section: the cover artwork is confined here, between the header
+          and the footer (it no longer bleeds behind them). */}
+      <div className="front-cover-middle">
+        {coverImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="front-cover-middle-image" src={coverImage} alt={title} crossOrigin="anonymous" />
+        ) : (
+          <div className="front-cover-middle-placeholder" aria-hidden="true" />
+        )}
       </div>
       <div className="front-cover-footer">
         <div className="front-cover-footer-item front-cover-footer-left">{publisherMark}</div>

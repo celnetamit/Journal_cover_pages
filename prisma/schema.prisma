@@ -135,6 +135,7 @@ model Company {
   phone             String?
   website           String?
   logoUrl           String?
+  sealUrl           String? // company seal/stamp image (used near signatures)
   registeredAddress String?
   salesAddress      String?
   cin               String?

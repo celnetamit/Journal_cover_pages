@@ -12,6 +12,8 @@ export type BinderDraft = {
   footerRightLogoImage: string;
   frontCoverLayout: FrontCoverLayout;
   frontCoverLayoutCustomized?: boolean;
+  // Printed spine thickness (mm) for the cover wrap. Undefined = use the default.
+  spineMm?: number;
   pageLayouts: BinderPageLayouts;
   journalWebsite: string;
   issueVolume: string;
@@ -51,6 +53,14 @@ export type BinderDraft = {
   // Page 3 (subscription/legal) full-text override — blank = use generated content.
   paymentOverride: string;
 };
+
+// Default printed spine thickness (mm) and the common page-count presets. The
+// spine sits between the back and front cover panels on the cover spread.
+export const defaultSpineMm = 5.5;
+export const SPINE_PRESETS: ReadonlyArray<{ label: string; mm: number }> = [
+  { label: "50 pages", mm: 5.5 },
+  { label: "75 pages", mm: 8.2 },
+];
 
 export type CoverElementId =
   | "abbreviationBadge"

@@ -3,7 +3,7 @@
 import { EntityForm, Text, Area, ImageField, Select, type FormState, type Option } from "@/components/forms/Fields";
 
 type Values = {
-  name: string; email: string; phone: string; website: string; logoUrl: string;
+  name: string; email: string; phone: string; website: string; logoUrl: string; sealUrl: string;
   registeredAddress: string; salesAddress: string; cin: string; gst: string;
   bankAccountName: string; bankAccountNo: string; bankIfsc: string;
   bankName: string; bankBranch: string; bankSwift: string; directorId: string;
@@ -28,13 +28,19 @@ export default function CompanyForm({ action, values, profiles, submitLabel }: {
         <Text name="phone" label="Phone" defaultValue={values?.phone} />
         <Text name="cin" label="CIN" defaultValue={values?.cin} />
         <Text name="gst" label="GST" defaultValue={values?.gst} />
-        <Text name="printedBy" label="Printed by (print vendor)" defaultValue={values?.printedBy} />
+        <Text name="printedBy" label="Printed by (print vendor)" defaultValue={values?.printedBy} placeholder="Laxman Printo Graphics, Noida (default)" />
       </div>
       <ImageField
         name="logoUrl"
         label="Logo"
         defaultValue={values?.logoUrl}
         hint="Title-page logo. PNG with a transparent background (or SVG), landscape orientation. Recommended ≥ 600×400px, max ~2 MB."
+      />
+      <ImageField
+        name="sealUrl"
+        label="Company seal"
+        defaultValue={values?.sealUrl}
+        hint="Official seal/stamp shown near signatures. PNG with a transparent background, roughly square. Recommended ≥ 400×400px, max ~2 MB."
       />
       <Select name="directorId" label="Director (profile)" defaultValue={values?.directorId} options={profiles} />
       <p className="px-1 text-xs text-slate-500">

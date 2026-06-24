@@ -63,6 +63,17 @@ describe("sanitizeInlineHtml", () => {
     expect(sanitizeInlineHtml("a < b && c > d")).toBe("a &lt; b &amp;&amp; c &gt; d");
   });
 
+  it("is idempotent for already-escaped entities (no double-escaping)", () => {
+    // A title like "Management & Systems" is stored sanitized as "&amp;";
+    // re-sanitizing must not turn it into "&amp;amp;".
+    const once = sanitizeInlineHtml("Management & Systems");
+    expect(once).toBe("Management &amp; Systems");
+    expect(sanitizeInlineHtml(once)).toBe(once);
+    expect(sanitizeInlineHtml("H<sub>2</sub>O &lt;tag&gt; &#39;x&#39;")).toBe(
+      "H<sub>2</sub>O &lt;tag&gt; &#39;x&#39;",
+    );
+  });
+
   it("preserves newlines", () => {
     expect(sanitizeInlineHtml("line1\nline2")).toBe("line1\nline2");
   });

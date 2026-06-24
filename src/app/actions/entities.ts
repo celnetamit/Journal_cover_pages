@@ -157,6 +157,7 @@ function companyData(fd: FormData) {
     phone: nul(str(fd.get("phone"))),
     website: nul(str(fd.get("website"))),
     logoUrl: nul(str(fd.get("logoUrl"))),
+    sealUrl: nul(str(fd.get("sealUrl"))),
     registeredAddress: nul(str(fd.get("registeredAddress"))),
     salesAddress: nul(str(fd.get("salesAddress"))),
     cin: nul(str(fd.get("cin"))),

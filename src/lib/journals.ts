@@ -16,6 +16,7 @@ export type Journal = {
   journalLogo: string;
   publisherLogo: string;
   companyLogo: string;
+  companySeal: string;
   about: string;
   publisherAbout: string;
   publisherAboutNotes: string[];
@@ -101,6 +102,7 @@ export function toLegacyJournal(j: DbJournal): Journal {
     journalLogo: s(j.logoUrl),
     publisherLogo: s(j.publisher?.logoUrl),
     companyLogo: s(company?.logoUrl),
+    companySeal: s(company?.sealUrl),
     about: s(j.about),
     publisherAbout: s(j.publisher?.about),
     publisherAboutNotes: j.publisher?.aboutNotes ?? [],

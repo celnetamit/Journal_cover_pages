@@ -37,6 +37,8 @@ import {
   type BinderDraft,
   defaultBinderPageLayouts,
   defaultFrontCoverLayout,
+  defaultSpineMm,
+  SPINE_PRESETS,
   type ManagementPerson,
   type ContentRow,
   boardMembers,
@@ -293,6 +295,7 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     footerRightLogoImage: proxiedImage(journal.journalLogo),
     frontCoverLayout: defaultFrontCoverLayout,
     frontCoverLayoutCustomized: false,
+    spineMm: defaultSpineMm,
     pageLayouts: defaultBinderPageLayouts,
     journalWebsite: defaultCoverWebsite(journal),
     issueVolume: "",
@@ -367,6 +370,7 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
       ? normalizeFrontCoverLayout(draft.frontCoverLayout)
       : defaultFrontCoverLayout,
     frontCoverLayoutCustomized: Boolean(draft.frontCoverLayoutCustomized),
+    spineMm: draft.spineMm ?? defaultSpineMm,
     pageLayouts: normalizeBinderPageLayouts(draft.pageLayouts),
     managementHeads: migratedManagementHeads(draft),
     journalAbbreviation: draft.journalAbbreviation || journal.abbreviation || journal.shortName,
@@ -755,10 +759,6 @@ function excellenceLogoSource(draft: BinderDraft, journal: Journal) {
   return logo;
 }
 
-function coverHasEmbeddedFooterLogos(src: string) {
-  return ["/brand/joadms-pdf-front.png", "/brand/joadms-cover.webp"].includes(src.trim());
-}
-
 function FrontCoverPublisherMark({ draft }: { draft: BinderDraft }) {
   const publisherLogo = draft.journalLogoImage?.trim();
 
@@ -806,12 +806,10 @@ function JournalFrontCover({
   const abbreviation = draft.journalAbbreviation || journal.abbreviation || journal.shortName || "";
   const website = normalizeCoverWebsite(draft.journalWebsite, journal);
   const coverImage = draft.coverImage || defaultCoverImage(journal);
-  const shouldMaskEmbeddedFooter = coverHasEmbeddedFooterLogos(coverImage);
   const coverTitle = draft.journalTitle || journal.name;
 
   return (
     <article className="journal-front-cover">
-      <CoverBitmap src={coverImage} alt={journal.name} className="cover-panel-image" />
       <FrontCoverCanvas
         abbreviation={abbreviation}
         sjif={draft.sjif || journal.impactFactor || ""}
@@ -822,9 +820,9 @@ function JournalFrontCover({
         title={coverTitle}
         titleClassName={frontCoverTitleClass(inlineToPlainText(coverTitle))}
         monthRange={monthRange.replace("-", "–")}
+        coverImage={coverImage}
         layout={defaultFrontCoverLayout}
         interactive={interactive}
-        showEmbeddedFooterMask={shouldMaskEmbeddedFooter}
         publisherMark={<FrontCoverPublisherMark draft={draft} />}
         excellenceMark={<FrontCoverExcellenceMark journal={journal} draft={draft} />}
         onLayoutChange={onLayoutChange}
@@ -844,9 +842,16 @@ function CoverSpreadPage({
   interactive?: boolean;
   onLayoutChange?: (layout: BinderDraft["frontCoverLayout"]) => void;
 }) {
+  const spineMm = draft.spineMm ?? defaultSpineMm;
+  // Plain text (decode entities / strip inline tags) since the spine renders raw.
+  const spineTitle = inlineToPlainText(draft.journalTitle?.trim() || titleCaseName(journal.name));
   return (
     <section className="pdf-page cover-spread-page" data-export-group="cover" data-page-title="Digital library back and journal front cover">
       <DigitalLibraryBackCover draft={draft} />
+      {/* Printed spine — sits between the back and front cover panels. */}
+      <div className="cover-spine" style={{ width: `${spineMm}mm` }} aria-label={`Spine ${spineMm}mm`}>
+        <span className="cover-spine-text">{spineTitle}</span>
+      </div>
       <JournalFrontCover journal={journal} draft={draft} interactive={interactive} onLayoutChange={onLayoutChange} />
     </section>
   );
@@ -859,7 +864,8 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
   // Record-only resolution: per-issue draft → Company/Publisher (DB) → journal
   // record. NO hardcoded brand fallback — blank values are flagged on the page.
   const eIssn = draft.eIssn || journal.eIssn; // optional — blank renders empty
-  const printer = draft.coverPrinter || journal.printedBy;
+  // Per-issue override → Company.printedBy (single point of change) → app default.
+  const printer = draft.coverPrinter || journal.printedBy || defaultCoverPrinter;
   const title = draft.journalTitle?.trim() ? draft.journalTitle : titleCaseName(journal.name);
   const publisherName = legal?.publisherName || journal.publisher;
   const companyName = legal?.companyName || journal.imprint;
@@ -874,8 +880,8 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
   return (
     <section className="pdf-page cover-page" data-export-group="internal" data-page-title="Journal Name with volume issue page">
       <div className="page-rule" />
-      {/* e-ISSN is optional — render blank when unset (no PDF flag). */}
-      <p className="cover-issn">ISSN: {eIssn}</p>
+      {/* e-ISSN is optional — the whole line is hidden when unset. */}
+      {eIssn.trim() ? <p className="cover-issn">ISSN: {eIssn}</p> : null}
       <p className="cover-printer">Printed by : <ReqText value={printer} label="Printed by" /></p>
       <ReqText as="h1" value={title} label="Journal title" />
       <p className="issue-line">Volume <ReqText value={draft.issueVolume} label="Volume" /> | Issue <ReqText value={draft.issueNumber} label="Issue" /></p>
@@ -1446,19 +1452,29 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
   const letterMissing = paragraphs.length === 0;
   const pageScale = pageDensityScale(paragraphs.join(" ").length, 3600);
 
+  const identity = publisherIdentity(journal);
+  const companyLogo = proxiedImage(journal.companyLogo);
+  const seal = proxiedImage(journal.companySeal);
+
   return (
     <section className="pdf-page director-page" data-export-group="internal" style={pageStyle(pageScale)}>
       <div className="page-rule" />
       <RichText as="h1" value={effectiveDirectorDesk(journal).title} />
+      {/* Two-column brand band: company logo (left) + company seal (right). */}
+      <div className="director-brands">
+        <div className="director-brand-col">
+          <PublisherLogo mode={identity.logoMode} side="company" src={companyLogo} />
+        </div>
+        <div className="director-brand-col">
+          {seal ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="director-seal" src={seal} alt="Company seal" crossOrigin="anonymous" />
+          ) : (
+            <span className="director-seal-missing">⚠ Company seal not set — add it in Company setup.</span>
+          )}
+        </div>
+      </div>
       <div className="director-letter">
-        <Image
-          className="portrait"
-          src={draft.directorPhotoImage || journal.directorPhoto || logoAssets.director.src}
-          alt={logoAssets.director.alt}
-          width={logoAssets.director.width}
-          height={logoAssets.director.height}
-          unoptimized
-        />
         {letterMissing ? (
           <p className="director-letter-missing" role="alert">
             ⚠ Director&apos;s Desk letter is not set for this journal. Please add it in the
@@ -1483,6 +1499,7 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
         />
         <RichText as="span" value={draft.directorName} />
         <RichText as="b" value={draft.directorRole} />
+        <RichText as="i" value={journal.publisher} />
       </div>
       <PageNumber value={7} />
     </section>
@@ -1543,7 +1560,9 @@ function paginateContentByHeight(container: HTMLElement, rows: ContentRow[]): Co
 function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   // Record-only: no hardcoded sample rows; an empty list is flagged below.
   const rows = draft.contentRows;
-  const issueLine = `Volume ${draft.issueVolume} | Issue ${draft.issueNumber} | ${draft.issueMonthRange.replace("-", "–")}`;
+  // Mirror the cover-page meta: month range + year, sourced from the same draft.
+  const period = [draft.issueMonthRange.replace("-", "–"), draft.issueYear].filter((v) => v.trim()).join(" ");
+  const issueLine = `Volume ${draft.issueVolume} | Issue ${draft.issueNumber}${period ? ` | ${period}` : ""}`;
   const rowsKey = rows.map((row) => `${row.title}|${row.author}|${row.page}`).join("\n");
   const measureRef = useRef<HTMLDivElement>(null);
   const [chunks, setChunks] = useState<ContentRow[][]>([rows]);
@@ -2053,6 +2072,31 @@ function SectionEditor({
                 onChange={(event) => onChange({ ...draft, issueYear: event.target.value })}
               />
             </label>
+          </div>
+          <div className="spine-editor">
+            <label>
+              <span>Spine width (mm)</span>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={draft.spineMm ?? defaultSpineMm}
+                onChange={(event) => onChange({ ...draft, spineMm: event.target.value === "" ? undefined : Number(event.target.value) })}
+              />
+            </label>
+            <div className="spine-presets">
+              {SPINE_PRESETS.map((preset) => (
+                <button
+                  type="button"
+                  key={preset.label}
+                  className={Math.abs((draft.spineMm ?? defaultSpineMm) - preset.mm) < 0.01 ? "is-active" : undefined}
+                  onClick={() => onChange({ ...draft, spineMm: preset.mm })}
+                >
+                  {preset.label} · {preset.mm} mm
+                </button>
+              ))}
+            </div>
+            <small className="field-hint">Printed spine thickness for the cover wrap. ~5.5&nbsp;mm for 50 pages, ~8.2&nbsp;mm for 75 pages — adjust for your page count and paper stock.</small>
           </div>
           <label className="file-field">
             <span>Upload front cover image</span>

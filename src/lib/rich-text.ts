@@ -16,10 +16,15 @@ const ALLOWED_TAGS = new Set(["em", "strong", "sub", "sup"]);
 // contentEditable / pasted markup uses these legacy aliases — normalize them.
 const TAG_ALIASES: Record<string, string> = { i: "em", b: "strong" };
 
-/** Escape a run of plain text for safe HTML output. */
+// An "&" already starting a valid HTML entity is left alone, so re-sanitizing an
+// already-sanitized value is idempotent (e.g. a stored title "A &amp; B" stays
+// "A &amp; B" instead of becoming "A &amp;amp; B", which renders as "A &amp; B").
+const BARE_AMP_RE = /&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/g;
+
+/** Escape a run of plain text for safe HTML output (idempotent for entities). */
 export function escapeHtmlText(text: string): string {
   return text
-    .replace(/&/g, "&amp;")
+    .replace(BARE_AMP_RE, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
