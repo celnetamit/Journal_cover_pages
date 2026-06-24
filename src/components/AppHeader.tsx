@@ -2,6 +2,7 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import { getSession, isAdmin, canEdit } from "@/lib/auth/session";
 import { logout } from "@/app/actions/auth";
+import StartTrainingButton from "@/components/tour/StartTrainingButton";
 
 // Server component. Renders nothing when signed out (e.g. on /login).
 export default async function AppHeader() {
@@ -34,6 +35,7 @@ export default async function AppHeader() {
         <Link href="/guide" className="text-slate-600 hover:text-slate-900">
           Guide
         </Link>
+        {canEdit(session.role) && <StartTrainingButton />}
         <span className="text-slate-500">
           {label}
           <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs uppercase text-slate-600">

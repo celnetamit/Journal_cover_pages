@@ -1999,7 +1999,7 @@ function SectionEditor({
         </div>
       ) : null}
       <div className="editor-save-row">
-        <button type="button" onClick={onSave}>Save Page {activePage} Details</button>
+        <button type="button" data-tour="save-page" onClick={onSave}>Save Page {activePage} Details</button>
         {saveStatus ? <span>{saveStatus}</span> : null}
       </div>
       {uploadError ? <div className="upload-error" role="alert">{uploadError}</div> : null}
@@ -3031,7 +3031,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
           )}
           <div className="journal-select-label">
             <span>Select journal</span>
-            <div className="journal-combobox">
+            <div className="journal-combobox" data-tour="journal-picker">
               <input
                 value={journalQuery}
                 onChange={(event) => {
@@ -3084,7 +3084,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
             <ArrowLeft size={16} />
           </button>
           <span>Active editor target:</span>
-          <div className="page-stepper">
+          <div className="page-stepper" data-tour="page-stepper">
             {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
               <button className={activePage === page ? "active" : ""} key={page} onClick={() => setActivePage(page)}>
                 {pageStepperLabel(page)}
@@ -3137,7 +3137,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                 profiles={profiles}
               />
             ) : (
-              <section className="export-panel">
+              <section className="export-panel" data-tour="export-actions">
                 <h2>Live Preview & Export</h2>
                 <p>Download the active journal as two separate PDFs: one cover spread and one internal-page file.</p>
                 <div className="toolbar">

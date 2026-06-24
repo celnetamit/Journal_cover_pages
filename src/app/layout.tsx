@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import AppHeader from "@/components/AppHeader";
+import TrainingTour from "@/components/tour/TrainingTour";
 
 export const metadata: Metadata = {
   title: "Journal Initial Pages Builder",
@@ -17,6 +18,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <AppHeader />
         {children}
+        <TrainingTour />
       </body>
     </html>
   );

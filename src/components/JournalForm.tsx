@@ -175,6 +175,7 @@ export default function JournalForm({
       <div className="flex items-center gap-3">
         <button
           type="submit"
+          data-tour="journal-form-submit"
           disabled={pending}
           className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
         >

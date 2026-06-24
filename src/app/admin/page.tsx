@@ -32,11 +32,12 @@ export default async function AdminHubPage() {
     <main className="mx-auto w-full max-w-4xl p-6">
       <h1 className="mb-1 text-xl font-semibold text-slate-900">Setup</h1>
       <p className="mb-6 text-sm text-slate-500">Manage the data that feeds journal binders.</p>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div data-tour="admin-hub" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((c) => (
           <Link
             key={c.href}
             href={c.href}
+            data-tour={`admin-card-${c.href.split("/").pop()}`}
             className="rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-400 hover:shadow-sm"
           >
             <div className="flex items-center justify-between">
