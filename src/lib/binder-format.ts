@@ -2,6 +2,25 @@ import type { Journal } from "@/lib/journals";
 
 const romanNumerals = ["", "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"];
 
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+// Month-range presets for the cover dropdown, derived by splitting the year
+// evenly across the journal's issues-per-year (e.g. 3 → Jan–Apr, May–Aug,
+// Sep–Dec; 2 → Jan–Jun, Jul–Dec). Returns [] when 12 isn't evenly divisible.
+export function monthRangePresets(issuesPerYear: number | string | null | undefined): string[] {
+  const n = Number(issuesPerYear);
+  if (!Number.isInteger(n) || n < 1 || n > 12 || 12 % n !== 0) return [];
+  const span = 12 / n;
+  return Array.from({ length: n }, (_, i) => {
+    const start = i * span;
+    const end = start + span - 1;
+    return span === 1 ? MONTHS[start] : `${MONTHS[start]} - ${MONTHS[end]}`;
+  });
+}
+
 export function initials(name: string) {
   return name
     .split(/\s+/)

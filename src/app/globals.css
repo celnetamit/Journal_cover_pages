@@ -2689,14 +2689,16 @@ button {
 .management-photo-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: calc(3.8mm * var(--page-scale)) calc(4.8mm * var(--page-scale));
+  column-gap: 8mm;
+  row-gap: calc(5mm * var(--page-scale));
   justify-content: center;
   margin: 0 auto calc(8mm * var(--page-scale));
-  max-width: 155mm;
+  /* 4 columns max: 4×30mm + 3×8mm = 144mm (a 5th would overflow → wraps). */
+  max-width: 144mm;
 }
 
 .management-photo-grid .management-profile {
-  width: 22mm;
+  width: 30mm;
 }
 
 .law-journal-roster {
@@ -2777,9 +2779,13 @@ button {
   font-weight: 700;
 }
 
+/* Journal/publisher-level contact line — separated from the person above and
+   pinned to the bottom (margin-top:auto) so the three boxes' footers align. */
 .contact-box-footer {
+  border-top: 1px solid #b8b8b8;
+  font-weight: 700;
   margin-top: auto;
-  padding-top: calc(1.6mm * var(--page-scale));
+  padding-top: calc(2mm * var(--page-scale));
 }
 
 .management-page .page-number {

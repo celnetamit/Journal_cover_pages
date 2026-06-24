@@ -31,6 +31,7 @@ import {
   initials,
   isLawJournal,
   lowerRoman,
+  monthRangePresets,
   titleCaseName,
 } from "@/lib/binder-format";
 import {
@@ -2102,10 +2103,29 @@ function SectionEditor({
             </label>
             <label>
               <span>Month range</span>
-              <input
-                value={draft.issueMonthRange}
-                onChange={(event) => onChange({ ...draft, issueMonthRange: event.target.value })}
-              />
+              {(() => {
+                const presets = monthRangePresets(journal.issuesPerYear);
+                if (presets.length === 0) {
+                  return (
+                    <input
+                      value={draft.issueMonthRange}
+                      onChange={(event) => onChange({ ...draft, issueMonthRange: event.target.value })}
+                    />
+                  );
+                }
+                return (
+                  <select
+                    value={draft.issueMonthRange}
+                    onChange={(event) => onChange({ ...draft, issueMonthRange: event.target.value })}
+                  >
+                    <option value="">— select —</option>
+                    {presets.map((p) => <option key={p} value={p}>{p}</option>)}
+                    {draft.issueMonthRange && !presets.includes(draft.issueMonthRange) ? (
+                      <option value={draft.issueMonthRange}>{draft.issueMonthRange} (custom)</option>
+                    ) : null}
+                  </select>
+                );
+              })()}
             </label>
             <label>
               <span>Year</span>
