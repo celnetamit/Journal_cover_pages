@@ -1029,25 +1029,31 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
       </p>
 
       <h2>MODE OF PAYMENT</h2>
-      <p><b>Pay Through NEFT/RTGS/Online Transfer</b></p>
-      <p>
-        Account Number: <ReqText value={bankAccountNo} label="Bank account no." /><br />
-        Account Name: <ReqText value={payeeBankName} label="Account name" /><br />
-        Bank Name: <ReqText value={bankName} label="Bank name" /><br />
-        Bank Branch: <ReqText value={bankBranch} label="Bank branch" /><br />
-        IFSC Code: <ReqText value={bankIfsc} label="IFSC code" />, Swift Code: <ReqText value={bankSwift} label="Swift code" />
-      </p>
-      <p>
-        <b>Pay Through Cheque/Demand Draft</b><br />
-        At Par Cheque, Demand Draft, and RTGS (payment to be made in favor of {companyName}, payable at Delhi/New Delhi).
-      </p>
-      <p>
-        <b>Please Send Demand Draft/Cheque to following address:</b><br />
-        Subscription Department, {paymentPublisherName},<br />
-        {companyName}<br />
-        {sendToAddress}<br />
-        Tel.: {legalPhoneDisplay}
-      </p>
+      <div className="payment-mode-columns">
+        <div className="payment-mode-column">
+          <p><b>Pay Through NEFT/RTGS/Online Transfer</b></p>
+          <p>
+            Account Number: <ReqText value={bankAccountNo} label="Bank account no." /><br />
+            Account Name: <ReqText value={payeeBankName} label="Account name" /><br />
+            Bank Name: <ReqText value={bankName} label="Bank name" /><br />
+            Bank Branch: <ReqText value={bankBranch} label="Bank branch" /><br />
+            IFSC Code: <ReqText value={bankIfsc} label="IFSC code" />, Swift Code: <ReqText value={bankSwift} label="Swift code" />
+          </p>
+        </div>
+        <div className="payment-mode-column">
+          <p>
+            <b>Pay Through Cheque/Demand Draft</b><br />
+            At Par Cheque, Demand Draft, and RTGS (payment to be made in favor of {companyName}, payable at Delhi/New Delhi).
+          </p>
+          <p>
+            <b>Please Send Demand Draft/Cheque to following address:</b><br />
+            Subscription Department, {paymentPublisherName},<br />
+            {companyName}<br />
+            {sendToAddress}<br />
+            Tel.: {legalPhoneDisplay}
+          </p>
+        </div>
+      </div>
       {legal?.cin || legal?.gst ? (
         <p>
           {legal?.cin ? <>CIN: {legal.cin}<br /></> : null}

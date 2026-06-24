@@ -2291,6 +2291,16 @@ button {
   text-align: justify;
 }
 
+.payment-reference-page .payment-mode-columns {
+  column-gap: 8mm;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.payment-reference-page .payment-mode-column > p:first-child {
+  margin-top: 0;
+}
+
 .payment-reference-page .subscription-columns {
   display: grid;
   grid-template-columns: 1fr;
