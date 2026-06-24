@@ -23,11 +23,9 @@ export type Journal = {
   website: string;
   logo: string;
   coverBack: string;
-  journalLogo: string;
   publisherLogo: string;
   companyLogo: string;
   publisherSeal: string;
-  about: string;
   publisherAbout: string;
   objectives: string[];
   salientFeatures: string[];
@@ -41,13 +39,6 @@ export type Journal = {
   directorSignature: string;
   directorDeskTitle: string;
   directorDeskParagraphs: string[];
-  // Page 5 contact boxes — shared via the Company.
-  dispatchContactName: string;
-  dispatchContactPhone: string;
-  dispatchContactEmail: string;
-  salesContactName: string;
-  salesContactPhone: string;
-  salesContactEmail: string;
   eIssn: string;
   pIssn: string;
   impactFactor: string;
@@ -135,11 +126,9 @@ export function toLegacyJournal(j: DbJournal): Journal {
     website: s(j.website),
     logo: s(j.coverFrontUrl),
     coverBack: s(j.coverBackUrl),
-    journalLogo: s(j.logoUrl),
     publisherLogo: s(j.publisher?.logoUrl),
     companyLogo: s(company?.logoUrl),
     publisherSeal: s(j.publisher?.sealUrl),
-    about: s(j.about),
     publisherAbout: s(j.publisher?.about),
     // Objectives are publisher-wide now (shared by all the publisher's journals).
     objectives: j.publisher?.objectives ?? [],
@@ -157,12 +146,6 @@ export function toLegacyJournal(j: DbJournal): Journal {
     // from the journal record — no Company fallback. Blank is surfaced as a flag.
     directorDeskTitle: s(j.directorDeskTitle),
     directorDeskParagraphs: j.directorDeskParagraphs,
-    dispatchContactName: s(company?.dispatchContactName),
-    dispatchContactPhone: s(company?.dispatchContactPhone),
-    dispatchContactEmail: s(company?.dispatchContactEmail),
-    salesContactName: s(company?.salesContactName),
-    salesContactPhone: s(company?.salesContactPhone),
-    salesContactEmail: s(company?.salesContactEmail),
     eIssn: s(j.issnOnline),
     pIssn: s(j.issnPrint),
     impactFactor: s(j.impactFactor),

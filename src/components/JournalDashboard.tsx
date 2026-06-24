@@ -39,12 +39,12 @@ import {
   defaultBinderPageLayouts,
   defaultFrontCoverLayout,
   defaultSpineMm,
+  defaultManuscriptUrl,
   SPINE_PRESETS,
   type ManagementPerson,
   type ContentRow,
   boardMembers,
   lawJournalNames,
-  defaultPage5Contacts,
   defaultDirectorParagraphs,
   lawDirectorParagraphs,
   defaultManuscriptEngine,
@@ -114,7 +114,7 @@ const defaultCoverPrinter = "Laxman Printo Graphics, Noida";
 const defaultRegisteredOffice =
   "Office No. 4, First Floor, CSC Pocket-E Market, Mayur Vihar, Phase-I, New Delhi-110091";
 const defaultCin = "U80302DL2005PTC138759";
-const maxFocusScopeKeywords = 10;
+const maxFocusScopeKeywords = 7;
 
 function pageStepperLabel(page: number) {
   if (page === 1) return "Cover Spread";
@@ -249,20 +249,6 @@ function effectiveDirectorDesk(journal: Journal) {
   };
 }
 
-// Page 5 contact boxes sourced from the journal's Company, falling back to the
-// built-in defaults per field.
-function effectivePage5Contacts(journal: Journal) {
-  const d = defaultPage5Contacts(isLawJournal(journal));
-  return {
-    dispatchContactName: journal.dispatchContactName?.trim() || d.dispatchContactName,
-    dispatchContactPhone: journal.dispatchContactPhone?.trim() || d.dispatchContactPhone,
-    dispatchContactEmail: journal.dispatchContactEmail?.trim() || d.dispatchContactEmail,
-    salesContactName: journal.salesContactName?.trim() || d.salesContactName,
-    salesContactPhone: journal.salesContactPhone?.trim() || d.salesContactPhone,
-    salesContactEmail: journal.salesContactEmail?.trim() || d.salesContactEmail,
-  };
-}
-
 function hasDirectorContent(paragraphs: string[] | undefined) {
   return (paragraphs || []).some((paragraph) => paragraph.trim());
 }
@@ -302,7 +288,6 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     issueNumber: "",
     issueMonthRange: "",
     issueYear: "",
-    about: focus?.about || details?.about || journal.about || "",
     focusScope: journalFocusScope(focus),
     focusNotes: journal.focusNotes,
     editorialBoard,
@@ -388,7 +373,6 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
   const withFocus = focus
     ? {
         ...hydratedDraft,
-        about: focus.about || hydratedDraft.about,
         focusScope: journalFocusScope(focus),
       }
     : hydratedDraft;
@@ -440,9 +424,7 @@ function draftJournal(journal: Journal, draft: BinderDraft): Journal {
     eIssn: draft.eIssn || journal.eIssn,
     impactFactor: draft.sjif || journal.impactFactor,
     icv: draft.icv || journal.icv,
-    logo: draft.journalLogoImage || journal.journalLogo || journal.logo,
-    journalLogo: journal.journalLogo,
-    about: draft.about || journal.about,
+    logo: draft.journalLogoImage || journal.logo,
   };
 }
 
@@ -1165,10 +1147,8 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
   ];
   // About / objectives / salient features all come from the Publisher record now;
   // only focus & scope is per-journal. Blank values are flagged.
-  const publisherAbout = journal.publisherAbout?.trim();
-  // About is dynamic: the journal's own About, falling back to the Publisher's
-  // about when the journal leaves it blank. Flagged only if both are empty.
-  const aboutText = draft.about || journal.about || publisherAbout;
+  // About comes solely from the Publisher record (shared across its journals).
+  const aboutText = journal.publisherAbout?.trim();
   const objectiveItems = journal.objectives;
   const salientItems = journal.salientFeatures;
   const aboutMissing = !hasValue(aboutText);
@@ -1355,8 +1335,8 @@ function ManuscriptEnginePage({ journal }: { journal: Journal }) {
   const noticePrefix = "Please don't hesitate to reach out to us. For any inquiries regarding APID and Manuscript submission, please contact us at ";
   // The QR encodes the journal's manuscript-submission URL (falling back to the
   // journal website); the printed link shows the journal website.
-  const submissionUrl = journal.manuscriptUrl?.trim() || journal.website?.trim() || "";
-  const url = journal.website?.trim() || journal.manuscriptUrl?.trim() || "";
+  const submissionUrl = journal.manuscriptUrl?.trim() || journal.website?.trim() || defaultManuscriptUrl;
+  const url = journal.website?.trim() || journal.manuscriptUrl?.trim() || defaultManuscriptUrl;
   const qrSrc = submissionUrl
     ? `/api/qr?data=${encodeURIComponent(submissionUrl)}`
     : logoAssets.manuscriptQr.src;
@@ -1731,8 +1711,8 @@ function PageSet({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
 // Issue meta (volume/issue/year/month) is inherently per-issue, so it's excluded.
 const PAGE_RECORD_FIELDS: Record<number, (keyof BinderDraft)[]> = {
   1: ["journalTitle", "journalAbbreviation", "eIssn", "sjif", "icv", "coverImage", "backCoverImage", "journalLogoImage", "footerRightLogoImage", "journalWebsite"],
-  3: ["about", "focusScope"],
-  5: ["managementHeads", "managementMembers", "dispatchContactName", "dispatchContactPhone", "dispatchContactEmail", "salesContactName", "salesContactPhone", "salesContactEmail"],
+  3: ["focusScope"],
+  5: ["managementHeads", "managementMembers"],
   7: ["editorialBoard"],
   8: ["directorName", "directorRole", "directorPhotoImage", "directorSignatureImage"],
 };
@@ -2301,18 +2281,8 @@ function SectionEditor({
         <>
           <div className="editor-note">
             The main journal-details sections on page 3 can also be dragged directly on the canvas and will keep their saved positions for this journal.
+            The About text comes from the Publisher (Admin → Publishers).
           </div>
-          <label>
-            <span>About journal</span>
-            <RichTextField
-              ariaLabel="About journal"
-              multiline
-              rows={6}
-              value={draft.about}
-              placeholder={journal.publisherAbout?.trim() ? "Blank = uses the Publisher's about text" : ""}
-              onChange={(value) => onChange({ ...draft, about: value })}
-            />
-          </label>
           <label>
             <span>Focus and scope</span>
             <RichTextField
@@ -2328,9 +2298,9 @@ function SectionEditor({
               }
             />
           </label>
-          <SaveFocusToJournal journalId={journal.id} about={draft.about} focusScope={draft.focusScope} />
+          <SaveFocusToJournal journalId={journal.id} focusScope={draft.focusScope} />
           <div className="editor-note">
-            These fields always mirror the journal record. Edits here preview live, but reload to the saved record &mdash; click <b>Save About &amp; Focus to journal</b> to persist them for every issue.
+            Focus &amp; Scope mirrors the journal record. Edits here preview live, but reload to the saved record &mdash; click <b>Save Focus to journal</b> to persist it for every issue.
           </div>
           <div className="editor-row-head">
             <span>Additional focus and scope text</span>
@@ -2413,26 +2383,10 @@ function SectionEditor({
               </div>
             </article>
           ))}
-          {(() => {
-            const c = effectivePage5Contacts(journal);
-            return (
-              <div className="management-contact-edit">
-                <div className="editor-row-head">
-                  <span>Contact boxes</span>
-                </div>
-                <div className="management-edit-row">
-                  <input aria-label="Dispatch contact name" placeholder="Dispatch contact name" value={draft.dispatchContactName ?? c.dispatchContactName} onChange={(event) => onChange({ ...draft, dispatchContactName: event.target.value })} />
-                  <input aria-label="Dispatch contact phone" placeholder="Dispatch phone" value={draft.dispatchContactPhone ?? c.dispatchContactPhone} onChange={(event) => onChange({ ...draft, dispatchContactPhone: event.target.value })} />
-                  <input aria-label="Dispatch contact email" placeholder="Dispatch e-mail" value={draft.dispatchContactEmail ?? c.dispatchContactEmail} onChange={(event) => onChange({ ...draft, dispatchContactEmail: event.target.value })} />
-                </div>
-                <div className="management-edit-row">
-                  <input aria-label="Sales contact name" placeholder="Sales contact name" value={draft.salesContactName ?? c.salesContactName} onChange={(event) => onChange({ ...draft, salesContactName: event.target.value })} />
-                  <input aria-label="Sales contact phone" placeholder="Sales phone" value={draft.salesContactPhone ?? c.salesContactPhone} onChange={(event) => onChange({ ...draft, salesContactPhone: event.target.value })} />
-                  <input aria-label="Sales contact email" placeholder="Sales e-mail" value={draft.salesContactEmail ?? c.salesContactEmail} onChange={(event) => onChange({ ...draft, salesContactEmail: event.target.value })} />
-                </div>
-              </div>
-            );
-          })()}
+          <div className="editor-note">
+            The Page 5 contact boxes come from profiles: the journal&apos;s Manager, and the
+            publisher&apos;s Dispatch &amp; Subscription managers (set those on the Journal and Publisher).
+          </div>
         </div>
       ) : null}
       {activePage === 6 ? (

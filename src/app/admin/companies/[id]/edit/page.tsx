@@ -36,12 +36,6 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ id
           bankSwift: c.bankSwift ?? "",
           directorId: c.directorId ?? "",
           printedBy: c.printedBy ?? "",
-          dispatchContactName: c.dispatchContactName ?? "",
-          dispatchContactPhone: c.dispatchContactPhone ?? "",
-          dispatchContactEmail: c.dispatchContactEmail ?? "",
-          salesContactName: c.salesContactName ?? "",
-          salesContactPhone: c.salesContactPhone ?? "",
-          salesContactEmail: c.salesContactEmail ?? "",
         }}
         profiles={profiles}
         submitLabel="Save changes"

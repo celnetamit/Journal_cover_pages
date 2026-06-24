@@ -8,16 +8,21 @@ export async function getJournalFormOptions(): Promise<{
   domains: Option[];
   publishers: Option[];
   profiles: Option[];
+  issuesPerYearOptions: number[];
 }> {
-  const [domains, publishers, profiles] = await Promise.all([
+  const [domains, publishers, profiles, tiers] = await Promise.all([
     prisma.domain.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.publisher.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.profile.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, email: true } }),
+    prisma.subscriptionTier.findMany({ orderBy: { issuesPerYear: "asc" }, select: { issuesPerYear: true } }),
   ]);
   return {
     domains: domains.map((d) => ({ id: d.id, label: d.name })),
     publishers: publishers.map((p) => ({ id: p.id, label: p.name })),
     profiles: profiles.map((p) => ({ id: p.id, label: p.email ? `${p.name} (${p.email})` : p.name })),
+    // Only the issues-per-year values that have a configured subscription tier,
+    // so a journal can't be set to a value with no matching pricing.
+    issuesPerYearOptions: tiers.map((t) => t.issuesPerYear),
   };
 }
 

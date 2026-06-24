@@ -20,19 +20,11 @@ export type BinderDraft = {
   issueNumber: string;
   issueMonthRange: string;
   issueYear: string;
-  about: string;
   focusScope: string[];
   focusNotes: string[];
   editorialBoard: EditorialMember[];
   managementHeads: ManagementPerson[];
   managementMembers: ManagementPerson[];
-  // Page 5 contact boxes — blank/undefined = fall back to the built-in defaults.
-  dispatchContactName?: string;
-  dispatchContactPhone?: string;
-  dispatchContactEmail?: string;
-  salesContactName?: string;
-  salesContactPhone?: string;
-  salesContactEmail?: string;
   directorTitle: string;
   directorName: string;
   directorRole: string;
@@ -52,6 +44,10 @@ export type BinderDraft = {
   // Page 3 (subscription/legal) full-text override — blank = use generated content.
   paymentOverride: string;
 };
+
+// Default manuscript-submission URL (encoded in the Manuscript page QR) used
+// when a journal leaves "Manuscript submission URL" blank.
+export const defaultManuscriptUrl = "https://manuscript-engine.journalslibrary.com/";
 
 // Default printed spine thickness (mm) and the common page-count presets. The
 // spine sits between the back and front cover panels on the cover spread.
@@ -459,29 +455,6 @@ export const lawJournalNames = [
   "Journal of Law of Torts and Consumer Protection Law",
   "Journal of Corporate Governance and International Business Law",
 ];
-
-export type Page5Contacts = {
-  dispatchContactName: string;
-  dispatchContactPhone: string;
-  dispatchContactEmail: string;
-  salesContactName: string;
-  salesContactPhone: string;
-  salesContactEmail: string;
-};
-
-// Built-in defaults for the two Page 5 contact boxes. Sales details differ for
-// law journals; everything is overridable per issue via the draft.
-export function defaultPage5Contacts(isLaw: boolean): Page5Contacts {
-  return {
-    dispatchContactName: "Mr. Asan Kumar",
-    dispatchContactPhone: "+91 120 4781225",
-    dispatchContactEmail: "asank@celnet.in",
-    salesContactName: "Subscription Manager",
-    salesContactPhone: `${isLaw ? "+91 120-4781211" : "+91 120-4781201"}, +91 9810078958`,
-    salesContactEmail: isLaw ? "subscriptions@stmjournals.com" : "subs@journalspub.com",
-  };
-}
-
 
 // Generic, journal-agnostic letter. Tokens ({journal}, {abbreviation},
 // {journal short name}, {year}, {volume}, {issue}, {domain}, {publisher}) are

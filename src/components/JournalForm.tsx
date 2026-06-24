@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import type { JournalActionState } from "@/app/actions/journals";
 import { ImageField } from "@/components/forms/Fields";
 import { RichTextField } from "@/components/RichTextField";
+import { defaultManuscriptUrl } from "@/lib/binder-content";
+import { frequencyFromIssues } from "@/lib/binder-format";
 
 export type JournalFormValues = {
   name: string;
@@ -18,7 +20,6 @@ export type JournalFormValues = {
   icv: string;
   doi: string;
   impactFactor: string;
-  about: string;
   manuscriptUrl: string;
   editorialBoardUrl: string;
   directorDeskTitle: string;
@@ -31,7 +32,6 @@ export type JournalFormValues = {
   language: string;
   coverFrontUrl: string;
   coverBackUrl: string;
-  logoUrl: string;
   domainId: string;
   publisherId: string;
   managerId: string;
@@ -39,8 +39,6 @@ export type JournalFormValues = {
 };
 
 type Option = { id: string; label: string };
-
-const FREQUENCIES = ["ANNUAL", "BIANNUAL", "TRIANNUAL", "QUARTERLY", "BIMONTHLY", "MONTHLY", "OTHER"];
 
 const input =
   "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200";
@@ -98,11 +96,14 @@ export default function JournalForm({
 }: {
   action: (prev: JournalActionState, formData: FormData) => Promise<JournalActionState>;
   values?: Partial<JournalFormValues>;
-  options: { domains: Option[]; publishers: Option[]; profiles: Option[] };
+  options: { domains: Option[]; publishers: Option[]; profiles: Option[]; issuesPerYearOptions: number[] };
   submitLabel: string;
 }) {
   const [state, formAction, pending] = useActionState<JournalActionState, FormData>(action, undefined);
   const v = values ?? {};
+  // Issues-per-year drives the auto-derived frequency shown below.
+  const [issues, setIssues] = useState(v.issuesPerYear ?? "");
+  const derivedFrequency = frequencyFromIssues(issues);
 
   return (
     <form action={formAction} className="space-y-8">
@@ -112,7 +113,7 @@ export default function JournalForm({
         <Text name="shortName" label="Short name" defaultValue={v.shortName} />
         <Text name="slug" label="Slug (blank = auto)" defaultValue={v.slug} />
         <Text name="website" label="Website" defaultValue={v.website} />
-        <Text name="manuscriptUrl" label="Manuscript submission URL (QR)" defaultValue={v.manuscriptUrl} />
+        <Text name="manuscriptUrl" label="Manuscript submission URL (QR)" defaultValue={v.manuscriptUrl || defaultManuscriptUrl} />
         <Text name="editorialBoardUrl" label="Editorial board URL (full list)" defaultValue={v.editorialBoardUrl} />
         <Text name="doi" label="DOI" defaultValue={v.doi} />
         <Text name="issnPrint" label="ISSN (print)" defaultValue={v.issnPrint} />
@@ -120,19 +121,31 @@ export default function JournalForm({
         <Text name="sjif" label="SJIF" defaultValue={v.sjif} />
         <Text name="icv" label="ICV" defaultValue={v.icv} />
         <Text name="impactFactor" label="Impact factor" defaultValue={v.impactFactor} />
-        <Text name="issuesPerYear" label="Issues per year" type="number" defaultValue={v.issuesPerYear} />
+        <label className="block">
+          <span className={labelClass}>Issues per year</span>
+          {options.issuesPerYearOptions.length ? (
+            <select name="issuesPerYear" value={issues} onChange={(e) => setIssues(e.target.value)} className={input}>
+              <option value="">— select —</option>
+              {options.issuesPerYearOptions.map((n) => <option key={n} value={n}>{n}</option>)}
+              {issues && !options.issuesPerYearOptions.map(String).includes(issues) ? (
+                <option value={issues}>{issues} (no matching tier)</option>
+              ) : null}
+            </select>
+          ) : (
+            <input name="issuesPerYear" type="number" value={issues} onChange={(e) => setIssues(e.target.value)} className={input} />
+          )}
+          <span className="mt-1 block text-xs text-slate-500">From the configured subscription tiers — picks the matching pricing on the Subscription page, and sets the frequency below.</span>
+        </label>
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <label className="block">
-          <span className={labelClass}>Frequency</span>
-          <select name="frequency" defaultValue={v.frequency ?? "OTHER"} className={input}>
-            {FREQUENCIES.map((f) => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-          </select>
+          <span className={labelClass}>Frequency (auto)</span>
+          <div className={`${input} bg-slate-50 text-slate-600`}>
+            {derivedFrequency.label || "Other"}
+          </div>
+          <span className="mt-1 block text-xs text-slate-500">Set automatically from Issues per year.</span>
         </label>
-        <Text name="frequencyLabel" label="Frequency label" defaultValue={v.frequencyLabel} />
         <Text name="language" label="Language" defaultValue={v.language} />
         <Text name="typeOfPublication" label="Type of publication" defaultValue={v.typeOfPublication} />
         <Text name="access" label="Access" defaultValue={v.access} />
@@ -147,11 +160,9 @@ export default function JournalForm({
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <ImageField name="coverFrontUrl" label="Front cover image" defaultValue={v.coverFrontUrl} hint="Portrait A4 background (≈1240×1754px), fills the panel center-cropped. The top ~28% (title/issue/ISSN band) and bottom ~13% (footer logos) render on top — keep the key artwork in the centre." />
         <ImageField name="coverBackUrl" label="Back cover image" defaultValue={v.coverBackUrl} hint="Full-page back cover artwork shown as-is (no overlay), portrait A4 ratio (≈1240×1754px or larger). JPG or PNG." />
-        <ImageField name="logoUrl" label="Journal logo" defaultValue={v.logoUrl} hint="Journal mark/logo, shown on the cover (bottom-right). PNG with a transparent background, ≥ 400px." />
       </section>
 
       <section className="space-y-4">
-        <Area name="about" label="About" defaultValue={v.about} rows={4} />
         <Area name="focusScope" label="Focus & scope" defaultValue={v.focusScope} rows={5} hint="One item per line" />
         <Area name="directorDeskTitle" label="Director's Desk heading" defaultValue={v.directorDeskTitle} rows={1} hint="Blank = use the Company/brand default" />
         <Area name="directorDeskParagraphs" label="Director's Desk letter" defaultValue={v.directorDeskParagraphs} rows={8} hint="One paragraph per line. Tokens: {journal} {abbreviation} {journal short name} {year} {volume} {issue} {domain} {publisher}. Blank = standard default letter." />

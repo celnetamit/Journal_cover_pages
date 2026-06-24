@@ -7,6 +7,21 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
+// Map issues-per-year → frequency enum + human label, so both are derived from
+// the journal's issue count instead of being entered separately.
+const FREQUENCY_BY_ISSUES: Record<number, { frequency: string; label: string }> = {
+  1: { frequency: "ANNUAL", label: "Annual" },
+  2: { frequency: "BIANNUAL", label: "Biannual" },
+  3: { frequency: "TRIANNUAL", label: "Triannual" },
+  4: { frequency: "QUARTERLY", label: "Quarterly" },
+  6: { frequency: "BIMONTHLY", label: "Bimonthly" },
+  12: { frequency: "MONTHLY", label: "Monthly" },
+};
+
+export function frequencyFromIssues(issuesPerYear: number | string | null | undefined): { frequency: string; label: string } {
+  return FREQUENCY_BY_ISSUES[Number(issuesPerYear)] ?? { frequency: "OTHER", label: "" };
+}
+
 // Month-range presets for the cover dropdown, derived by splitting the year
 // evenly across the journal's issues-per-year (e.g. 3 → Jan–Apr, May–Aug,
 // Sep–Dec; 2 → Jan–Jun, Jul–Dec). Returns [] when 12 isn't evenly divisible.

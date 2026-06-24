@@ -363,7 +363,6 @@ async function seedFocusScope() {
     await prisma.journal.update({
       where: { id: j.id },
       data: {
-        about: entry.about || undefined,
         focusScope: entry.focus.length ? entry.focus : undefined,
         keywords: entry.keywords.length ? entry.keywords : undefined,
       },

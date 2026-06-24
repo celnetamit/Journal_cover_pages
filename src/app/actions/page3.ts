@@ -50,12 +50,11 @@ export async function saveJournalCompany(companyId: string, _prev: Page3State, f
 // shared Journal record (the default for all issues + the dynamic data).
 export async function saveJournalFocus(journalId: string, _prev: Page3State, fd: FormData): Promise<Page3State> {
   await requireRole("EDITOR");
-  const about = str(fd.get("about"));
   const focusScope = str(fd.get("focusScope"))
     .split(/\r?\n/)
     .map((x) => x.trim())
     .filter(Boolean);
-  await prisma.journal.update({ where: { id: journalId }, data: { about: about || null, focusScope } });
+  await prisma.journal.update({ where: { id: journalId }, data: { focusScope } });
   revalidatePath("/");
   return { ok: true };
 }

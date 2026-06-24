@@ -175,12 +175,6 @@ function companyData(fd: FormData) {
     bankBranch: nul(str(fd.get("bankBranch"))),
     bankSwift: nul(str(fd.get("bankSwift"))),
     printedBy: nul(str(fd.get("printedBy"))),
-    dispatchContactName: nul(str(fd.get("dispatchContactName"))),
-    dispatchContactPhone: nul(str(fd.get("dispatchContactPhone"))),
-    dispatchContactEmail: nul(str(fd.get("dispatchContactEmail"))),
-    salesContactName: nul(str(fd.get("salesContactName"))),
-    salesContactPhone: nul(str(fd.get("salesContactPhone"))),
-    salesContactEmail: nul(str(fd.get("salesContactEmail"))),
   };
 }
 

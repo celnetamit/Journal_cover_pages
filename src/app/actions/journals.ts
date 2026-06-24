@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { dynamicKey } from "@/lib/lookup";
+import { frequencyFromIssues } from "@/lib/binder-format";
 
 export type JournalActionState = { error?: string } | undefined;
 
@@ -31,7 +32,6 @@ const JournalSchema = z.object({
   icv: z.string().trim().optional(),
   doi: z.string().trim().optional(),
   impactFactor: z.string().trim().optional(),
-  about: z.string().trim().optional(),
   manuscriptUrl: z.string().trim().optional(),
   editorialBoardUrl: z.string().trim().optional(),
   directorDeskTitle: z.string().optional(),
@@ -44,7 +44,6 @@ const JournalSchema = z.object({
   language: z.string().trim().optional(),
   coverFrontUrl: z.string().trim().optional(),
   coverBackUrl: z.string().trim().optional(),
-  logoUrl: z.string().trim().optional(),
   domainId: z.string().trim().optional(),
   publisherId: z.string().trim().optional(),
   managerId: z.string().trim().optional(),
@@ -74,7 +73,6 @@ function parse(formData: FormData) {
     icv: formData.get("icv") || undefined,
     doi: formData.get("doi") || undefined,
     impactFactor: formData.get("impactFactor") || undefined,
-    about: formData.get("about") || undefined,
     manuscriptUrl: formData.get("manuscriptUrl") || undefined,
     editorialBoardUrl: formData.get("editorialBoardUrl") || undefined,
     directorDeskTitle: formData.get("directorDeskTitle") || undefined,
@@ -87,7 +85,6 @@ function parse(formData: FormData) {
     language: formData.get("language") || undefined,
     coverFrontUrl: formData.get("coverFrontUrl") || undefined,
     coverBackUrl: formData.get("coverBackUrl") || undefined,
-    logoUrl: formData.get("logoUrl") || undefined,
     domainId: formData.get("domainId") || undefined,
     publisherId: formData.get("publisherId") || undefined,
     managerId: formData.get("managerId") || undefined,
@@ -96,6 +93,9 @@ function parse(formData: FormData) {
 }
 
 function scalarData(d: z.infer<typeof JournalSchema>) {
+  // Frequency + label are derived from issues-per-year (no manual entry). For an
+  // unmapped count it falls back to OTHER + any label supplied on the form.
+  const derived = frequencyFromIssues(d.issuesPerYear);
   return {
     name: d.name,
     abbreviation: d.abbreviation.toUpperCase(),
@@ -107,20 +107,18 @@ function scalarData(d: z.infer<typeof JournalSchema>) {
     icv: blankToNull(d.icv),
     doi: blankToNull(d.doi),
     impactFactor: blankToNull(d.impactFactor),
-    about: blankToNull(d.about),
     manuscriptUrl: blankToNull(d.manuscriptUrl),
     editorialBoardUrl: blankToNull(d.editorialBoardUrl),
     directorDeskTitle: blankToNull(d.directorDeskTitle),
     directorDeskParagraphs: lines(d.directorDeskParagraphs),
-    frequency: d.frequency,
-    frequencyLabel: blankToNull(d.frequencyLabel),
+    frequency: derived.frequency as z.infer<typeof JournalSchema>["frequency"],
+    frequencyLabel: derived.label || blankToNull(d.frequencyLabel),
     issuesPerYear: d.issuesPerYear ?? null,
     typeOfPublication: blankToNull(d.typeOfPublication),
     access: blankToNull(d.access),
     language: blankToNull(d.language),
     coverFrontUrl: blankToNull(d.coverFrontUrl),
     coverBackUrl: blankToNull(d.coverBackUrl),
-    logoUrl: blankToNull(d.logoUrl),
     focusScope: lines(d.focusScope),
   };
 }

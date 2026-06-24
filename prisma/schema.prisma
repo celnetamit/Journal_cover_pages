@@ -155,14 +155,6 @@ model Company {
 
   printedBy String? // print vendor shown on the title page ("Printed by")
 
-  // Page 5 contact boxes (shared across the company's journals).
-  dispatchContactName  String?
-  dispatchContactPhone String?
-  dispatchContactEmail String?
-  salesContactName     String?
-  salesContactPhone    String?
-  salesContactEmail    String?
-
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -291,9 +283,7 @@ model Journal {
 
   coverFrontUrl String?
   coverBackUrl  String?
-  logoUrl       String?
 
-  about            String?
   focusScope       String[]
   focusNotes       String[]
   objectives       String[]

@@ -121,7 +121,7 @@ export const getDynamicBinderData = cache(async (_journal?: Journal): Promise<Dy
       addAliases(data.detailsByKey, {
         name: j.name,
         abbreviation: j.abbreviation,
-        about: s(j.about),
+        about: s(j.publisher?.about),
         eIssn: s(j.issnOnline),
         pIssn: s(j.issnPrint),
         publisher: s(j.publisher?.name),
@@ -134,10 +134,10 @@ export const getDynamicBinderData = cache(async (_journal?: Journal): Promise<Dy
 
       addAliases(data.focusByKey, {
         abbreviation: j.abbreviation,
-        about: s(j.about),
+        about: s(j.publisher?.about),
         focusScope: j.focusScope,
         keywords: j.keywords,
-        binderText: s(j.about),
+        binderText: s(j.publisher?.about),
       }, aliases);
 
       const editorial: EditorialMember[] = j.members
