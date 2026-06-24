@@ -14,7 +14,7 @@ export const GUIDE_STEPS: GuideStep[] = [
     href: "/guide",
     num: 0,
     title: "Overview",
-    summary: "What the platform does and the big picture, with a 3-minute video tour.",
+    summary: "What the platform does and the big picture.",
   },
   {
     slug: "setup",

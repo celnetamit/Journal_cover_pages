@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PageHeader, H2, P, Callout, Figure, Steps, Step, UI, PrevNext } from "@/components/guide/parts";
+import { PageHeader, H2, P, Callout, Steps, Step, UI, PrevNext } from "@/components/guide/parts";
 
 export const metadata = { title: "Guide · Build an issue" };
 
@@ -7,7 +7,7 @@ const SECTIONS: [string, string, string][] = [
   [
     "1. Cover Spread",
     "The front and back cover.",
-    "Set the title, volume, issue, month range and year, and upload front/back cover artwork plus the bottom-left (publisher) and bottom-right (journal) logos. Watch the live canvas update as you type.",
+    "Set the title, volume, issue, month range (a dropdown driven by the journal's Issues-per-year) and year, the printed spine width, and upload the front/back cover artwork. The bottom-left logo is the Publisher's and the bottom-right is the Domain's. Watch the live canvas update as you type.",
   ],
   [
     "2. Title Page",
@@ -17,32 +17,32 @@ const SECTIONS: [string, string, string][] = [
   [
     "3. About",
     "Description & focus.",
-    "Focus & scope is per-journal (edit here, then Save About & Focus to journal). About, Objectives, Salient features and the closing paragraphs come from the journal's Publisher record.",
+    "Focus & scope is per-journal (edit here, then Save Focus to journal). About, Objectives and Salient features come from the journal's Publisher record; the closing paragraphs are generated automatically.",
   ],
   [
     "4. Subscription",
     "Prices, bank & legal.",
-    "Subscription prices auto-render from the frequency tier matching the journal's Issues-per-year (set in Setup → Subscription pricing). Bank & legal come from the company. Use Load Current Text for an editable override.",
+    "Subscription prices auto-render from the frequency tier matching the journal's Issues-per-year (set in Setup → Subscription pricing). The 'For Author's Copy' charges are fixed. Bank & legal come from the company. Use Load Current Text for an editable override.",
   ],
   [
     "5. Management",
     "Heads, officers, contacts.",
-    "Add management heads and officers (with photos), and fill the dispatch and sales contact boxes. You can fill a person from a saved profile.",
+    "Add management heads and officers (with photos). The three contact boxes below are filled automatically from the journal's Manager and the publisher's Subscription & Dispatch managers — set those on the Journal and Publisher records.",
   ],
   [
     "6. Manuscript",
     "Submission notice & QR.",
-    "The manuscript submission notification, with a per-journal QR code. The {email} token is filled in with the publisher email automatically.",
+    "Content (heading, steps, logo) comes from the shared Manuscript Engine; the QR encodes the journal's Manuscript URL. The closing notice is fixed text with the publisher email filled in.",
   ],
   [
     "7. Editorial",
     "The editorial board.",
-    "Add board rows and choose each person's role — Editor in Chief, Associate Editor-in-Chief or Editor. The page groups and orders them for you. Insert Sample Board gives you a starting point.",
+    "Add board rows and choose each person's role — Editor in Chief, Associate Editor-in-Chief or Editor. The page groups and orders them, shows up to 12, and links the journal's Editorial board URL for the rest.",
   ],
   [
     "8. Director",
     "The Director's Desk.",
-    "The director's name, role label, photo and signature. The letter text itself is managed in the journal's Setup and supports tokens like {journal} and {volume}.",
+    "Company logo + Publisher seal at the top, then the letter, then the director's name/role and signature. The director's identity comes from the Company's director profile; the letter text is managed in the journal's Setup and supports tokens like {journal} and {volume}.",
   ],
   [
     "9. Contents",
@@ -65,7 +65,6 @@ export default function GuideBuildPage() {
         The home screen is the editor. On the left you choose what you&apos;re working on; the centre is a{" "}
         <UI>Realtime Live Canvas</UI> that mirrors the active page; the right panel holds the form fields for that page.
       </P>
-      <Figure src="/training/img/cover-editor.png" alt="The issue editor with sidebar, live canvas and form panel" caption="The editor: journal & issue picker (left), live canvas (centre), section form (right)." />
 
       <H2>Pick the journal and issue</H2>
       <Steps>
@@ -100,16 +99,12 @@ export default function GuideBuildPage() {
         ))}
       </div>
 
-      <Figure src="/training/img/section-editorial.png" alt="The Editorial section editor" caption="Editorial — add board rows and set each role; the page orders them automatically." />
-
       <Callout type="note" title="Synced from record vs. customised for this issue">
         Each page starts <strong>synced</strong> from the journal record, so it&apos;s correct by default. Edit it and that
         page becomes <strong>customised for this issue</strong> — your change applies only here. Use{" "}
         <UI>Sync this page from record</UI> to revert one page, or <UI>Sync all pages from record</UI> to reset
         everything to the journal&apos;s defaults.
       </Callout>
-
-      <Figure src="/training/img/section-contents.png" alt="The Contents section editor" caption="Contents — add an article row per paper with title, authors and page." />
 
       <Callout type="tip" title="Save as you go">
         Save each page after you finish it. The save state in the sidebar always tells you whether there&apos;s anything

@@ -25,17 +25,6 @@ export default function GuideOverviewPage() {
         lead="This guide walks you through the whole platform, from first sign-in to a print-ready binder. Follow the steps in order the first time; afterwards use the sidebar to jump to any part."
       />
 
-      <H2>Watch the 3-minute tour</H2>
-      <P>The fastest way to get oriented is the narrated walkthrough. It covers the same ground as this guide.</P>
-      <video
-        controls
-        preload="metadata"
-        className="w-full rounded-xl border border-slate-200 shadow-sm"
-        src="/training/journal-builder-training.mp4"
-      >
-        Your browser does not support embedded video.
-      </video>
-
       <H2>What this platform does</H2>
       <P>
         Journal Builder creates the <strong>initial pages of a journal issue</strong> — the cover spread, title page,

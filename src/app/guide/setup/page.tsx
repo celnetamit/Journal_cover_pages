@@ -4,11 +4,11 @@ import { PageHeader, H2, P, Callout, Figure, Steps, Step, UI, PrevNext } from "@
 export const metadata = { title: "Guide · Set up shared data" };
 
 const ENTITIES = [
-  ["Companies", "The legal entity behind a publisher — registered & sales address, bank details, CIN, printed-by line, and open-access charges. Feeds the Title Page and Subscription page.", "/admin/companies"],
-  ["Publishers", "A publisher belongs to a company. Holds the publisher name, logo, about paragraph, email and phone. Feeds the cover logos and the About/Subscription pages.", "/admin/publishers"],
-  ["Profiles", "People — editors, directors, board and team members, with photos and signatures. Reused across Management, Editorial and the Director's Desk.", "/admin/profiles"],
-  ["Domains", "Subject areas (e.g. Management, Law) and the manager assigned to them.", "/admin/domains"],
-  ["Subscription pricing", "Frequency-based price tiers (by issues per year). A journal's Issues-per-year picks its tier on the Subscription page.", "/admin/subscription-pricing"],
+  ["Companies", "The legal entity behind a publisher — registered & sales address, bank details, CIN and the printed-by line. Feeds the Title Page and Subscription page.", "/admin/companies"],
+  ["Publishers", "A publisher belongs to a company. Holds the name, logo, seal, About/Objectives/Salient-features, email and phone, plus the Subscription & Dispatch managers and an option to list its journals on the Management page. Feeds the cover logos, the About & Subscription pages, the Director's seal and the Management contact boxes.", "/admin/publishers"],
+  ["Profiles", "People — editors, directors, board and team members, with photo, phone and signature. Reused across Management, Editorial, the contact boxes and the Director's Desk.", "/admin/profiles"],
+  ["Domains", "Subject areas (e.g. Management, Law), each with a logo (shown bottom-right on the cover) and an assigned manager.", "/admin/domains"],
+  ["Subscription pricing", "Frequency-based price tiers (by issues per year). The tiers populate the journal's Issues-per-year dropdown and the Subscription-page prices.", "/admin/subscription-pricing"],
   ["Manuscript engine", "The shared Manuscript-page content and logo, edited once and used by every journal.", "/admin/manuscript-engine"],
 ];
 
@@ -29,17 +29,6 @@ export default function GuideSetupPage() {
         ). Each card is one type of record, with a count of how many you already have.
       </P>
 
-      <H2>Watch the Setup walkthrough</H2>
-      <P>This 3-minute video walks through every record type in the Setup area, in order.</P>
-      <video
-        controls
-        preload="metadata"
-        className="w-full rounded-xl border border-slate-200 shadow-sm"
-        src="/training/journal-setup-training.mp4"
-      >
-        Your browser does not support embedded video.
-      </video>
-
       <Figure src="/training/img/setup-hub.png" alt="The Setup hub with cards for each data type" caption="Setup hub — one card per type of shared record." />
 
       <H2>Recommended order</H2>
@@ -53,19 +42,22 @@ export default function GuideSetupPage() {
           CIN and the &ldquo;printed by&rdquo; line.
         </Step>
         <Step n={2} title="Publishers">
-          Create the publisher and link it to its company. Upload the publisher logo and write the short &ldquo;about&rdquo;
-          paragraph, email and phone.
+          Create the publisher and link it to its company. Upload the publisher logo and the seal (shown by the
+          Director&apos;s signature), write the About / Objectives / Salient-features, email and phone, and pick the
+          Subscription &amp; Dispatch managers (searchable, from Profiles) shown in the Management contact boxes.
         </Step>
         <Step n={3} title="Profiles">
-          Add the people you&apos;ll reuse: editors-in-chief, directors, board members and team. Upload photos, and a
-          signature image for anyone who signs the Director&apos;s Desk letter.
+          Add the people you&apos;ll reuse: editors-in-chief, directors, board members, team and the subscription/dispatch
+          managers. Add photo and phone, and a signature image for anyone who signs the Director&apos;s Desk letter.
         </Step>
         <Step n={4} title="Domains & Subscription pricing">
-          Add your subject domains, then the frequency-based subscription price tiers (by issues per year). Each
-          journal&apos;s Issues-per-year auto-selects its tier on the Subscription page.
+          Add your subject domains (with a logo — it prints bottom-right on the cover), then the frequency-based
+          subscription price tiers (by issues per year). The tiers define which Issues-per-year values a journal can pick,
+          and drive the Subscription-page prices.
         </Step>
         <Step n={5} title="Manuscript engine">
-          Set the shared Manuscript-page content and logo once — every journal picks it up. (About-page text — about, objectives, salient features and closing paragraphs — lives on each Publisher record.)
+          Set the shared Manuscript-page content and logo once — every journal picks it up. (About-page text — about,
+          objectives and salient features — lives on each Publisher record.)
         </Step>
       </Steps>
 

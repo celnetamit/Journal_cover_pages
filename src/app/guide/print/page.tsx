@@ -71,11 +71,11 @@ export default function GuidePrintPage() {
         <p className="font-semibold text-slate-900">That&apos;s the full flow 🎉</p>
         <p className="mt-1 text-sm text-slate-600">
           Set up shared data once, create a journal, build each issue across the nine sections, then preview and export the
-          binder. Revisit any step from the sidebar, or watch the{" "}
+          binder. Revisit any step from the sidebar, or return to the{" "}
           <Link href="/guide" className="font-medium underline">
-            video tour
+            overview
           </Link>{" "}
-          again any time.
+          any time.
         </p>
       </div>
 
