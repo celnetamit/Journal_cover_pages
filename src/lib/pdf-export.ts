@@ -16,12 +16,14 @@ const MARK = 4; // crop mark length
 const SLUG = BLEED + GAP + MARK; // 9mm white border around the trim, holds the marks
 
 // Trim (finished) size and the on-screen render size of each page, in mm.
-// Internal pages render at their trim size (A4). The cover spread is an A3
-// landscape (420×297) full-bleed wrap — two ~210mm cover pages plus a 4mm spine
-// — rendered at trim size, so the artwork bleeds edge-to-edge.
+// Internal pages render at their trim size (A4). The cover spread is drawn on an
+// A3 landscape canvas (420×297) but the finished cover is smaller: 379×263 —
+// back 185 + spine 4 + front 190 wide, 263 tall — centred inside the A3, so the
+// surrounding ~20mm (sides) / ~17mm (top/bottom) of A3 acts as bleed. Crop marks
+// mark the 379×263 trim, not the A3 edge.
 function geometry(mode: ExportMode) {
   if (mode === "cover") {
-    return { trimW: 420, trimH: 297, renderW: 420, renderH: 297 };
+    return { trimW: 379, trimH: 263, renderW: 420, renderH: 297 };
   }
   return { trimW: 210, trimH: 297, renderW: 210, renderH: 297 };
 }
@@ -87,6 +89,17 @@ export async function exportBookToPdf(mode: ExportMode, filename: string) {
     const imgData = isCover ? canvas.toDataURL("image/jpeg", 0.94) : canvas.toDataURL("image/png");
     if (index > 0) pdf.addPage(format, orientation);
     pdf.addImage(imgData, isCover ? "JPEG" : "PNG", placedX, placedY, placedW, placedH, undefined, "FAST");
+    if (isCover) {
+      // The full-bleed A3 artwork covers the whole media box. White out the slug
+      // frame (everything beyond trim + BLEED) so the crop marks land on white
+      // rather than on the bleed artwork, while keeping a 3mm bleed past the trim.
+      const inset = SLUG - BLEED; // 6mm white border that holds the marks
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(0, 0, mediaW, inset, "F"); // top
+      pdf.rect(0, mediaH - inset, mediaW, inset, "F"); // bottom
+      pdf.rect(0, 0, inset, mediaH, "F"); // left
+      pdf.rect(mediaW - inset, 0, inset, mediaH, "F"); // right
+    }
     drawCropMarks(pdf, SLUG, SLUG, trimW, trimH);
   }
 
