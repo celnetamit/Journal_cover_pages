@@ -165,7 +165,7 @@ export default function JournalForm({
       <section className="space-y-4">
         <Area name="focusScope" label="Focus & scope" defaultValue={v.focusScope} rows={5} hint="One item per line" />
         <Area name="directorDeskTitle" label="Director's Desk heading" defaultValue={v.directorDeskTitle} rows={1} hint="Blank = use the Company/brand default" />
-        <Area name="directorDeskParagraphs" label="Director's Desk letter" defaultValue={v.directorDeskParagraphs} rows={8} hint="One paragraph per line. Tokens: {journal} {abbreviation} {journal short name} {year} {volume} {issue} {domain} {publisher}. Blank = standard default letter." />
+        <Area name="directorDeskParagraphs" label="Director's Desk letter" defaultValue={v.directorDeskParagraphs} rows={8} hint="One paragraph per line. Tokens: {journal} {abbreviation} {journal short name} {year} {volume} {issue} {domain} {disciplines} {publisher}. Blank = standard default letter." />
       </section>
 
       {state?.error && (

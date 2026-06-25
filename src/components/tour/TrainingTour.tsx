@@ -28,6 +28,7 @@ export default function TrainingTour() {
   const [msg, setMsg] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const elRef = useRef<HTMLElement | null>(null);
+  const prevPathRef = useRef(pathname);
 
   const step = TRAINING_TOUR[idx];
 
@@ -110,6 +111,46 @@ export default function TrainingTour() {
     };
   }, [active]);
 
+  // Auto-advance via a click on the spotlighted target (or an app-dispatched
+  // event). Purely additive — the manual "Next" button still works.
+  useEffect(() => {
+    if (!active || !step?.advanceOn) return;
+    const adv = step.advanceOn;
+    const advance = () => go(idx + 1);
+
+    if (adv.type === "click") {
+      const onClick = (e: MouseEvent) => {
+        const root = adv.selector
+          ? document.querySelector<HTMLElement>(`[data-tour="${adv.selector}"]`)
+          : elRef.current;
+        const target = e.target as Node | null;
+        // Let the element's own handler run first, then advance.
+        if (root && target && root.contains(target)) setTimeout(advance, 0);
+      };
+      document.addEventListener("click", onClick, true);
+      return () => document.removeEventListener("click", onClick, true);
+    }
+    if (adv.type === "event") {
+      const name = adv.name;
+      window.addEventListener(name, advance);
+      return () => window.removeEventListener(name, advance);
+    }
+  }, [active, step, idx, go]);
+
+  // Auto-advance on navigation: arriving at (route) or leaving (leaveRoute) a
+  // page — e.g. a journal is created and the form navigates away.
+  useEffect(() => {
+    const prev = prevPathRef.current;
+    prevPathRef.current = pathname;
+    if (!active || !step?.advanceOn) return;
+    const adv = step.advanceOn;
+    if (adv.type === "route" && pathname === adv.route && prev !== adv.route) {
+      go(idx + 1);
+    } else if (adv.type === "leaveRoute" && prev === adv.route && pathname !== adv.route) {
+      go(idx + 1);
+    }
+  }, [active, step, idx, pathname, go]);
+
   if (!active || !step) return null;
 
   const isLast = idx === TRAINING_TOUR.length - 1;
@@ -178,6 +219,13 @@ export default function TrainingTour() {
         <p style={{ margin: "0 0 12px", color: "#334155" }}>{step.body}</p>
 
         {msg ? <p style={{ margin: "0 0 10px", fontSize: 12, color: BRAND }}>{msg}</p> : null}
+
+        {step.hint && !needNav ? (
+          <p style={{ margin: "0 0 12px", display: "flex", gap: 6, alignItems: "flex-start", fontSize: 12, color: "#475569", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 10px" }}>
+            <span aria-hidden style={{ color: BRAND }}>↳</span>
+            <span><span style={{ fontWeight: 700, color: BRAND }}>Try it: </span>{step.hint}</span>
+          </p>
+        ) : null}
 
         {step.action === "seed" ? (
           <button onClick={runSeed} disabled={pending} style={primaryBtn}>

@@ -457,13 +457,13 @@ export const lawJournalNames = [
 ];
 
 // Generic, journal-agnostic letter. Tokens ({journal}, {abbreviation},
-// {journal short name}, {year}, {volume}, {issue}, {domain}, {publisher}) are
-// filled at render time, so the default reads correctly for any journal; it can
-// be overridden per-journal in Setup.
+// {journal short name}, {year}, {volume}, {issue}, {domain}, {disciplines},
+// {publisher}) are filled at render time, so the default reads correctly for any
+// journal; it can be overridden per-journal in Setup.
 export const defaultDirectorParagraphs = [
   "It is my privilege to present the print version of {journal} ({abbreviation}), {year} (Volume {volume}, Issue {issue}). The objective of {abbreviation} is to foster an environment that promotes innovation, research, and growth in the field of {journal short name}.",
   "Timely publication, transparent communication, comprehensive editing, and strong relationships with authors and readers have been the hallmarks of our journals. {journal} provides a platform for publishing scholarly research articles that meet international standards. We strive to publish high-quality papers in a timely manner, establishing ourselves as a trusted leader in scholarly publishing and academic services.",
-  "The aim and scope of {journal} are to provide an academic platform and a valuable reference source for the advancement and dissemination of research findings that support excellence in learning, teaching, and research across scientific, technical, and medical disciplines.",
+  "The aim and scope of {publisher} are to provide an academic platform and a valuable reference source for the advancement and dissemination of research findings that support excellence in learning, teaching, and research across {disciplines}.",
   "I would like to express my sincere gratitude to our Editorial Board, Review Board, authors, and Publication Team for their continued support, invaluable contributions, and constructive suggestions. Their efforts in authoring manuscripts, reviewing submissions, and providing insightful feedback have significantly contributed to the advancement of our journals. Owing to their unwavering support and cooperation, we have been able to publish high-quality research and review articles for our readership.",
   "I hope you will enjoy reading this issue, and we welcome your feedback on any aspect of the Journal.",
 ];

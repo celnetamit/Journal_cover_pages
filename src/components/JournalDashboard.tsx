@@ -1241,7 +1241,7 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
       <div className="management-band">Internal Members</div>
       {draft.managementMembers.length ? (
         <div className="management-photo-grid">
-          {draft.managementMembers.map((member, index) => (
+          {draft.managementMembers.slice(0, 16).map((member, index) => (
             <ManagementProfile key={index} person={member} />
           ))}
         </div>
@@ -1323,9 +1323,11 @@ function ManagementProfile({ person, featured = false }: { person: ManagementPer
       ) : (
         <span className="management-initials">{initials(inlineToPlainText(person.name) || "Member")}</span>
       )}
-      <RichText as="b" value={person.name || "Team Member"} />
-      <RichText as="span" value={person.role} />
-      {person.department ? <RichText as="small" value={`(${person.department})`} /> : null}
+      <div className="management-profile-details">
+        <RichText as="b" value={person.name || "Team Member"} />
+        <RichText as="span" value={person.role} />
+        {person.department ? <RichText as="small" value={`(${person.department})`} /> : null}
+      </div>
     </article>
   );
 }
@@ -1462,6 +1464,7 @@ function applyBinderTokens(text: string, journal: Journal, draft: BinderDraft, e
     .replaceAll("{issue}", draft.issueNumber || defaultIssueNumber)
     .replaceAll("{year}", draft.issueYear || defaultIssueYear)
     .replaceAll("{domain}", journal.domain || "")
+    .replaceAll("{disciplines}", journal.publisherDisciplines?.trim() || "scientific, technical, and medical disciplines")
     .replaceAll("{publisher}", publisherIdentity(journal).publisherName)
     .replaceAll("{email}", email || publisherIdentity(journal).email);
 }

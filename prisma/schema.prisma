@@ -170,6 +170,7 @@ model Publisher {
   logoUrl   String?
   sealUrl   String? // publisher seal/stamp image (shown near the Director's signature)
   about     String? // imprint blurb shown at the top of the journal-details page (About)
+  disciplines String? // fills the {disciplines} token in the Director's Desk letter (e.g. "scientific, technical, and medical disciplines")
   salientFeatures String[] // About-page salient features; publisher-wide (shared by all its journals)
   objectives      String[] // About-page objectives; publisher-wide
   email     String? // publisher contact email (used in the Legal Disputes line)

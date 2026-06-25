@@ -2,7 +2,7 @@
 
 import { EntityForm, Text, Area, ImageField, Select, SearchableSelect, Checkbox, type FormState, type Option } from "@/components/forms/Fields";
 
-type Values = { name: string; logoUrl: string; sealUrl: string; companyId: string; about: string; salientFeatures: string; objectives: string; email: string; phone: string; website: string; subscriptionManagerId: string; dispatchManagerId: string; showJournalsOnManagement: boolean };
+type Values = { name: string; logoUrl: string; sealUrl: string; companyId: string; about: string; disciplines: string; salientFeatures: string; objectives: string; email: string; phone: string; website: string; subscriptionManagerId: string; dispatchManagerId: string; showJournalsOnManagement: boolean };
 
 export default function PublisherForm({ action, values, companies, profiles, submitLabel }: {
   action: (prev: FormState, fd: FormData) => Promise<FormState>;
@@ -59,6 +59,13 @@ export default function PublisherForm({ action, values, companies, profiles, sub
         label="About (About-page top paragraph)"
         defaultValue={values?.about}
         rows={4}
+      />
+      <Area
+        name="disciplines"
+        label="Disciplines ({disciplines} token)"
+        defaultValue={values?.disciplines}
+        rows={2}
+        hint={`Fills the {disciplines} token in the Director's Desk letter. Blank defaults to "scientific, technical, and medical disciplines".`}
       />
       <Area
         name="salientFeatures"

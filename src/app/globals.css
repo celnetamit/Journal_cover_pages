@@ -2699,16 +2699,42 @@ button {
 .management-photo-grid {
   display: flex;
   flex-wrap: wrap;
-  column-gap: 8mm;
-  row-gap: calc(5mm * var(--page-scale));
+  column-gap: 4mm;
+  row-gap: calc(4mm * var(--page-scale));
   justify-content: center;
   margin: 0 auto calc(8mm * var(--page-scale));
-  /* 4 columns max: 4×30mm + 3×8mm = 144mm (a 5th would overflow → wraps). */
-  max-width: 144mm;
+  /* 4 columns max: 4×40mm + 3×4mm = 172mm (a 5th would overflow → wraps). */
+  max-width: 172mm;
 }
 
+/* Internal members: details on the left, photo on the right (row-reverse keeps
+   the photo-first DOM order while pinning it to the right edge). Capped at 16. */
 .management-photo-grid .management-profile {
-  width: 30mm;
+  align-items: center;
+  flex-direction: row-reverse;
+  gap: calc(2mm * var(--page-scale));
+  min-height: 0;
+  text-align: left;
+  width: 40mm;
+}
+
+.management-photo-grid .management-profile-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.management-photo-grid .management-profile img,
+.management-photo-grid .management-initials {
+  flex: none;
+  height: calc(13mm * var(--page-scale));
+  margin-bottom: 0;
+  width: calc(13mm * var(--page-scale));
+}
+
+.management-photo-grid .management-profile b,
+.management-photo-grid .management-profile span,
+.management-photo-grid .management-profile small {
+  font-size: calc(7.5pt * var(--page-scale));
 }
 
 .law-journal-roster {
