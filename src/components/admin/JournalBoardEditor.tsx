@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { addJournalMember, removeJournalMember } from "@/app/actions/entities";
-import type { Option } from "@/components/forms/Fields";
+import { SearchableSelect, type Option } from "@/components/forms/Fields";
 
 // Grouped by the binder page the role feeds, so it's clear what each choice maps
 // to. Editorial-page roles split into the page's Editor-in-Chief / Associate /
@@ -89,15 +89,14 @@ export default function JournalBoardEditor({
 
       <form action={addJournalMember} className="mt-4 flex flex-wrap items-end gap-3">
         <input type="hidden" name="journalId" value={journalId} />
-        <label className="flex-1">
-          <span className="block text-xs text-slate-500">Person</span>
-          <select name="profileId" required className={`${control} mt-1 w-full`}>
-            <option value="">Select a profile…</option>
-            {profiles.map((p) => (
-              <option key={p.id} value={p.id}>{p.label}</option>
-            ))}
-          </select>
-        </label>
+        <div className="flex-1">
+          <SearchableSelect
+            name="profileId"
+            label="Person"
+            options={profiles}
+            placeholder="Search a profile by name…"
+          />
+        </div>
         <label>
           <span className="block text-xs text-slate-500">Role</span>
           <select name="role" defaultValue="EDITORIAL_BOARD" className={`${control} mt-1`}>
