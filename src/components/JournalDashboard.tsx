@@ -1470,19 +1470,21 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
 function applyBinderTokens(text: string, journal: Journal, draft: BinderDraft, email?: string): string {
   const abbreviation = draft.journalAbbreviation || journal.abbreviation || journal.shortName;
   const shortName = journal.shortName || journal.abbreviation || titleCaseName(journal.name);
+  // Dynamic (per-journal/issue) token values render italic in the Director letter.
+  const em = (value: string) => (value ? `<em>${value}</em>` : value);
   return text
     // "{journal short name}" first — it is not a substring conflict with "{journal}",
     // but replacing the longer token first keeps intent clear.
-    .replaceAll("{journal short name}", shortName)
-    .replaceAll("{journal}", titleCaseName(journal.name))
-    .replaceAll("{abbreviation}", abbreviation)
-    .replaceAll("{volume}", draft.issueVolume || defaultIssueVolume)
-    .replaceAll("{issue}", draft.issueNumber || defaultIssueNumber)
-    .replaceAll("{year}", draft.issueYear || defaultIssueYear)
-    .replaceAll("{domain}", journal.domain || "")
-    .replaceAll("{disciplines}", journal.publisherDisciplines?.trim() || "scientific, technical, and medical disciplines")
-    .replaceAll("{publisher}", publisherIdentity(journal).publisherName)
-    .replaceAll("{email}", email || publisherIdentity(journal).email);
+    .replaceAll("{journal short name}", em(shortName))
+    .replaceAll("{journal}", em(titleCaseName(journal.name)))
+    .replaceAll("{abbreviation}", em(abbreviation))
+    .replaceAll("{volume}", em(draft.issueVolume || defaultIssueVolume))
+    .replaceAll("{issue}", em(draft.issueNumber || defaultIssueNumber))
+    .replaceAll("{year}", em(draft.issueYear || defaultIssueYear))
+    .replaceAll("{domain}", em(journal.domain || ""))
+    .replaceAll("{disciplines}", em(journal.publisherDisciplines?.trim() || "scientific, technical, and medical disciplines"))
+    .replaceAll("{publisher}", em(publisherIdentity(journal).publisherName))
+    .replaceAll("{email}", em(email || publisherIdentity(journal).email));
 }
 
 function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {

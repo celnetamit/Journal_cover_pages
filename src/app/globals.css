@@ -3550,17 +3550,19 @@ button {
 .signature span {
   display: block;
   font-size: calc(8.6pt * var(--page-scale));
+  font-style: italic;
   font-weight: 700;
   margin-bottom: calc(0.4mm * var(--page-scale));
 }
 
 .signature b {
   display: block;
+  font-style: italic;
 }
 
 .signature i {
   display: block;
-  font-style: normal;
+  font-style: italic;
 }
 
 .editorial-page {
