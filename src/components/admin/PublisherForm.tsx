@@ -2,7 +2,7 @@
 
 import { EntityForm, Text, Area, ImageField, Select, SearchableSelect, Checkbox, type FormState, type Option } from "@/components/forms/Fields";
 
-type Values = { name: string; logoUrl: string; sealUrl: string; companyId: string; about: string; disciplines: string; salientFeatures: string; objectives: string; email: string; phone: string; website: string; subscriptionManagerId: string; dispatchManagerId: string; showJournalsOnManagement: boolean };
+type Values = { name: string; logoUrl: string; sealUrl: string; companyId: string; about: string; disciplines: string; salientFeatures: string; objectives: string; email: string; phone: string; mobile: string; website: string; subscriptionManagerId: string; dispatchManagerId: string; showJournalsOnManagement: boolean };
 
 export default function PublisherForm({ action, values, companies, profiles, submitLabel }: {
   action: (prev: FormState, fd: FormData) => Promise<FormState>;
@@ -18,6 +18,7 @@ export default function PublisherForm({ action, values, companies, profiles, sub
         <Text name="email" label="Contact email (Legal Disputes line)" type="email" defaultValue={values?.email} />
         <Text name="phone" label="Contact phone (Legal Disputes line)" defaultValue={values?.phone} />
       </div>
+      <Text name="mobile" label="Mobile number (title-page footer)" defaultValue={values?.mobile} />
       <Text name="website" label="Website (title page)" defaultValue={values?.website} />
       <ImageField
         name="logoUrl"

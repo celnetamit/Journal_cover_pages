@@ -175,6 +175,7 @@ model Publisher {
   objectives      String[] // About-page objectives; publisher-wide
   email     String? // publisher contact email (used in the Legal Disputes line)
   phone     String? // publisher contact phone (used in the Legal Disputes line)
+  mobile    String? // publisher mobile number (shown on the title-page footer)
   website   String? // publisher website (shown on the title page)
   // When true, the management page lists this publisher's journals (two columns).
   showJournalsOnManagement Boolean @default(false)

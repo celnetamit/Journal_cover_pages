@@ -1638,6 +1638,71 @@ button {
   white-space: nowrap;
 }
 
+/* On-screen cut-line + crop-mark guide (preview only; excluded from PDF/print).
+   Mirrors the export: trim = 379×263mm centred in the 420×297mm A3 spread, so the
+   margin is (420-379)/2 = 20.5mm sides, (297-263)/2 = 17mm top/bottom. */
+.cover-trim-guides {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.cover-trim-frame {
+  position: absolute;
+  top: 17mm;
+  bottom: 17mm;
+  left: 20.5mm;
+  right: 20.5mm;
+  border: 0.3mm dashed rgba(20, 40, 90, 0.6);
+  /* Light tint over the bleed area (outside the cut), clipped by the page. */
+  box-shadow: 0 0 0 200mm rgba(190, 30, 30, 0.05);
+}
+
+.cover-trim-label {
+  position: absolute;
+  top: -5mm;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.85);
+  color: #14285a;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 2.6mm;
+  font-weight: 700;
+  padding: 0 1mm;
+  white-space: nowrap;
+}
+
+/* Corner crop ticks, drawn OUTSIDE the trim like the PDF (start 5mm out, 4mm long). */
+.crop-tick {
+  position: absolute;
+  height: 0;
+  width: 0;
+}
+
+.crop-tick::before,
+.crop-tick::after {
+  background: rgba(20, 40, 90, 0.75);
+  content: "";
+  position: absolute;
+}
+
+.crop-tick::before { height: 0.3mm; width: 4mm; }
+.crop-tick::after { height: 4mm; width: 0.3mm; }
+
+.crop-tick.tl { left: 0; top: 0; }
+.crop-tick.tl::before { left: -9mm; top: 0; }
+.crop-tick.tl::after { left: 0; top: -9mm; }
+.crop-tick.tr { right: 0; top: 0; }
+.crop-tick.tr::before { right: -9mm; top: 0; }
+.crop-tick.tr::after { right: 0; top: -9mm; }
+.crop-tick.bl { bottom: 0; left: 0; }
+.crop-tick.bl::before { bottom: 0; left: -9mm; }
+.crop-tick.bl::after { bottom: -9mm; left: 0; }
+.crop-tick.br { bottom: 0; right: 0; }
+.crop-tick.br::before { bottom: 0; right: -9mm; }
+.crop-tick.br::after { bottom: -9mm; right: 0; }
+
 .cover-spread-page .digital-library-cover,
 .cover-spread-page .journal-front-cover {
   height: 297mm;
@@ -2837,7 +2902,8 @@ button {
   border: 1px solid #cbd8e4;
   display: grid;
   gap: calc(8mm * var(--page-scale));
-  grid-template-columns: 55mm 1fr;
+  /* Single column: steps list on top, QR code below it. */
+  grid-template-columns: 1fr;
   margin: calc(8mm * var(--page-scale)) 0;
   padding: calc(6mm * var(--page-scale));
 }
@@ -2983,11 +3049,8 @@ button {
 }
 
 .page-rule {
-  border-top: 1px solid #111;
-  left: 18mm;
-  position: absolute;
-  right: 18mm;
-  top: 15mm;
+  /* Top horizontal rule removed from all pages per request. */
+  display: none;
 }
 
 .cover-page {
@@ -3059,24 +3122,41 @@ button {
   right: 18mm;
 }
 
-.cover-footer b {
+/* Direct child only: the publisher-name line. Inline <b> labels inside the
+   address spans inherit the small span size instead. */
+.cover-footer > b {
   color: #222;
   font-size: 17pt;
-  letter-spacing: 1px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
   line-height: 1.05;
 }
 
-.cover-footer strong {
+.cover-footer > strong {
   color: #222;
-  font-size: 13pt;
-  font-weight: 500;
+  font-size: 14pt;
+  font-weight: 600;
   line-height: 1.1;
+  padding: 4px;
 }
 
 .cover-footer span {
   color: #444;
   font-size: 8.8pt;
   line-height: 1.15;
+}
+
+/* Inline bold labels (Sales Office: / Regd. Office:) within the address spans —
+   same size as the address text, just a touch heavier. */
+.cover-footer span b {
+  font-size: 8.8pt;
+  font-weight: 600;
+  letter-spacing: normal;
+}
+
+/* Blank line before the Website / CIN line. */
+.cover-footer-web {
+  margin-top: 1.6mm;
 }
 
 .publisher-logo-row {
@@ -3118,6 +3198,12 @@ button {
 
 .publisher-logo.image-logo.db-logo img {
   max-height: 30mm;
+}
+
+/* Title page: render the publisher logo (first cell) a little smaller than the
+   company logo (second cell). */
+.publisher-logo-row > .publisher-logo:first-child img {
+  max-height: 24mm;
 }
 
 .publisher-logo.image-logo.dhruv-logo {
@@ -3902,6 +3988,11 @@ button {
 
   body {
     background: #fff;
+  }
+
+  /* The cut-line/crop guide is an on-screen aid only. */
+  .cover-trim-guides {
+    display: none;
   }
 
   /* Hide the editor chrome so only the journal pages print. */

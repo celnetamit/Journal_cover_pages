@@ -60,6 +60,7 @@ export type Journal = {
   printedBy: string;
   publisherEmail: string;
   publisherPhone: string;
+  publisherMobile: string;
   editorName: string;
   editorPhone: string;
   editorEmail: string;
@@ -168,6 +169,7 @@ export function toLegacyJournal(j: DbJournal): Journal {
     printedBy: s(company?.printedBy),
     publisherEmail: s(company?.email),
     publisherPhone: s(company?.phone),
+    publisherMobile: s(j.publisher?.mobile),
     editorName: j.manager?.name || DEFAULT_EDITOR_NAME,
     editorPhone: DEFAULT_EDITOR_PHONE,
     editorEmail: j.manager?.email || DEFAULT_EDITOR_EMAIL,

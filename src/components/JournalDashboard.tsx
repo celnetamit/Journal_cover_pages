@@ -119,8 +119,8 @@ const maxFocusScopeKeywords = 7;
 function pageStepperLabel(page: number) {
   if (page === 1) return "Cover Spread";
   if (page === 2) return "Title Page";
-  if (page === 3) return "About";
-  if (page === 4) return "Subscription";
+  if (page === 3) return "Subscription";
+  if (page === 4) return "About";
   if (page === 5) return "Management";
   if (page === 6) return "Manuscript";
   if (page === 7) return "Editorial";
@@ -303,6 +303,7 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     coverPrinter: "",
     publisherAddress: "",
     publisherPhone: "",
+    publisherMobile: "",
     publisherEmail: "",
     publisherWebsite: "",
     registeredOffice: "",
@@ -800,7 +801,7 @@ function JournalFrontCover({
         website={website.replace(/^https?:\/\//i, "")}
         title={coverTitle}
         titleClassName={frontCoverTitleClass(inlineToPlainText(coverTitle))}
-        monthRange={monthRange.replace("-", "–")}
+        monthRange={monthRange.replace(/\s*-\s*/, "—")}
         coverImage={coverImage}
         layout={defaultFrontCoverLayout}
         interactive={interactive}
@@ -831,7 +832,27 @@ function CoverSpreadPage({
           (Journal-name text on the spine is hidden for now.) */}
       <div className="cover-spine" style={{ width: `${spineMm}mm` }} aria-label={`Spine ${spineMm}mm`} />
       <JournalFrontCover journal={journal} draft={draft} interactive={interactive} onLayoutChange={onLayoutChange} />
+      <CoverTrimGuides />
     </section>
+  );
+}
+
+// On-screen-only guide mirroring the exported PDF's crop marks: the finished
+// cover (379×263mm) is centred in the A3 (420×297) spread, so this draws the cut
+// line + corner crop ticks at that trim, and lightly tints the bleed margin that
+// gets trimmed off. Marked data-html2canvas-ignore so it's left out of the PDF
+// capture (the export draws its own marks) and hidden when browser-printing.
+function CoverTrimGuides() {
+  return (
+    <div className="cover-trim-guides" data-html2canvas-ignore="true" aria-hidden="true">
+      <div className="cover-trim-frame">
+        <span className="crop-tick tl" />
+        <span className="crop-tick tr" />
+        <span className="crop-tick bl" />
+        <span className="crop-tick br" />
+        <span className="cover-trim-label">Cut line · 379 × 263 mm</span>
+      </div>
+    </div>
   );
 }
 
@@ -849,11 +870,11 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
   const companyName = legal?.companyName || journal.imprint;
   const address = draft.publisherAddress || legal?.salesAddress || legal?.registeredAddress || journal.salesAddress || journal.address;
   const phone = draft.publisherPhone || legal?.publisherPhone || journal.publisherPhone;
+  const mobile = draft.publisherMobile || legal?.publisherMobile || journal.publisherMobile;
   const email = draft.publisherEmail || legal?.publisherEmail || journal.publisherEmail;
   const website = draft.publisherWebsite || legal?.publisherWebsite || journal.companyWebsite;
   const registeredOffice = draft.registeredOffice || legal?.registeredAddress || journal.address;
   const cin = draft.cin || legal?.cin;
-  const gst = legal?.gst;
 
   return (
     <section className="pdf-page cover-page" data-export-group="internal" data-page-title="Journal Name with volume issue page">
@@ -871,11 +892,10 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
         </div>
         <ReqText as="b" value={publisherName} label="Publisher name" />
         <ReqText as="strong" value={companyName} label="Company name" />
-        <ReqText as="span" value={address} label="Publisher address" />
-        <span>Tel. No.: <ReqText value={phone} label="Publisher phone" /></span>
-        <span>E-mail: <ReqText value={email} label="Publisher email" />; Website: <ReqText value={website} label="Website" /></span>
-        <span>Regd. Office: <ReqText value={registeredOffice} label="Registered office" /></span>
-        <span>CIN No.: <ReqText value={cin} label="CIN" />{gst ? `; GST: ${gst}` : ""}</span>
+        <span><b>Sales Office:</b> <ReqText value={address} label="Sales office address" /></span>
+        <span><b>Regd. Office:</b> <ReqText value={registeredOffice} label="Registered office" /></span>
+        <span>Telephone No.: <ReqText value={phone} label="Publisher phone" />; Mobile No.: <ReqText value={mobile} label="Publisher mobile" />, E-mail: <ReqText value={email} label="Publisher email" /></span>
+        <span className="cover-footer-web">Website: <ReqText value={website} label="Website" /> | CIN No.: <ReqText value={cin} label="CIN" /></span>
       </div>
       <PageNumber value={1} />
     </section>
@@ -950,7 +970,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
     return (
       <section className="pdf-page payment-reference-page" data-export-group="internal">
         <RichText as="div" className="payment-override" value={draft.paymentOverride} />
-        <PageNumber value={3} />
+        <PageNumber value={2} />
       </section>
     );
   }
@@ -1037,7 +1057,8 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
             Account Name: <ReqText value={payeeBankName} label="Account name" /><br />
             Bank Name: <ReqText value={bankName} label="Bank name" /><br />
             Bank Branch: <ReqText value={bankBranch} label="Bank branch" /><br />
-            IFSC Code: <ReqText value={bankIfsc} label="IFSC code" />, Swift Code: <ReqText value={bankSwift} label="Swift code" />
+            IFSC Code: <ReqText value={bankIfsc} label="IFSC code" /><br />
+            Swift Code: <ReqText value={bankSwift} label="Swift code" />
           </p>
         </div>
         <div className="payment-mode-column">
@@ -1127,7 +1148,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
         All the legal disputes are subjected to Delhi Jurisdiction only. If you have any questions, please contact the
         Publication Management Team at <ReqText value={legalEmail} label="Publisher e-mail" />; Tel: <ReqText value={legalPhoneDisplay} label="Publisher phone" />.
       </p>
-      <PageNumber value={3} />
+      <PageNumber value={2} />
     </section>
   );
 }
@@ -1206,7 +1227,7 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
           <p key={index}>{note}</p>
         ))}
       </div>
-      <PageNumber value={2} />
+      <PageNumber value={3} />
     </section>
   );
 }
@@ -1350,7 +1371,6 @@ function ManuscriptEnginePage({ journal }: { journal: Journal }) {
   );
   return (
     <section className="pdf-page details-page manuscript-page" data-export-group="internal" style={pageStyle(pageScale)}>
-      <PageMasthead journal={journal} />
       <div className="manuscript-head">
         {engineLogo ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -1360,15 +1380,15 @@ function ManuscriptEnginePage({ journal }: { journal: Journal }) {
       </div>
       <RichText as="p" className="lead-text" value={engine.leadText} />
       <div className="engine-panel">
+        <ol>
+          {engine.steps.map((step, index) => <RichText as="li" key={index} value={step} />)}
+        </ol>
         <div>
           <QrCode size={34} />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="qr-image" src={qrSrc} alt="Manuscript submission QR code" crossOrigin="anonymous" />
           <span>{engine.scanLabel}</span>
         </div>
-        <ol>
-          {engine.steps.map((step, index) => <RichText as="li" key={index} value={step} />)}
-        </ol>
       </div>
       <p className="url-line">{hasValue(url) ? url : <MissingFlag label="Journal website / manuscript URL" />}</p>
       <p className="manuscript-notice">
@@ -1682,9 +1702,9 @@ function BinderPage({
     case 2:
       return <CoverPage journal={currentJournal} draft={draft} />;
     case 3:
-      return <JournalDetailsPage journal={currentJournal} draft={draft} />;
-    case 4:
       return <PaymentPage journal={currentJournal} draft={draft} />;
+    case 4:
+      return <JournalDetailsPage journal={currentJournal} draft={draft} />;
     case 5:
       return <TeamPage journal={currentJournal} draft={draft} />;
     case 6:
@@ -1716,7 +1736,7 @@ function PageSet({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
 // Issue meta (volume/issue/year/month) is inherently per-issue, so it's excluded.
 const PAGE_RECORD_FIELDS: Record<number, (keyof BinderDraft)[]> = {
   1: ["journalTitle", "journalAbbreviation", "eIssn", "sjif", "icv", "coverImage", "backCoverImage", "journalLogoImage", "footerRightLogoImage", "journalWebsite"],
-  3: ["focusScope"],
+  4: ["focusScope"],
   5: ["managementHeads", "managementMembers"],
   7: ["editorialBoard"],
   8: ["directorName", "directorRole", "directorPhotoImage", "directorSignatureImage"],
@@ -2242,6 +2262,10 @@ function SectionEditor({
               <input value={draft.publisherPhone || ""} placeholder={publisherIdentity(journal).phone} onChange={(event) => onChange({ ...draft, publisherPhone: event.target.value })} />
             </label>
             <label>
+              <span>Publisher mobile</span>
+              <input value={draft.publisherMobile || ""} placeholder={journal.publisherMobile} onChange={(event) => onChange({ ...draft, publisherMobile: event.target.value })} />
+            </label>
+            <label>
               <span>Publisher email</span>
               <input value={draft.publisherEmail || ""} placeholder={publisherIdentity(journal).email} onChange={(event) => onChange({ ...draft, publisherEmail: event.target.value })} />
             </label>
@@ -2260,11 +2284,11 @@ function SectionEditor({
           </label>
         </>
       ) : null}
-      {activePage === 4 ? (
+      {activePage === 3 ? (
         <>
           <Page3Editor journalId={journal.id} legal={legalForJournal} />
           <div className="editor-note">
-            Page 4 now supports draggable section blocks. If you use the full text override, that override becomes one movable block; otherwise the generated legal/subscription sections can be positioned separately.
+            Page 3 now supports draggable section blocks. If you use the full text override, that override becomes one movable block; otherwise the generated legal/subscription sections can be positioned separately.
           </div>
           <div className="editor-note">
             This subscription &amp; legal page is auto-generated per publisher. To customise it, click &ldquo;Load Current Text&rdquo;, edit, and it will be used instead. Clear the box to return to the generated page.
@@ -2282,10 +2306,10 @@ function SectionEditor({
           </label>
         </>
       ) : null}
-      {activePage === 3 ? (
+      {activePage === 4 ? (
         <>
           <div className="editor-note">
-            The main journal-details sections on page 3 can also be dragged directly on the canvas and will keep their saved positions for this journal.
+            The main journal-details sections on page 4 can also be dragged directly on the canvas and will keep their saved positions for this journal.
             The About text comes from the Publisher (Admin → Publishers).
           </div>
           <label>

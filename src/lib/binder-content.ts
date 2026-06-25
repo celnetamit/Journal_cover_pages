@@ -37,6 +37,7 @@ export type BinderDraft = {
   coverPrinter: string;
   publisherAddress: string;
   publisherPhone: string;
+  publisherMobile: string;
   publisherEmail: string;
   publisherWebsite: string;
   registeredOffice: string;
