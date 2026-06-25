@@ -1054,11 +1054,8 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
           </p>
         </div>
       </div>
-      {legal?.cin || legal?.gst ? (
-        <p>
-          {legal?.cin ? <>CIN: {legal.cin}<br /></> : null}
-          {legal?.gst ? <>GST: {legal.gst}</> : null}
-        </p>
+      {legal?.gst ? (
+        <p>GST: {legal.gst}</p>
       ) : null}
 
       <h2>ONLINE ACCESS POLICY</h2>
