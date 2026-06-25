@@ -2617,7 +2617,7 @@ button {
 .management-head-row.multi {
   display: grid;
   grid-template-columns: repeat(2, auto);
-  justify-content: center;
+  justify-content: space-around;
   justify-items: center;
 }
 
@@ -2699,11 +2699,11 @@ button {
 .management-photo-grid {
   display: flex;
   flex-wrap: wrap;
-  column-gap: 4mm;
-  row-gap: calc(4mm * var(--page-scale));
+  column-gap: 2mm;
+  row-gap: calc(2mm * var(--page-scale));
   justify-content: center;
   margin: 0 auto calc(8mm * var(--page-scale));
-  /* 4 columns max: 4×40mm + 3×4mm = 172mm (a 5th would overflow → wraps). */
+  /* 4 columns max: 4×40mm + 3×2mm = 166mm (a 5th would overflow → wraps). */
   max-width: 172mm;
 }
 
