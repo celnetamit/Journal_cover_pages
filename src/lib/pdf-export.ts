@@ -16,12 +16,12 @@ const MARK = 4; // crop mark length
 const SLUG = BLEED + GAP + MARK; // 9mm white border around the trim, holds the marks
 
 // Trim (finished) size and the on-screen render size of each page, in mm.
-// Internal pages render at their trim size (A4). The cover spread renders at
-// 431.8×304.8 (17×12") with the artwork already centred in a 12.7mm border,
-// i.e. trim = 16×11" centred inside the render.
+// Internal pages render at their trim size (A4). The cover spread is an A3
+// landscape (420×297) full-bleed wrap — two ~210mm cover pages plus a 4mm spine
+// — rendered at trim size, so the artwork bleeds edge-to-edge.
 function geometry(mode: ExportMode) {
   if (mode === "cover") {
-    return { trimW: 406.4, trimH: 279.4, renderW: 431.8, renderH: 304.8 };
+    return { trimW: 420, trimH: 297, renderW: 420, renderH: 297 };
   }
   return { trimW: 210, trimH: 297, renderW: 210, renderH: 297 };
 }

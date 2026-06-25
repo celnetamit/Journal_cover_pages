@@ -1430,13 +1430,13 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
       </header>
       {members.length === 0 ? <p className="editorial-empty">No editorial board members have been added for this journal yet.</p> : null}
       {groups.map((group) => {
-        // The Editor-in-Chief (one per journal) is centered rather than placed in
-        // the left column of the two-column grid used for the other sections.
-        const isChief = group.heading === EDITORIAL_SECTIONS[0].heading;
+        // A section with a single member is centered; sections with two or more
+        // use the two-column grid (avoids a lone entry stranded in the left column).
+        const single = group.members.length === 1;
         return (
-          <section key={group.heading} className={isChief ? "editorial-section chief" : "editorial-section"}>
+          <section key={group.heading} className={single ? "editorial-section chief" : "editorial-section"}>
             <h3>{group.heading}</h3>
-            <div className={isChief ? "editor-grid chief" : "editor-grid"}>
+            <div className={single ? "editor-grid chief" : "editor-grid"}>
               {group.members.map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)}
             </div>
           </section>

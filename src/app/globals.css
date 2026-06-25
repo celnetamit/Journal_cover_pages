@@ -1595,15 +1595,17 @@ button {
 
 
 .pdf-page.cover-spread-page {
-  width: 431.8mm;
-  height: 304.8mm;
-  padding: 12.7mm;
+  /* A3 landscape spread, full bleed: two cover pages share the width left after
+     the (page-count-dependent) spine. 420mm = A3 long edge, 297mm = short edge. */
+  width: 420mm;
+  height: 297mm;
+  padding: 0;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: flex-start;
-  /* Hinge gap on each side of the spine (Back | hinge | Spine | hinge | Front). */
-  gap: 3mm;
+  /* No hinge gap — covers meet the spine edge-to-edge (Back | Spine | Front). */
+  gap: 0;
   overflow: hidden;
   background: #fff;
   box-sizing: border-box;
@@ -1616,7 +1618,7 @@ button {
   background: #fff;
   box-sizing: border-box;
   color: #1d3165;
-  height: 279.4mm;
+  height: 297mm;
   overflow: hidden;
   position: relative;
 }
@@ -1638,7 +1640,7 @@ button {
 
 .cover-spread-page .digital-library-cover,
 .cover-spread-page .journal-front-cover {
-  height: 279.4mm;
+  height: 297mm;
   /* Share the space left over after the spine equally, so a wider spine shrinks
      the covers instead of overflowing/clipping them. */
   flex: 1 1 0;
@@ -3557,7 +3559,7 @@ button {
   margin-top: calc(3mm * var(--page-scale));
 }
 
-/* Editor-in-Chief (one per journal) sits centered above the two-column grid. */
+/* A single-member section (e.g. Editor-in-Chief) is centered, not two-column. */
 .editorial-section.chief h3 {
   text-align: center;
 }
@@ -3894,7 +3896,7 @@ button {
   }
 
   @page cover-page {
-    size: 431.8mm 304.8mm;
+    size: A3 landscape;
     margin: 0;
   }
 
