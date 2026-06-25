@@ -1265,7 +1265,7 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
           footerValue={journalWebsite}
         />
         <ContactBox
-          heading="For any query or information related to Dispatch / online access / publication / sales, escalated to:"
+          heading="For any escalated queries related to dispatch, online access, publication, or sales, please contact:"
           person={journal.dispatchManager}
           footerLabel="Tel. No.: "
           footerValue={phone}
@@ -1273,7 +1273,6 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
         <ContactBox
           heading="For any query or information related to Sales / marketing, please contact:"
           person={journal.subscriptionManager}
-          showPhoto={false}
           footerLabel="E-mail: "
           footerValue={pubEmail}
         />
@@ -1897,13 +1896,13 @@ function SectionEditor({
   // (/api/assets/{id}) — replaces the old base64 data-URL approach.
   async function readPhoto(file: File | undefined, callback: (photo: string) => void) {
     if (!file) return;
-    const maxBytes = 8 * 1024 * 1024;
+    const maxBytes = 50 * 1024 * 1024;
     if (!file.type.startsWith("image/")) {
       setUploadError(`"${file.name}" is not an image file. Choose a PNG, JPG, or WEBP.`);
       return;
     }
     if (file.size > maxBytes) {
-      setUploadError(`"${file.name}" is ${(file.size / 1048576).toFixed(1)} MB — please use an image under 8 MB.`);
+      setUploadError(`"${file.name}" is ${(file.size / 1048576).toFixed(1)} MB — please use an image under 50 MB.`);
       return;
     }
     try {

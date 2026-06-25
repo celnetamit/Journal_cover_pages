@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession, canEdit } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
-const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
+const MAX_BYTES = 50 * 1024 * 1024; // 50 MB
 const ALLOWED = new Set([
   "image/png",
   "image/jpeg",
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unsupported image type" }, { status: 415 });
   }
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "Image exceeds 8 MB" }, { status: 413 });
+    return NextResponse.json({ error: "Image exceeds 50 MB" }, { status: 413 });
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
