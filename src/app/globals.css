@@ -1864,9 +1864,10 @@ button {
   font-size: 40pt;
   font-weight: 700;
   letter-spacing: -0.3px;
-  line-height: 0.88;
-  /* Small breathing room so SJIF/ICV don't crowd the badge in print. */
-  margin-bottom: 1.6mm;
+  /* Tight line-height keeps the caps near the band top (no gap above the badge);
+     the larger margin-bottom keeps the SJIF/ICV line clear in the print PDF. */
+  line-height: 0.80;
+  margin-bottom: 3.7mm;
   white-space: nowrap;
 }
 
