@@ -509,7 +509,7 @@ button {
   justify-content: center;
   padding-top: 6px;
   transform-origin: top center;
-  zoom: 0.7;
+  zoom: 0.0;
 }
 
 /* The cover spread is ~2× wider than an internal page (424mm), so it overflows
