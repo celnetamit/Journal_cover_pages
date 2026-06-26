@@ -16,14 +16,13 @@ const MARK = 4; // crop mark length
 const SLUG = BLEED + GAP + MARK; // 9mm white border around the trim, holds the marks
 
 // Trim (finished) size and the on-screen render size of each page, in mm.
-// Internal pages render at their trim size (A4). The cover spread is drawn on an
-// A3 landscape canvas (420×297) but the finished cover is smaller: 379×263 —
-// back 185 + spine 4 + front 190 wide, 263 tall — centred inside the A3, so the
-// surrounding ~20mm (sides) / ~17mm (top/bottom) of A3 acts as bleed. Crop marks
-// mark the 379×263 trim, not the A3 edge.
+// Internal pages render at their trim size (A4). The cover spread renders at its
+// finished size (379×263 — back 185 + spine 4 + front 190 wide, 263 tall), so all
+// content stays inside the cut; the export scales it out by BLEED for a clean 3mm
+// bleed past the trim. Crop marks mark the 379×263 trim.
 function geometry(mode: ExportMode) {
   if (mode === "cover") {
-    return { trimW: 379, trimH: 263, renderW: 420, renderH: 297 };
+    return { trimW: 379, trimH: 263, renderW: 379, renderH: 263 };
   }
   return { trimW: 210, trimH: 297, renderW: 210, renderH: 297 };
 }

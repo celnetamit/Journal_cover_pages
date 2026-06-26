@@ -1595,15 +1595,17 @@ button {
 
 
 .pdf-page.cover-spread-page {
-  /* A3 landscape spread, full bleed: two cover pages share the width left after
-     the (page-count-dependent) spine. 420mm = A3 long edge, 297mm = short edge. */
-  width: 420mm;
-  height: 297mm;
-  padding: 0;
+  /* Finished cover spread = the trim size (back 185 + spine 4 + front 190 = 379mm
+     wide, 263mm tall). The on-screen page IS the cut; the 3mm print bleed is added
+     at PDF export. The padding is a safe-area margin so the cut / crop marks fall
+     in white, never on cover content. */
+  width: 379mm;
+  height: 263mm;
+  padding: 8mm;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: stretch;
   /* No hinge gap — covers meet the spine edge-to-edge (Back | Spine | Front). */
   gap: 0;
   overflow: hidden;
@@ -1618,7 +1620,6 @@ button {
   background: #fff;
   box-sizing: border-box;
   color: #1d3165;
-  height: 297mm;
   overflow: hidden;
   position: relative;
 }
@@ -1638,74 +1639,10 @@ button {
   white-space: nowrap;
 }
 
-/* On-screen cut-line + crop-mark guide (preview only; excluded from PDF/print).
-   Mirrors the export: trim = 379×263mm centred in the 420×297mm A3 spread, so the
-   margin is (420-379)/2 = 20.5mm sides, (297-263)/2 = 17mm top/bottom. */
-.cover-trim-guides {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 6;
-}
-
-.cover-trim-frame {
-  position: absolute;
-  top: 17mm;
-  bottom: 17mm;
-  left: 20.5mm;
-  right: 20.5mm;
-  border: 0.3mm dashed rgba(20, 40, 90, 0.6);
-  /* Light tint over the bleed area (outside the cut), clipped by the page. */
-  box-shadow: 0 0 0 200mm rgba(190, 30, 30, 0.05);
-}
-
-.cover-trim-label {
-  position: absolute;
-  top: -5mm;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.85);
-  color: #14285a;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 2.6mm;
-  font-weight: 700;
-  padding: 0 1mm;
-  white-space: nowrap;
-}
-
-/* Corner crop ticks, drawn OUTSIDE the trim like the PDF (start 5mm out, 4mm long). */
-.crop-tick {
-  position: absolute;
-  height: 0;
-  width: 0;
-}
-
-.crop-tick::before,
-.crop-tick::after {
-  background: rgba(20, 40, 90, 0.75);
-  content: "";
-  position: absolute;
-}
-
-.crop-tick::before { height: 0.3mm; width: 4mm; }
-.crop-tick::after { height: 4mm; width: 0.3mm; }
-
-.crop-tick.tl { left: 0; top: 0; }
-.crop-tick.tl::before { left: -9mm; top: 0; }
-.crop-tick.tl::after { left: 0; top: -9mm; }
-.crop-tick.tr { right: 0; top: 0; }
-.crop-tick.tr::before { right: -9mm; top: 0; }
-.crop-tick.tr::after { right: 0; top: -9mm; }
-.crop-tick.bl { bottom: 0; left: 0; }
-.crop-tick.bl::before { bottom: 0; left: -9mm; }
-.crop-tick.bl::after { bottom: -9mm; left: 0; }
-.crop-tick.br { bottom: 0; right: 0; }
-.crop-tick.br::before { bottom: 0; right: -9mm; }
-.crop-tick.br::after { bottom: -9mm; right: 0; }
-
 .cover-spread-page .digital-library-cover,
 .cover-spread-page .journal-front-cover {
-  height: 297mm;
+  /* Height comes from the parent's align-items: stretch (fills the padded box). */
+  align-self: stretch;
   /* Share the space left over after the spine equally, so a wider spine shrinks
      the covers instead of overflowing/clipping them. */
   flex: 1 1 0;
@@ -3990,11 +3927,6 @@ button {
 
   body {
     background: #fff;
-  }
-
-  /* The cut-line/crop guide is an on-screen aid only. */
-  .cover-trim-guides {
-    display: none;
   }
 
   /* Hide the editor chrome so only the journal pages print. */

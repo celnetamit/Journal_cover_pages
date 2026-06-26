@@ -832,27 +832,7 @@ function CoverSpreadPage({
           (Journal-name text on the spine is hidden for now.) */}
       <div className="cover-spine" style={{ width: `${spineMm}mm` }} aria-label={`Spine ${spineMm}mm`} />
       <JournalFrontCover journal={journal} draft={draft} interactive={interactive} onLayoutChange={onLayoutChange} />
-      <CoverTrimGuides />
     </section>
-  );
-}
-
-// On-screen-only guide mirroring the exported PDF's crop marks: the finished
-// cover (379×263mm) is centred in the A3 (420×297) spread, so this draws the cut
-// line + corner crop ticks at that trim, and lightly tints the bleed margin that
-// gets trimmed off. Marked data-html2canvas-ignore so it's left out of the PDF
-// capture (the export draws its own marks) and hidden when browser-printing.
-function CoverTrimGuides() {
-  return (
-    <div className="cover-trim-guides" data-html2canvas-ignore="true" aria-hidden="true">
-      <div className="cover-trim-frame">
-        <span className="crop-tick tl" />
-        <span className="crop-tick tr" />
-        <span className="crop-tick bl" />
-        <span className="crop-tick br" />
-        <span className="cover-trim-label">Cut line · 379 × 263 mm</span>
-      </div>
-    </div>
   );
 }
 
