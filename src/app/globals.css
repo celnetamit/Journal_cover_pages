@@ -1595,13 +1595,13 @@ button {
 
 
 .pdf-page.cover-spread-page {
-  /* Finished cover spread = the trim size (back 185 + spine 4 + front 190 = 379mm
-     wide, 263mm tall). The on-screen page IS the cut; the 3mm print bleed is added
-     at PDF export. The padding is a safe-area margin so the cut / crop marks fall
-     in white, never on cover content. */
-  width: 379mm;
-  height: 263mm;
-  padding: 8mm;
+  /* Finished cover spread = the cut size (back 210 + spine 4 + front 210 = 424mm
+     wide, 297mm tall). The on-screen page IS the cut; the 3mm print bleed is added
+     at PDF export. The 6mm padding = 3mm bleed + 3mm safe area, so content sits a
+     standard 3mm inside the cut line (crop marks fall in white, never on content). */
+  width: 424mm;
+  height: 297mm;
+  padding: 6mm;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -3921,7 +3921,7 @@ button {
   }
 
   @page cover-page {
-    size: A3 landscape;
+    size: 424mm 297mm;
     margin: 0;
   }
 

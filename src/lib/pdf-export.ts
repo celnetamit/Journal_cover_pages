@@ -17,12 +17,12 @@ const SLUG = BLEED + GAP + MARK; // 9mm white border around the trim, holds the 
 
 // Trim (finished) size and the on-screen render size of each page, in mm.
 // Internal pages render at their trim size (A4). The cover spread renders at its
-// finished size (379×263 — back 185 + spine 4 + front 190 wide, 263 tall), so all
+// finished size (424×297 — back 210 + spine 4 + front 210 wide, 297 tall), so all
 // content stays inside the cut; the export scales it out by BLEED for a clean 3mm
-// bleed past the trim. Crop marks mark the 379×263 trim.
+// bleed past the trim. Crop marks mark the 424×297 trim.
 function geometry(mode: ExportMode) {
   if (mode === "cover") {
-    return { trimW: 379, trimH: 263, renderW: 379, renderH: 263 };
+    return { trimW: 424, trimH: 297, renderW: 424, renderH: 297 };
   }
   return { trimW: 210, trimH: 297, renderW: 210, renderH: 297 };
 }
