@@ -17,12 +17,15 @@ const SLUG = BLEED + GAP + MARK; // 9mm white border around the trim, holds the 
 
 // Trim (finished) size and the on-screen render size of each page, in mm.
 // Internal pages render at their trim size (A4). The cover spread renders at its
-// finished size (424×297 — back 210 + spine 4 + front 210 wide, 297 tall), so all
-// content stays inside the cut; the export scales it out by BLEED for a clean 3mm
-// bleed past the trim. Crop marks mark the 424×297 trim.
-function geometry(mode: ExportMode) {
+// finished cut size, read from the cover element's data-cover-trim-* attributes
+// (driven by the editable cover dimensions; defaults 424×297). All content stays
+// inside the cut; the export scales it out by BLEED for a clean 3mm bleed past the
+// trim. Crop marks mark that trim.
+function geometry(mode: ExportMode, coverEl?: HTMLElement) {
   if (mode === "cover") {
-    return { trimW: 424, trimH: 297, renderW: 424, renderH: 297 };
+    const w = Number(coverEl?.dataset.coverTrimW) || 424;
+    const h = Number(coverEl?.dataset.coverTrimH) || 297;
+    return { trimW: w, trimH: h, renderW: w, renderH: h };
   }
   return { trimW: 210, trimH: 297, renderW: 210, renderH: 297 };
 }
@@ -53,7 +56,7 @@ export async function exportBookToPdf(mode: ExportMode, filename: string) {
   ]);
 
   const isCover = mode === "cover";
-  const { trimW, trimH, renderW, renderH } = geometry(mode);
+  const { trimW, trimH, renderW, renderH } = geometry(mode, pages[0]);
   const mediaW = trimW + 2 * SLUG;
   const mediaH = trimH + 2 * SLUG;
   const orientation = isCover ? "landscape" : "portrait";

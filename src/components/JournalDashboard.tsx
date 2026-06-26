@@ -39,6 +39,9 @@ import {
   defaultBinderPageLayouts,
   defaultFrontCoverLayout,
   defaultSpineMm,
+  defaultCoverPageWidthMm,
+  defaultCoverPageHeightMm,
+  defaultCoverSafePaddingMm,
   defaultManuscriptUrl,
   SPINE_PRESETS,
   type ManagementPerson,
@@ -825,14 +828,91 @@ function CoverSpreadPage({
   onLayoutChange?: (layout: BinderDraft["frontCoverLayout"]) => void;
 }) {
   const spineMm = draft.spineMm ?? defaultSpineMm;
+  const pageW = draft.coverPageWidthMm ?? defaultCoverPageWidthMm;
+  const pageH = draft.coverPageHeightMm ?? defaultCoverPageHeightMm;
+  const pad = draft.coverSafePaddingMm ?? defaultCoverSafePaddingMm;
+  const spreadW = pageW * 2 + spineMm; // total cut width
   return (
-    <section className="pdf-page cover-spread-page" data-export-group="cover" data-page-title="Digital library back and journal front cover">
+    <section
+      className="pdf-page cover-spread-page"
+      data-export-group="cover"
+      data-page-title="Digital library back and journal front cover"
+      // Drive the print size from the editable cover dimensions. The data-* attrs
+      // are read by the PDF export so its trim matches this on-screen cut size.
+      data-cover-trim-w={spreadW}
+      data-cover-trim-h={pageH}
+      style={{ width: `${spreadW}mm`, height: `${pageH}mm`, padding: `${pad}mm` }}
+    >
       <DigitalLibraryBackCover draft={draft} />
       {/* Printed spine — sits between the back and front cover panels.
           (Journal-name text on the spine is hidden for now.) */}
       <div className="cover-spine" style={{ width: `${spineMm}mm` }} aria-label={`Spine ${spineMm}mm`} />
       <JournalFrontCover journal={journal} draft={draft} interactive={interactive} onLayoutChange={onLayoutChange} />
+      {/* TEMP dimension guide (on-screen only; remove later). */}
+      <CoverDimensionGuides spineMm={spineMm} pageW={pageW} pageH={pageH} pad={pad} />
     </section>
+  );
+}
+
+// TEMP: on-screen dimension overlay (measurement arrows) so the exact cover
+// sizes/alignment are easy to read. The overlay fills the page's padding box
+// (424×297), so SVG units = mm. Excluded from the PDF (data-html2canvas-ignore).
+// Remove this whole function + its <CoverDimensionGuides/> call + the
+// .cover-dim-* CSS when no longer needed.
+function CoverDimensionGuides({ spineMm, pageW, pageH, pad }: { spineMm: number; pageW: number; pageH: number; pad: number }) {
+  const W = pageW * 2 + spineMm; // total cut width
+  const H = pageH;
+  const sx1 = pageW; // spine left fold
+  const sx2 = pageW + spineMm; // spine right fold
+  const contentW = Math.round((pageW - pad) * 100) / 100; // artwork width per cover
+  const contentH = H - 2 * pad; // artwork height
+  const red = "#b91c1c"; // cut / page dimensions
+  const green = "#15803d"; // content / artwork dimensions
+  return (
+    <div className="cover-dim-guides" data-html2canvas-ignore="true" aria-hidden="true">
+      <svg viewBox={`0 0 ${W} ${H}`} className="cover-dim-svg">
+        <defs>
+          <marker id="coverDimArrow" markerUnits="userSpaceOnUse" markerWidth="4" markerHeight="4" refX="3.5" refY="2" orient="auto-start-reverse">
+            <path d="M0,0 L4,2 L0,4 z" fill={red} />
+          </marker>
+          <marker id="coverDimArrowG" markerUnits="userSpaceOnUse" markerWidth="4" markerHeight="4" refX="3.5" refY="2" orient="auto-start-reverse">
+            <path d="M0,0 L4,2 L0,4 z" fill={green} />
+          </marker>
+        </defs>
+        {/* Safe-area boundary (6mm in from the cut) + spine fold lines. */}
+        <rect x={pad} y={pad} width={W - 2 * pad} height={H - 2 * pad} fill="none" stroke={red} strokeWidth="0.3" strokeDasharray="2 1.5" opacity="0.55" />
+        <line x1={sx1} y1="0" x2={sx1} y2={H} stroke={red} strokeWidth="0.3" strokeDasharray="2 1.5" opacity="0.55" />
+        <line x1={sx2} y1="0" x2={sx2} y2={H} stroke={red} strokeWidth="0.3" strokeDasharray="2 1.5" opacity="0.55" />
+        {/* Dimension lines (double arrows). */}
+        <g stroke={red} strokeWidth="0.4" markerStart="url(#coverDimArrow)" markerEnd="url(#coverDimArrow)">
+          <line x1="1" y1="18" x2={sx1 - 0.5} y2="18" />{/* back width */}
+          <line x1={sx2 + 0.5} y1="18" x2={W - 1} y2="18" />{/* front width */}
+          <line x1="1" y1={H - 16} x2={W - 1} y2={H - 16} />{/* total width */}
+          <line x1="16" y1="1" x2="16" y2={H - 1} />{/* total height */}
+          <line x1="34" y1="1" x2="34" y2={pad} />{/* top safe padding */}
+        </g>
+        {/* Content (artwork) dimension lines — green, inside the safe area. */}
+        <g stroke={green} strokeWidth="0.4" markerStart="url(#coverDimArrowG)" markerEnd="url(#coverDimArrowG)">
+          <line x1={pad + 0.5} y1={H - 34} x2={sx1 - 0.5} y2={H - 34} />{/* back content width */}
+          <line x1={sx2 + 0.5} y1={H - 34} x2={W - pad - 0.5} y2={H - 34} />{/* front content width */}
+          <line x1={W - pad - 9} y1={pad + 0.5} x2={W - pad - 9} y2={H - pad - 0.5} />{/* content height */}
+        </g>
+        {/* Labels. */}
+        <g fill={red} fontFamily="Arial, sans-serif" fontWeight="700" textAnchor="middle">
+          <text x={sx1 / 2} y="14" fontSize="6">Back page {pageW} mm</text>
+          <text x={sx2 + (W - sx2) / 2} y="14" fontSize="6">Front page {pageW} mm</text>
+          <text x={W / 2} y={H - 18} fontSize="6">Total spread {W} mm</text>
+          <text x="22" y={H / 2} fontSize="6" transform={`rotate(-90 22 ${H / 2})`}>{H} mm</text>
+          <text x={(sx1 + sx2) / 2} y="36" fontSize="3.6">spine {spineMm} mm</text>
+          <text x="46" y={pad - 1.2} fontSize="3.6" textAnchor="start">6 mm safe padding</text>
+        </g>
+        <g fill={green} fontFamily="Arial, sans-serif" fontWeight="700" textAnchor="middle">
+          <text x={(pad + sx1) / 2} y={H - 36} fontSize="5">content {contentW} mm</text>
+          <text x={(sx2 + W - pad) / 2} y={H - 36} fontSize="5">content {contentW} mm</text>
+          <text x={W - pad - 12} y={H / 2} fontSize="5" transform={`rotate(-90 ${W - pad - 12} ${H / 2})`}>content {contentH} mm</text>
+        </g>
+      </svg>
+    </div>
   );
 }
 
@@ -2137,6 +2217,44 @@ function SectionEditor({
               ))}
             </div>
             <small className="field-hint">Printed spine thickness for the cover wrap. ~5.5&nbsp;mm for 50 pages, ~8.2&nbsp;mm for 75 pages — adjust for your page count and paper stock.</small>
+          </div>
+          <div className="spine-editor">
+            <div className="two-field-grid">
+              <label>
+                <span>Cover page width (mm)</span>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="50"
+                  value={draft.coverPageWidthMm ?? defaultCoverPageWidthMm}
+                  onChange={(event) => onChange({ ...draft, coverPageWidthMm: event.target.value === "" ? undefined : Number(event.target.value) })}
+                />
+              </label>
+              <label>
+                <span>Cover page height (mm)</span>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="50"
+                  value={draft.coverPageHeightMm ?? defaultCoverPageHeightMm}
+                  onChange={(event) => onChange({ ...draft, coverPageHeightMm: event.target.value === "" ? undefined : Number(event.target.value) })}
+                />
+              </label>
+            </div>
+            <label>
+              <span>Safe padding (mm)</span>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                value={draft.coverSafePaddingMm ?? defaultCoverSafePaddingMm}
+                onChange={(event) => onChange({ ...draft, coverSafePaddingMm: event.target.value === "" ? undefined : Number(event.target.value) })}
+              />
+            </label>
+            <small className="field-hint">
+              Finished cut: {(draft.coverPageWidthMm ?? defaultCoverPageWidthMm) * 2 + (draft.spineMm ?? defaultSpineMm)} × {draft.coverPageHeightMm ?? defaultCoverPageHeightMm} mm
+              (page {draft.coverPageWidthMm ?? defaultCoverPageWidthMm} × 2 + spine {draft.spineMm ?? defaultSpineMm}). Safe padding keeps content this far inside the cut; a standard 3&nbsp;mm bleed is added at export.
+            </small>
           </div>
           <label className="file-field">
             <span>Upload front cover image</span>

@@ -509,7 +509,15 @@ button {
   justify-content: center;
   padding-top: 6px;
   transform-origin: top center;
-  zoom: 0.7;
+  zoom: 0.0;
+}
+
+/* The cover spread is ~2× wider than an internal page (424mm), so it overflows
+   the canvas at the normal zoom. Shrink it further in the live preview only so the
+   full back+front fit without horizontal scroll. Scoped to the canvas panel, so
+   the PDF export source (#pdf-book) keeps its true size. */
+.live-canvas-panel .cover-spread-page {
+  zoom: 0.6;
 }
 
 .section-editor,
@@ -1595,13 +1603,10 @@ button {
 
 
 .pdf-page.cover-spread-page {
-  /* Finished cover spread = the cut size (back 210 + spine 4 + front 210 = 424mm
-     wide, 297mm tall). The on-screen page IS the cut; the 3mm print bleed is added
-     at PDF export. The 6mm padding = 3mm bleed + 3mm safe area, so content sits a
-     standard 3mm inside the cut line (crop marks fall in white, never on content). */
-  width: 424mm;
-  height: 297mm;
-  padding: 6mm;
+  /* Finished cover spread = the cut size. width / height / padding are set inline
+     from the editable cover dimensions (page width × 2 + spine, page height, safe
+     padding); defaults 210/297/6. The on-screen page IS the cut; a standard 3mm
+     bleed is added at PDF export. */
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -1611,6 +1616,30 @@ button {
   overflow: hidden;
   background: #fff;
   box-sizing: border-box;
+}
+
+/* TEMP dimension overlay (on-screen only; excluded from PDF). Remove with the
+   CoverDimensionGuides component when no longer needed. inset:0 fills the page's
+   padding box (424×297), so the SVG's mm units line up with the cut spread. */
+.cover-dim-guides {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 7;
+}
+
+.cover-dim-svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+/* White halo so the red dimension text stays readable over the artwork. */
+.cover-dim-svg text {
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 1.1;
+  stroke-linejoin: round;
 }
 
 /* Printed spine between the back and front cover panels. Width is set inline
@@ -1641,8 +1670,11 @@ button {
 
 .cover-spread-page .digital-library-cover,
 .cover-spread-page .journal-front-cover {
-  /* Height comes from the parent's align-items: stretch (fills the padded box). */
+  /* Explicit 100% (against the flex container's definite padded height) so the
+     back-cover image's height:100% resolves — align-self:stretch alone leaves the
+     height "indefinite" for percentage children in some browsers (image collapses). */
   align-self: stretch;
+  height: 100%;
   /* Share the space left over after the spine equally, so a wider spine shrinks
      the covers instead of overflowing/clipping them. */
   flex: 1 1 0;
