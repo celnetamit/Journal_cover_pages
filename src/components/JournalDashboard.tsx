@@ -1236,7 +1236,7 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
           ))}
         </div>
       ) : <MissingFlag label="Management head(s)" block />}
-      <div className="management-band">Internal Members</div>
+      <div className="management-band">Members</div>
       {draft.managementMembers.length ? (
         <div className="management-photo-grid">
           {draft.managementMembers.slice(0, 16).map((member, index) => (
@@ -1262,20 +1262,14 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
         <ContactBox
           heading="For any query or information related to publication of article, please contact:"
           person={journal.journalManager}
-          footerLabel="Website: "
-          footerValue={journalWebsite}
         />
         <ContactBox
           heading="For any escalated queries related to dispatch, online access, publication, or sales, please contact:"
           person={journal.dispatchManager}
-          footerLabel="Tel. No.: "
-          footerValue={phone}
         />
         <ContactBox
           heading="For any query or information related to Sales / marketing, please contact:"
           person={journal.subscriptionManager}
-          footerLabel="E-mail: "
-          footerValue={pubEmail}
         />
       </div>
       <PageNumber value={4} />
@@ -1285,12 +1279,10 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
 
 // One management-page contact box: heading, an optional photo, the person's
 // name/designation/tel/email, and a journal/publisher-level footer line.
-function ContactBox({ heading, person, showPhoto = true, footerLabel, footerValue }: {
+function ContactBox({ heading, person, showPhoto = true }: {
   heading: string;
   person: ContactPerson;
   showPhoto?: boolean;
-  footerLabel: string;
-  footerValue: string;
 }) {
   const name = inlineToPlainText(person.name);
   return (
@@ -1307,7 +1299,6 @@ function ContactBox({ heading, person, showPhoto = true, footerLabel, footerValu
       {person.designation ? <RichText as="span" className="contact-box-role" value={person.designation} /> : null}
       {person.phone ? <span>Tel.: {person.phone}</span> : null}
       {person.email ? <span>E-mail: {person.email}</span> : null}
-      {footerValue ? <strong className="contact-box-footer">{footerLabel}{footerValue}</strong> : null}
     </div>
   );
 }

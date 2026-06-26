@@ -2690,9 +2690,9 @@ button {
 }
 
 .management-band {
-  background: #1d3165;
+  background: #6b7280;
   color: #fff;
-  font-size: calc(9pt * var(--page-scale));
+  font-size: calc(11pt * var(--page-scale));
   font-weight: 700;
   letter-spacing: 0.4px;
   margin: calc(1.5mm * var(--page-scale)) 0 calc(4.2mm * var(--page-scale));
@@ -3759,10 +3759,9 @@ button {
 
 .journal-info-page .focus-list {
   columns: 1;
-  font-size: calc(8.1pt * var(--page-scale));
-  line-height: calc(1.12 * var(--page-scale));
   margin-bottom: calc(3mm * var(--page-scale));
-  padding-left: calc(4.5mm * var(--page-scale));
+  /* Match the Objectives / Salient Features lists (default ul padding: 0). */
+  padding-left: 0;
 }
 
 .journal-info-page .page-number {
