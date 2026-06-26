@@ -3363,7 +3363,7 @@ button {
 }
 
 .contents-table td b {
-  font-style: italic;
+  font-style: normal;
 }
 
 .contents-table span {
@@ -3628,7 +3628,7 @@ button {
 
 .editorial-page h3 {
   color: #222;
-  font-size: calc(12.8pt * var(--page-scale));
+  font-size: calc(11.8pt * var(--page-scale));
   font-weight: 800;
   margin: calc(5.5mm * var(--page-scale)) 0 calc(3.5mm * var(--page-scale));
 }
