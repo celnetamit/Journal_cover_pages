@@ -41,7 +41,8 @@ import {
   defaultSpineMm,
   defaultCoverPageWidthMm,
   defaultCoverPageHeightMm,
-  defaultCoverSafePaddingMm,
+  defaultCoverSafePaddingHMm,
+  defaultCoverSafePaddingVMm,
   defaultManuscriptUrl,
   SPINE_PRESETS,
   type ManagementPerson,
@@ -830,7 +831,8 @@ function CoverSpreadPage({
   const spineMm = draft.spineMm ?? defaultSpineMm;
   const pageW = draft.coverPageWidthMm ?? defaultCoverPageWidthMm;
   const pageH = draft.coverPageHeightMm ?? defaultCoverPageHeightMm;
-  const pad = draft.coverSafePaddingMm ?? defaultCoverSafePaddingMm;
+  const padH = draft.coverSafePaddingHMm ?? defaultCoverSafePaddingHMm;
+  const padV = draft.coverSafePaddingVMm ?? defaultCoverSafePaddingVMm;
   const spreadW = pageW * 2 + spineMm; // total cut width
   return (
     <section
@@ -841,7 +843,7 @@ function CoverSpreadPage({
       // are read by the PDF export so its trim matches this on-screen cut size.
       data-cover-trim-w={spreadW}
       data-cover-trim-h={pageH}
-      style={{ width: `${spreadW}mm`, height: `${pageH}mm`, padding: `${pad}mm` }}
+      style={{ width: `${spreadW}mm`, height: `${pageH}mm`, padding: `${padV}mm ${padH}mm` }}
     >
       <DigitalLibraryBackCover draft={draft} />
       {/* Printed spine — sits between the back and front cover panels.
@@ -849,7 +851,7 @@ function CoverSpreadPage({
       <div className="cover-spine" style={{ width: `${spineMm}mm` }} aria-label={`Spine ${spineMm}mm`} />
       <JournalFrontCover journal={journal} draft={draft} interactive={interactive} onLayoutChange={onLayoutChange} />
       {/* TEMP dimension guide (on-screen only; remove later). */}
-      <CoverDimensionGuides spineMm={spineMm} pageW={pageW} pageH={pageH} pad={pad} />
+      <CoverDimensionGuides spineMm={spineMm} pageW={pageW} pageH={pageH} padH={padH} padV={padV} />
     </section>
   );
 }
@@ -859,13 +861,13 @@ function CoverSpreadPage({
 // (424×297), so SVG units = mm. Excluded from the PDF (data-html2canvas-ignore).
 // Remove this whole function + its <CoverDimensionGuides/> call + the
 // .cover-dim-* CSS when no longer needed.
-function CoverDimensionGuides({ spineMm, pageW, pageH, pad }: { spineMm: number; pageW: number; pageH: number; pad: number }) {
+function CoverDimensionGuides({ spineMm, pageW, pageH, padH, padV }: { spineMm: number; pageW: number; pageH: number; padH: number; padV: number }) {
   const W = pageW * 2 + spineMm; // total cut width
   const H = pageH;
   const sx1 = pageW; // spine left fold
   const sx2 = pageW + spineMm; // spine right fold
-  const contentW = Math.round((pageW - pad) * 100) / 100; // artwork width per cover
-  const contentH = H - 2 * pad; // artwork height
+  const contentW = Math.round((pageW - padH) * 100) / 100; // artwork width per cover
+  const contentH = Math.round((H - 2 * padV) * 100) / 100; // artwork height
   const red = "#b91c1c"; // cut / page dimensions
   const green = "#15803d"; // content / artwork dimensions
   return (
@@ -879,8 +881,8 @@ function CoverDimensionGuides({ spineMm, pageW, pageH, pad }: { spineMm: number;
             <path d="M0,0 L4,2 L0,4 z" fill={green} />
           </marker>
         </defs>
-        {/* Safe-area boundary (6mm in from the cut) + spine fold lines. */}
-        <rect x={pad} y={pad} width={W - 2 * pad} height={H - 2 * pad} fill="none" stroke={red} strokeWidth="0.3" strokeDasharray="2 1.5" opacity="0.55" />
+        {/* Safe-area boundary + spine fold lines. */}
+        <rect x={padH} y={padV} width={W - 2 * padH} height={H - 2 * padV} fill="none" stroke={red} strokeWidth="0.3" strokeDasharray="2 1.5" opacity="0.55" />
         <line x1={sx1} y1="0" x2={sx1} y2={H} stroke={red} strokeWidth="0.3" strokeDasharray="2 1.5" opacity="0.55" />
         <line x1={sx2} y1="0" x2={sx2} y2={H} stroke={red} strokeWidth="0.3" strokeDasharray="2 1.5" opacity="0.55" />
         {/* Dimension lines (double arrows). */}
@@ -889,13 +891,12 @@ function CoverDimensionGuides({ spineMm, pageW, pageH, pad }: { spineMm: number;
           <line x1={sx2 + 0.5} y1="18" x2={W - 1} y2="18" />{/* front width */}
           <line x1="1" y1={H - 16} x2={W - 1} y2={H - 16} />{/* total width */}
           <line x1="16" y1="1" x2="16" y2={H - 1} />{/* total height */}
-          <line x1="34" y1="1" x2="34" y2={pad} />{/* top safe padding */}
         </g>
         {/* Content (artwork) dimension lines — green, inside the safe area. */}
         <g stroke={green} strokeWidth="0.4" markerStart="url(#coverDimArrowG)" markerEnd="url(#coverDimArrowG)">
-          <line x1={pad + 0.5} y1={H - 34} x2={sx1 - 0.5} y2={H - 34} />{/* back content width */}
-          <line x1={sx2 + 0.5} y1={H - 34} x2={W - pad - 0.5} y2={H - 34} />{/* front content width */}
-          <line x1={W - pad - 9} y1={pad + 0.5} x2={W - pad - 9} y2={H - pad - 0.5} />{/* content height */}
+          <line x1={padH + 0.5} y1={H - 34} x2={sx1 - 0.5} y2={H - 34} />{/* back content width */}
+          <line x1={sx2 + 0.5} y1={H - 34} x2={W - padH - 0.5} y2={H - 34} />{/* front content width */}
+          <line x1={W - padH - 9} y1={padV + 0.5} x2={W - padH - 9} y2={H - padV - 0.5} />{/* content height */}
         </g>
         {/* Labels. */}
         <g fill={red} fontFamily="Arial, sans-serif" fontWeight="700" textAnchor="middle">
@@ -904,12 +905,11 @@ function CoverDimensionGuides({ spineMm, pageW, pageH, pad }: { spineMm: number;
           <text x={W / 2} y={H - 18} fontSize="6">Total spread {W} mm</text>
           <text x="22" y={H / 2} fontSize="6" transform={`rotate(-90 22 ${H / 2})`}>{H} mm</text>
           <text x={(sx1 + sx2) / 2} y="36" fontSize="3.6">spine {spineMm} mm</text>
-          <text x="46" y={pad - 1.2} fontSize="3.6" textAnchor="start">6 mm safe padding</text>
         </g>
         <g fill={green} fontFamily="Arial, sans-serif" fontWeight="700" textAnchor="middle">
-          <text x={(pad + sx1) / 2} y={H - 36} fontSize="5">content {contentW} mm</text>
-          <text x={(sx2 + W - pad) / 2} y={H - 36} fontSize="5">content {contentW} mm</text>
-          <text x={W - pad - 12} y={H / 2} fontSize="5" transform={`rotate(-90 ${W - pad - 12} ${H / 2})`}>content {contentH} mm</text>
+          <text x={(padH + sx1) / 2} y={H - 36} fontSize="5">content {contentW} mm</text>
+          <text x={(sx2 + W - padH) / 2} y={H - 36} fontSize="5">content {contentW} mm</text>
+          <text x={W - padH - 12} y={H / 2} fontSize="5" transform={`rotate(-90 ${W - padH - 12} ${H / 2})`}>content {contentH} mm</text>
         </g>
       </svg>
     </div>
@@ -2241,19 +2241,32 @@ function SectionEditor({
                 />
               </label>
             </div>
-            <label>
-              <span>Safe padding (mm)</span>
-              <input
-                type="number"
-                step="0.5"
-                min="0"
-                value={draft.coverSafePaddingMm ?? defaultCoverSafePaddingMm}
-                onChange={(event) => onChange({ ...draft, coverSafePaddingMm: event.target.value === "" ? undefined : Number(event.target.value) })}
-              />
-            </label>
+            <div className="two-field-grid">
+              <label>
+                <span>Horizontal safe padding (mm)</span>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={draft.coverSafePaddingHMm ?? defaultCoverSafePaddingHMm}
+                  onChange={(event) => onChange({ ...draft, coverSafePaddingHMm: event.target.value === "" ? undefined : Number(event.target.value) })}
+                />
+              </label>
+              <label>
+                <span>Vertical safe padding (mm)</span>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={draft.coverSafePaddingVMm ?? defaultCoverSafePaddingVMm}
+                  onChange={(event) => onChange({ ...draft, coverSafePaddingVMm: event.target.value === "" ? undefined : Number(event.target.value) })}
+                />
+              </label>
+            </div>
             <small className="field-hint">
-              Finished cut: {(draft.coverPageWidthMm ?? defaultCoverPageWidthMm) * 2 + (draft.spineMm ?? defaultSpineMm)} × {draft.coverPageHeightMm ?? defaultCoverPageHeightMm} mm
-              (page {draft.coverPageWidthMm ?? defaultCoverPageWidthMm} × 2 + spine {draft.spineMm ?? defaultSpineMm}). Safe padding keeps content this far inside the cut; a standard 3&nbsp;mm bleed is added at export.
+              Finished cut: {(draft.coverPageWidthMm ?? defaultCoverPageWidthMm) * 2 + (draft.spineMm ?? defaultSpineMm)} × {draft.coverPageHeightMm ?? defaultCoverPageHeightMm} mm.
+              Content area per cover: {(draft.coverPageWidthMm ?? defaultCoverPageWidthMm) - (draft.coverSafePaddingHMm ?? defaultCoverSafePaddingHMm)} × {(draft.coverPageHeightMm ?? defaultCoverPageHeightMm) - 2 * (draft.coverSafePaddingVMm ?? defaultCoverSafePaddingVMm)} mm.
+              Horizontal padding sets content width, vertical sets content height; a standard 3&nbsp;mm bleed is added at export.
             </small>
           </div>
           <label className="file-field">

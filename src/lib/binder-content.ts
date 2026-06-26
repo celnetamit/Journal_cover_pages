@@ -14,10 +14,11 @@ export type BinderDraft = {
   frontCoverLayoutCustomized?: boolean;
   // Printed spine thickness (mm) for the cover wrap. Undefined = use the default.
   spineMm?: number;
-  // Cover print dimensions (mm); undefined = use the defaults (210 / 297 / 6).
+  // Cover print dimensions (mm); undefined = use the defaults (210 / 297 / 6 / 6).
   coverPageWidthMm?: number; // each cover page (back/front) finished width
   coverPageHeightMm?: number; // cover finished height
-  coverSafePaddingMm?: number; // safe-area margin between content and the cut
+  coverSafePaddingHMm?: number; // horizontal safe margin (sets content width)
+  coverSafePaddingVMm?: number; // vertical safe margin (sets content height)
   pageLayouts: BinderPageLayouts;
   journalWebsite: string;
   issueVolume: string;
@@ -66,7 +67,8 @@ export const SPINE_PRESETS: ReadonlyArray<{ label: string; mm: number }> = [
 // 2×page + spine. The bleed (added at PDF export) stays a standard 3mm.
 export const defaultCoverPageWidthMm = 210;
 export const defaultCoverPageHeightMm = 297;
-export const defaultCoverSafePaddingMm = 6;
+export const defaultCoverSafePaddingHMm = 6;
+export const defaultCoverSafePaddingVMm = 6;
 
 export type CoverElementId =
   | "abbreviationBadge"
