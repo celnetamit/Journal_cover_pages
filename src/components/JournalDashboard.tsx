@@ -1604,7 +1604,9 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
             <p className="editorial-empty">No editorial board members have been added for this journal yet.</p>
           ) : null}
           {pageGroups.map((g, gi) => renderGroup(g, `${pi}-${gi}-${g.heading}`))}
-          {pi === 0 ? <PageNumber value={6} /> : null}
+          {/* Every editorial page gets a folio; PageSet renumbers them (and every
+              page after) sequentially by DOM order. */}
+          <PageNumber value={6 + pi} />
         </section>
       ))}
     </>
@@ -1870,8 +1872,28 @@ function BinderPage({
 }
 
 function PageSet({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+  const ref = useRef<HTMLDivElement>(null);
+  // Editorial and Contents paginate to a variable number of pages at runtime, so
+  // the folios can't be hardcoded. Renumber the live page numbers by DOM order
+  // (i, ii, iii…) and re-run whenever the page list changes — scoped to this
+  // journal's page set so batch exports restart at i. The hidden measuring clones
+  // carry no .page-number, so they're naturally skipped.
+  useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    const renumber = () => {
+      root.querySelectorAll<HTMLElement>(".page-number").forEach((el, i) => {
+        const want = lowerRoman(i + 1);
+        if (el.textContent !== want) el.textContent = want; // diff-guard avoids an observer loop
+      });
+    };
+    renumber();
+    const observer = new MutationObserver(renumber);
+    observer.observe(root, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
   return (
-    <div className="page-set">
+    <div className="page-set" ref={ref}>
       {Array.from({ length: totalPages }, (_, index) => (
         <BinderPage key={index + 1} page={index + 1} journal={journal} draft={draft} />
       ))}
@@ -3161,7 +3183,11 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     (async () => {
       try {
         // Let the freshly-mounted export DOM lay out and paint before capture.
-        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        // Two frames: the first lets Editorial/Contents paginate (measure → state)
+        // and the second lets PageSet's folio renumber settle on the new pages.
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        );
         if (cancelled) return;
         await exportBookToPdf(job.mode, job.filename);
       } catch (cause) {

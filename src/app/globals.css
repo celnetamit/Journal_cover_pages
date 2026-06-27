@@ -2264,7 +2264,7 @@ button {
 }
 
 .page-number {
-  bottom: 6mm;
+  bottom: 4mm;
   color: #66758d;
   font-size: 9pt;
   left: 18mm;
@@ -2429,7 +2429,7 @@ button {
 }
 
 .payment-reference-page .page-number {
-  bottom: 6mm;
+  bottom: 4mm;
   left: 17mm;
   right: 17mm;
 }
@@ -2876,7 +2876,7 @@ button {
 }
 
 .management-page .page-number {
-  bottom: 6mm;
+  bottom: 4mm;
   left: 15mm;
   right: 15mm;
 }
@@ -3804,7 +3804,7 @@ button {
 }
 
 .journal-info-page .page-number {
-  bottom: 6mm;
+  bottom: 4mm;
   left: 18mm;
   right: 18mm;
 }
