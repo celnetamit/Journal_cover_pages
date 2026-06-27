@@ -59,8 +59,8 @@ export const defaultManuscriptUrl = "https://manuscript-engine.journalslibrary.c
 // spine sits between the back and front cover panels on the cover spread.
 export const defaultSpineMm = 12;
 export const SPINE_PRESETS: ReadonlyArray<{ label: string; mm: number }> = [
-  { label: "50 pages", mm: 5.5 },
-  { label: "75 pages", mm: 8.2 },
+  { label: "120 pages", mm: 12 },
+  { label: "200 pages", mm: 20 },
 ];
 
 // Default cover print dimensions (mm). Each cover page is A4-wide; the spread is
