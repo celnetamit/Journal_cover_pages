@@ -470,7 +470,7 @@ button {
   gap: 28px;
   grid-template-columns: minmax(0, 1fr) minmax(380px, 460px);
   margin: 0 auto;
-  max-width: 1360px;
+  max-width: 100rem;
 }
 
 .layout-workbench.preview-only {
