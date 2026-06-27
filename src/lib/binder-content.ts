@@ -57,7 +57,7 @@ export const defaultManuscriptUrl = "https://manuscript-engine.journalslibrary.c
 
 // Default printed spine thickness (mm) and the common page-count presets. The
 // spine sits between the back and front cover panels on the cover spread.
-export const defaultSpineMm = 5.5;
+export const defaultSpineMm = 12;
 export const SPINE_PRESETS: ReadonlyArray<{ label: string; mm: number }> = [
   { label: "50 pages", mm: 5.5 },
   { label: "75 pages", mm: 8.2 },
@@ -67,8 +67,8 @@ export const SPINE_PRESETS: ReadonlyArray<{ label: string; mm: number }> = [
 // 2×page + spine. The bleed (added at PDF export) stays a standard 3mm.
 export const defaultCoverPageWidthMm = 210;
 export const defaultCoverPageHeightMm = 297;
-export const defaultCoverSafePaddingHMm = 6;
-export const defaultCoverSafePaddingVMm = 6;
+export const defaultCoverSafePaddingHMm = 18;
+export const defaultCoverSafePaddingVMm = 12.5;
 
 export type CoverElementId =
   | "abbreviationBadge"

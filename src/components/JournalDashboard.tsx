@@ -2268,6 +2268,20 @@ function SectionEditor({
               Content area per cover: {(draft.coverPageWidthMm ?? defaultCoverPageWidthMm) - (draft.coverSafePaddingHMm ?? defaultCoverSafePaddingHMm)} × {(draft.coverPageHeightMm ?? defaultCoverPageHeightMm) - 2 * (draft.coverSafePaddingVMm ?? defaultCoverSafePaddingVMm)} mm.
               Horizontal padding sets content width, vertical sets content height; a standard 3&nbsp;mm bleed is added at export.
             </small>
+            <button
+              type="button"
+              className="reset-dimensions"
+              onClick={() => onChange({
+                ...draft,
+                spineMm: undefined,
+                coverPageWidthMm: undefined,
+                coverPageHeightMm: undefined,
+                coverSafePaddingHMm: undefined,
+                coverSafePaddingVMm: undefined,
+              })}
+            >
+              Reset dimensions to defaults
+            </button>
           </div>
           <label className="file-field">
             <span>Upload front cover image</span>
