@@ -451,24 +451,6 @@ export const lawSalientFeatures = [
   "Rapid online submission and publication of papers, soon after their formal acceptance/finalization.",
 ];
 
-export const lawJournalNames = [
-  "National Journal of Criminal Law",
-  "Journal of Family and Adoption Law",
-  "Journal of Banking and Insurance Law",
-  "National Journal of Real Estate Law",
-  "National Journal of Environmental Law",
-  "National Journal of Cyber Security Law",
-  "Indian Journal of Health & Medical Law",
-  "Journal of Human Rights Law and Practice",
-  "Journal of Intellectual Property Rights Law",
-  "Journal of Capital Market and Securities Law",
-  "Journal of Constitutional Law & Jurisprudence",
-  "Journal of Taxation and Regulatory Framework",
-  "National Journal of Labour and Industrial Law",
-  "Journal of Law of Torts and Consumer Protection Law",
-  "Journal of Corporate Governance and International Business Law",
-];
-
 // Generic, journal-agnostic letter. Tokens ({journal}, {abbreviation},
 // {journal short name}, {year}, {volume}, {issue}, {domain}, {disciplines},
 // {publisher}) are filled at render time, so the default reads correctly for any

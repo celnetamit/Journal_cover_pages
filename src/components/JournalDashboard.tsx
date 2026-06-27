@@ -48,7 +48,6 @@ import {
   type ManagementPerson,
   type ContentRow,
   boardMembers,
-  lawJournalNames,
   defaultDirectorParagraphs,
   lawDirectorParagraphs,
   defaultManuscriptEngine,
@@ -944,7 +943,7 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
       <p className="cover-printer">Printed by : <ReqText value={printer} label="Printed by" /></p>
       <ReqText as="h1" value={title} label="Journal title" />
       <p className="issue-line">Volume <ReqText value={draft.issueVolume} label="Volume" /> | Issue <ReqText value={draft.issueNumber} label="Issue" /></p>
-      <p className="cover-meta"><ReqText value={draft.issueMonthRange} label="Month range" /> | <ReqText value={draft.issueYear} label="Year" /></p>
+      <p className="cover-meta"><ReqText value={draft.issueMonthRange.replace(/\s*-\s*/, "—")} label="Month range" /> | <ReqText value={draft.issueYear} label="Year" /></p>
       <div className="cover-footer">
         <div className="publisher-logo-row">
           <PublisherLogo mode={identity.logoMode} side="publisher" src={proxiedImage(journal.publisherLogo)} />
@@ -1293,15 +1292,13 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
 }
 
 function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
-  const identity = publisherIdentity(journal); // logoMode only
-  const isLaw = identity.logoMode === "law";
   const legal = useContext(LegalContext)[journal.id];
   // Contact-box footers: journal website, publisher phone, publisher email.
   const journalWebsite = journal.website || legal?.website || journal.companyWebsite;
   const phone = legal?.phone || journal.publisherPhone;
   const pubEmail = legal?.publisherEmail || journal.publisherEmail;
   const pageScale = pageDensityScale(
-    [journalWebsite, phone, pubEmail, ...(isLaw ? lawJournalNames : [])].join(" ").length,
+    [journalWebsite, phone, pubEmail].join(" ").length,
     1500,
   );
 
@@ -1324,14 +1321,6 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
           ))}
         </div>
       ) : <MissingFlag label="Management members" block />}
-      {isLaw ? (
-        <section className="law-journal-roster">
-          <h2>Law Journals</h2>
-          <div>
-            {lawJournalNames.map((name) => <span key={name}>{name}</span>)}
-          </div>
-        </section>
-      ) : null}
       <h2 className="management-journal-name">{journal.name}</h2>
       {journal.showPublisherJournals && journal.publisherJournalNames.length ? (
         <ul className="management-journal-list">
@@ -1651,7 +1640,7 @@ function paginateContentByHeight(container: HTMLElement, rows: ContentRow[]): Co
 // Content-page header: "Contents" on the left; journal name, volume/issue and
 // month/year stacked right-aligned (mirrors the cover meta).
 function ContentHeader({ journal, draft, title }: { journal: Journal; draft: BinderDraft; title: string }) {
-  const period = [draft.issueMonthRange.replace("-", "–"), draft.issueYear].filter((v) => v.trim()).join(" ");
+  const period = [draft.issueMonthRange.replace(/\s*-\s*/, "—"), draft.issueYear].filter((v) => v.trim()).join(" ");
   return (
     <header className="content-masthead">
       <h1 className="content-title">{title}</h1>
