@@ -180,7 +180,6 @@ function defaultCoverImage(journal: Journal) {
   // Prefer the journal's own cover image from the database (proxied so remote
   // URLs still export to PDF). Fall back to the curated publisher templates.
   if (journal.logo) return proxiedImage(journal.logo);
-  if ((journal.abbreviation || "").toLowerCase() === "joadms") return "/brand/joadms-pdf-front.png";
   const identity = publisherIdentity(journal);
   if (identity.logoMode === "mba") return "/brand/mba-journals.jpeg";
   if (identity.logoMode === "law") return "/brand/law-journals.jpeg";
@@ -227,7 +226,9 @@ function focusScopeItemsForPage(draft: BinderDraft) {
 function defaultDirectorDesk(journal: Journal) {
   return {
     title: "Director's Desk",
-    name: "Puneet Mehrotra",
+    // No hardcoded person: the director name comes from the journal record;
+    // blank when unset (rendered empty, not a baked-in default).
+    name: "",
     role: isLawJournal(journal) ? "Chairman & Director, Law Journals" : "Managing Director",
     paragraphs: isLawJournal(journal) ? lawDirectorParagraphs : defaultDirectorParagraphs,
   };
@@ -332,8 +333,9 @@ function managementMembersAreDefault(members: ManagementPerson[]) {
 }
 
 function managementHeadsAreDefault(heads: ManagementPerson[] | undefined) {
-  const named = (heads ?? []).filter((h) => h.name?.trim());
-  return named.length === 0 || (named.length === 1 && named[0].name === "Puneet Mehrotra");
+  // Default (replaceable by DB data) only when no head has a name — no hardcoded
+  // person. A team the user actually filled in is left untouched.
+  return (heads ?? []).every((h) => !h.name?.trim());
 }
 
 // Saved drafts predate multiple heads (single `managementHead` object). Coerce
@@ -1673,13 +1675,15 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
         )}
       </div>
       <div className="signature">
-        <Image
-          src={draft.directorSignatureImage || journal.directorSignature || logoAssets.signature.src}
-          alt={logoAssets.signature.alt}
-          width={logoAssets.signature.width}
-          height={logoAssets.signature.height}
-          unoptimized
-        />
+        {draft.directorSignatureImage || journal.directorSignature ? (
+          <Image
+            src={draft.directorSignatureImage || journal.directorSignature || ""}
+            alt="Director signature"
+            width={logoAssets.signature.width}
+            height={logoAssets.signature.height}
+            unoptimized
+          />
+        ) : null}
         <RichText as="span" value={draft.directorName} />
         <RichText as="b" value={draft.directorRole} />
         <RichText as="i" value={journal.publisher} />

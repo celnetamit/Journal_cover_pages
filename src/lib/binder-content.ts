@@ -551,9 +551,9 @@ export const logoAssets = {
     width: 244,
     height: 144,
   },
+  // Aspect hint only (next/image needs width/height); the signature itself comes
+  // from the journal record — no hardcoded person.
   signature: {
-    src: "/brand/puneet-sign.webp",
-    alt: "Puneet Mehrotra signature",
     width: 2507,
     height: 1002,
   },
@@ -562,11 +562,5 @@ export const logoAssets = {
     alt: "QR code for manuscript engine",
     width: 1024,
     height: 1024,
-  },
-  director: {
-    src: "/brand/puneet-sir-director.jpg",
-    alt: "Puneet Mehrotra",
-    width: 661,
-    height: 1149,
   },
 };
