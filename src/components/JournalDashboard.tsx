@@ -1449,14 +1449,19 @@ const EDITORIAL_SECTIONS: { heading: string; match: (role: string) => boolean }[
   { heading: "Reviewers", match: (r) => r.includes("reviewer") },
 ];
 
-const MAX_EDITORIAL_MEMBERS = 12;
+type EditorialGroup = {
+  heading: string;
+  members: EditorialMember[];
+  // A group with a single member is centered (chief layout); multi-member groups
+  // use the two-column grid even when a page only shows one of their members.
+  single: boolean;
+};
 
-function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
-  // Show at most 12 members; the rest are pointed to the full board online.
-  const members = draft.editorialBoard.slice(0, MAX_EDITORIAL_MEMBERS);
-  const truncated = draft.editorialBoard.length > MAX_EDITORIAL_MEMBERS;
-  const boardUrl = (journal.editorialBoardUrl || journal.website || "").replace(/^https?:\/\//i, "");
+// A group's slice that lands on one page. `continued` = the heading repeats
+// because the group spilled over from the previous page.
+type EditorialChunk = EditorialGroup & { continued: boolean };
 
+function buildEditorialGroups(members: EditorialMember[]): EditorialGroup[] {
   const buckets = EDITORIAL_SECTIONS.map((s) => ({ heading: s.heading, members: [] as EditorialMember[] }));
   const editors: EditorialMember[] = [];
   for (const member of members) {
@@ -1465,44 +1470,141 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
     if (idx >= 0) buckets[idx].members.push(member);
     else editors.push(member);
   }
-  const groups = [
+  return [
     ...buckets.filter((b) => b.members.length > 0),
     ...(editors.length > 0 ? [{ heading: "Editors", members: editors }] : []),
-  ];
+  ].map((g) => ({ ...g, single: g.members.length === 1 }));
+}
 
-  const pageScale = pageDensityScale(
-    members
-      .map((member) => [member.name, member.designation, member.affiliation, member.location].filter(Boolean).join(" "))
-      .join(" ")
-      .length,
-    3600,
+// Measure the rendered groups in a hidden full-page clone and break to a new
+// page the moment the current one fills — so a long board flows onto extra pages
+// instead of being capped or clipped. Mirrors paginateContentByHeight.
+function paginateEditorial(container: HTMLElement, groups: EditorialGroup[]): EditorialChunk[][] {
+  const pageEl = container.querySelector<HTMLElement>(".editorial-page");
+  const sections = Array.from(container.querySelectorAll<HTMLElement>(".editorial-section"));
+  const all: EditorialChunk[] = groups.map((g) => ({ ...g, continued: false }));
+  if (!pageEl || sections.length !== groups.length) return [all];
+
+  const outer = (el: HTMLElement | null) => {
+    if (!el) return 0;
+    const s = getComputedStyle(el);
+    return el.offsetHeight + parseFloat(s.marginTop) + parseFloat(s.marginBottom);
+  };
+  const ps = getComputedStyle(pageEl);
+  const contentH = pageEl.clientHeight - parseFloat(ps.paddingTop) - parseFloat(ps.paddingBottom);
+  // The header repeats on every page; the page number sits in the bottom padding.
+  const available = contentH - outer(container.querySelector<HTMLElement>(".editorial-header")) - 6;
+
+  // Per-group cost: the heading (+ grid top margin) and one entry per grid row
+  // (two members per row, except single-member chief groups).
+  const measures = groups.map((g, gi) => {
+    const sec = sections[gi];
+    const grid = sec.querySelector<HTMLElement>(".editor-grid");
+    const lines = grid ? Array.from(grid.querySelectorAll<HTMLElement>(".member-line")) : [];
+    const perRow = g.single ? 1 : 2;
+    const rows: number[] = [];
+    for (let i = 0; i < lines.length; i += perRow) {
+      let h = 0;
+      for (let j = i; j < Math.min(i + perRow, lines.length); j += 1) h = Math.max(h, lines[j].offsetHeight);
+      rows.push(h);
+    }
+    const headingCost = outer(sec.querySelector<HTMLElement>("h3"))
+      + (grid ? parseFloat(getComputedStyle(grid).marginTop) || 0 : 0);
+    const rowGap = grid ? parseFloat(getComputedStyle(grid).rowGap) || 0 : 0;
+    return { headingCost, rowGap, rows, perRow };
+  });
+
+  const pages: EditorialChunk[][] = [];
+  let current: EditorialChunk[] = [];
+  let used = 0;
+  const flush = () => { if (current.length) { pages.push(current); current = []; used = 0; } };
+
+  groups.forEach((g, gi) => {
+    const m = measures[gi];
+    // Not enough room for even the heading + first row → start the group fresh.
+    if (current.length && used + m.headingCost + (m.rows[0] ?? 0) > available) flush();
+    used += m.headingCost;
+    let chunk: EditorialMember[] = [];
+    let continued = false;
+    for (let r = 0; r < m.rows.length; r += 1) {
+      const rowCost = m.rows[r] + (r > 0 ? m.rowGap : 0);
+      if (used + rowCost > available && chunk.length) {
+        current.push({ heading: g.heading, members: chunk, single: g.single, continued });
+        flush();
+        chunk = [];
+        continued = true;
+        used = m.headingCost; // heading repeats on the new page
+      }
+      chunk.push(...g.members.slice(r * m.perRow, r * m.perRow + m.perRow));
+      used += rowCost;
+    }
+    current.push({ heading: g.heading, members: chunk, single: g.single, continued });
+  });
+  flush();
+  return pages.length ? pages : [all];
+}
+
+function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+  const members = draft.editorialBoard;
+  const groups = buildEditorialGroups(members);
+  // Per request: the heading shows the domain/brand group (e.g. "Law Journals"),
+  // not the individual journal name.
+  const domainLabel = publisherIdentity(journal).publisherName;
+  const measureRef = useRef<HTMLDivElement>(null);
+  const [pages, setPages] = useState<EditorialChunk[][]>(() => [groups.map((g) => ({ ...g, continued: false }))]);
+  const groupsKey = members
+    .map((m) => [m.role, m.name, m.designation, m.affiliation, m.location].join("|"))
+    .join("\n");
+
+  useEffect(() => {
+    if (measureRef.current) setPages(paginateEditorial(measureRef.current, groups));
+    // groupsKey captures every member change; groups is derived from it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupsKey]);
+
+  const renderGroup = (g: EditorialChunk, key: string) => (
+    <section key={key} className={g.single ? "editorial-section chief" : "editorial-section"}>
+      <h3>{g.heading}{g.continued ? " (continued)" : ""}</h3>
+      <div className={g.single ? "editor-grid chief" : "editor-grid"}>
+        {g.members.map((member, i) => (
+          <EditorialMemberLine key={`${member.role}-${member.name}-${i}`} member={member} />
+        ))}
+      </div>
+    </section>
   );
 
   return (
-    <section className="pdf-page editorial-page" data-export-group="internal" style={pageStyle(pageScale)}>
-      <header className="editorial-header">
-        <h1 className="editorial-journal-name">{journal.name}</h1>
-        <h2 className="editorial-board-title">Editorial Board Members</h2>
-      </header>
-      {members.length === 0 ? <p className="editorial-empty">No editorial board members have been added for this journal yet.</p> : null}
-      {groups.map((group) => {
-        // A section with a single member is centered; sections with two or more
-        // use the two-column grid (avoids a lone entry stranded in the left column).
-        const single = group.members.length === 1;
-        return (
-          <section key={group.heading} className={single ? "editorial-section chief" : "editorial-section"}>
-            <h3>{group.heading}</h3>
-            <div className={single ? "editor-grid chief" : "editor-grid"}>
-              {group.members.map((member) => <EditorialMemberLine key={`${member.role}-${member.name}`} member={member} />)}
-            </div>
-          </section>
-        );
-      })}
-      {truncated && boardUrl ? (
-        <p className="editorial-more">For the complete Editorial Board, please visit {boardUrl}</p>
-      ) : null}
-      <PageNumber value={6} />
-    </section>
+    <>
+      {/* Hidden measuring clone — the full board at real page width. Excluded
+          from export (no data-export-group) and from view (visibility:hidden). */}
+      <div
+        ref={measureRef}
+        aria-hidden="true"
+        style={{ position: "absolute", left: -99999, top: 0, visibility: "hidden", pointerEvents: "none" }}
+      >
+        <section className="pdf-page editorial-page">
+          <header className="editorial-header">
+            <h1 className="editorial-journal-name">{domainLabel}</h1>
+            <h2 className="editorial-board-title">Editorial Board Members</h2>
+          </header>
+          {groups.map((g) => renderGroup({ ...g, continued: false }, `m-${g.heading}`))}
+        </section>
+      </div>
+
+      {pages.map((pageGroups, pi) => (
+        <section key={pi} className="pdf-page editorial-page" data-export-group="internal">
+          <header className="editorial-header">
+            <h1 className="editorial-journal-name">{domainLabel}</h1>
+            <h2 className="editorial-board-title">Editorial Board Members{pi > 0 ? " (continued)" : ""}</h2>
+          </header>
+          {members.length === 0 && pi === 0 ? (
+            <p className="editorial-empty">No editorial board members have been added for this journal yet.</p>
+          ) : null}
+          {pageGroups.map((g, gi) => renderGroup(g, `${pi}-${gi}-${g.heading}`))}
+          {pi === 0 ? <PageNumber value={6} /> : null}
+        </section>
+      ))}
+    </>
   );
 }
 

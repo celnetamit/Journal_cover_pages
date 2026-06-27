@@ -2268,6 +2268,7 @@ button {
   color: #66758d;
   font-size: 9pt;
   left: 18mm;
+  padding-bottom: 2px;
   position: absolute;
   right: 18mm;
   text-align: center;
@@ -2768,12 +2769,12 @@ button {
 .management-photo-grid {
   display: flex;
   flex-wrap: wrap;
-  column-gap: 2mm;
-  row-gap: calc(2mm * var(--page-scale));
+  column-gap: calc(7mm * var(--page-scale));
+  row-gap: calc(4mm * var(--page-scale));
   justify-content: center;
   margin: 0 auto calc(8mm * var(--page-scale));
-  /* 4 columns max: 4×40mm + 3×2mm = 166mm (a 5th would overflow → wraps). */
-  max-width: 172mm;
+  /* 4 columns max: 4×40mm + 3×7mm = 181mm (a 5th would overflow → wraps). */
+  max-width: 181mm;
 }
 
 /* Internal members: details on the left, photo on the right (row-reverse keeps
@@ -2781,7 +2782,7 @@ button {
 .management-photo-grid .management-profile {
   align-items: center;
   flex-direction: row-reverse;
-  gap: calc(2mm * var(--page-scale));
+  gap: calc(3.5mm * var(--page-scale));
   min-height: 0;
   text-align: left;
   width: 40mm;
@@ -2872,13 +2873,12 @@ button {
 
 .engine-panel {
   align-items: center;
-  border: 1px solid #cbd8e4;
   display: grid;
-  gap: calc(8mm * var(--page-scale));
+  gap: calc(11mm * var(--page-scale));
   /* Single column: steps list on top, QR code below it. */
   grid-template-columns: 1fr;
-  margin: calc(8mm * var(--page-scale)) 0;
-  padding: calc(6mm * var(--page-scale));
+  margin: calc(11mm * var(--page-scale)) 0;
+  padding: calc(2mm * var(--page-scale)) 0;
 }
 
 .manuscript-page {
@@ -2911,12 +2911,12 @@ button {
 }
 
 .manuscript-page .lead-text {
-  font-size: calc(10pt * var(--page-scale));
-  margin-bottom: calc(6mm * var(--page-scale));
+  font-size: calc(12pt * var(--page-scale));
+  margin-bottom: calc(8mm * var(--page-scale));
 }
 
 .manuscript-page .engine-panel span {
-  font-size: calc(9pt * var(--page-scale));
+  font-size: calc(11.5pt * var(--page-scale));
 }
 
 .page6-header,
@@ -2965,7 +2965,7 @@ button {
 .engine-panel ol {
   counter-reset: engine;
   display: grid;
-  gap: 5mm;
+  gap: calc(8mm * var(--page-scale));
   list-style: none;
   margin: 0;
   padding: 0;
@@ -2973,8 +2973,8 @@ button {
 
 .engine-panel li {
   border-bottom: 1px solid #d8e1ea;
-  font-size: calc(10pt * var(--page-scale));
-  padding-bottom: calc(3mm * var(--page-scale));
+  font-size: calc(13pt * var(--page-scale));
+  padding-bottom: calc(4.5mm * var(--page-scale));
 }
 
 .qr-box,
@@ -2982,9 +2982,9 @@ button {
   background: #fff;
   box-shadow: 0 0 0 1px #111;
   display: block;
-  height: 42mm;
+  height: calc(58mm * var(--page-scale));
   margin: 0 auto 4mm;
-  width: 42mm;
+  width: calc(58mm * var(--page-scale));
 }
 
 .qr-box {
@@ -3005,19 +3005,19 @@ button {
 .url-line {
   border-top: 1px solid #d8e1ea;
   color: var(--blue-dark);
-  font-size: calc(9pt * var(--page-scale));
+  font-size: calc(11pt * var(--page-scale));
   overflow-wrap: anywhere;
-  padding-top: calc(4mm * var(--page-scale));
+  padding-top: calc(5mm * var(--page-scale));
   text-align: center;
 }
 
 .manuscript-notice {
   border: 1px solid #111;
-  font-size: calc(8.4pt * var(--page-scale));
+  font-size: calc(9.6pt * var(--page-scale));
   font-weight: 700;
-  line-height: calc(1.35 * var(--page-scale));
-  margin: calc(6mm * var(--page-scale)) 0 0;
-  padding: calc(4mm * var(--page-scale));
+  line-height: calc(1.4 * var(--page-scale));
+  margin: calc(7mm * var(--page-scale)) 0 0;
+  padding: calc(5mm * var(--page-scale));
   text-align: center;
 }
 
@@ -3373,7 +3373,7 @@ button {
 
 .content-page .content-journal-name {
   font-family: Georgia, "Times New Roman", serif;
-  font-size: calc(13pt * var(--page-scale));
+  font-size: calc(16.5pt * var(--page-scale));
   font-weight: 700;
   line-height: 1.2;
   margin-bottom: calc(1.5mm * var(--page-scale));
@@ -3522,7 +3522,7 @@ button {
 
 .signature span {
   display: block;
-  font-size: calc(8.6pt * var(--page-scale));
+  font-size: calc(10.5pt * var(--page-scale));
   font-style: italic;
   font-weight: 700;
   margin-bottom: calc(0.4mm * var(--page-scale));
@@ -3530,6 +3530,7 @@ button {
 
 .signature b {
   display: block;
+  font-size: calc(8.3pt * var(--page-scale));
   font-style: italic;
 }
 
@@ -3589,14 +3590,6 @@ button {
   font-size: calc(12.5pt * var(--page-scale));
   font-weight: 700;
   margin: 0;
-}
-
-.editorial-page .editorial-more {
-  color: #1d3165;
-  font-size: calc(9pt * var(--page-scale));
-  font-weight: 700;
-  margin: calc(5mm * var(--page-scale)) auto 0;
-  text-align: center;
 }
 
 .editorial-page h3 {
