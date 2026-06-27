@@ -46,7 +46,7 @@ export default function FrontCoverCanvas({
       <div className="front-cover-header">
         <div className="front-cover-top">
           <div className="front-cover-top-left">
-            <ReqText className="front-cover-abbreviation-badge" style={{ textTransform: "uppercase" }} value={abbreviation} label="Abbreviation" />
+            <ReqText className="front-cover-abbreviation-badge" value={abbreviation} label="Abbreviation" />
             {/* SJIF / ICV are optional — the whole line is hidden when unset. */}
             {sjif.trim() ? <div className="front-cover-meta-line">SJIF: {sjif}</div> : null}
             {icv.trim() ? <div className="front-cover-meta-line">ICV: {icv}</div> : null}

@@ -1323,9 +1323,12 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
       ) : <MissingFlag label="Management members" block />}
       <h2 className="management-journal-name">{journal.name}</h2>
       {journal.showPublisherJournals && journal.publisherJournalNames.length ? (
-        <ul className="management-journal-list">
-          {journal.publisherJournalNames.map((name) => <li key={name}>{name}</li>)}
-        </ul>
+        <>
+          <h3 className="management-publisher-name">{publisherIdentity(journal).publisherName}</h3>
+          <ul className="management-journal-list">
+            {journal.publisherJournalNames.map((name) => <li key={name}>{name}</li>)}
+          </ul>
+        </>
       ) : null}
       <div className="management-contact-boxes">
         <ContactBox
@@ -1547,9 +1550,7 @@ function paginateEditorial(container: HTMLElement, groups: EditorialGroup[]): Ed
 function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   const members = draft.editorialBoard;
   const groups = buildEditorialGroups(members);
-  // Per request: the heading shows the domain/brand group (e.g. "Law Journals"),
-  // not the individual journal name.
-  const domainLabel = publisherIdentity(journal).publisherName;
+  const journalName = journal.name;
   const measureRef = useRef<HTMLDivElement>(null);
   const [pages, setPages] = useState<EditorialChunk[][]>(() => [groups.map((g) => ({ ...g, continued: false }))]);
   const groupsKey = members
@@ -1584,7 +1585,7 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
       >
         <section className="pdf-page editorial-page">
           <header className="editorial-header">
-            <h1 className="editorial-journal-name">{domainLabel}</h1>
+            <h1 className="editorial-journal-name">{journalName}</h1>
             <h2 className="editorial-board-title">Editorial Board Members</h2>
           </header>
           {groups.map((g) => renderGroup({ ...g, continued: false }, `m-${g.heading}`))}
@@ -1594,7 +1595,7 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
       {pages.map((pageGroups, pi) => (
         <section key={pi} className="pdf-page editorial-page" data-export-group="internal">
           <header className="editorial-header">
-            <h1 className="editorial-journal-name">{domainLabel}</h1>
+            <h1 className="editorial-journal-name">{journalName}</h1>
             <h2 className="editorial-board-title">Editorial Board Members{pi > 0 ? " (continued)" : ""}</h2>
           </header>
           {members.length === 0 && pi === 0 ? (

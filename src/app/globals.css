@@ -2615,6 +2615,16 @@ button {
   text-align: center;
 }
 
+/* Publisher name heading above the publisher-journals list (below the journal
+   name) — labels whose journals are listed. */
+.management-page h3.management-publisher-name {
+  color: #1d3165;
+  font-size: calc(12pt * var(--page-scale));
+  font-weight: 700;
+  margin: calc(0.5mm * var(--page-scale)) 0 calc(2.5mm * var(--page-scale));
+  text-align: center;
+}
+
 /* Publisher's journals listed in two columns (toggle on the publisher). */
 .management-page .management-journal-list {
   color: #222;

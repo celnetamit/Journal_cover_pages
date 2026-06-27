@@ -98,7 +98,9 @@ function scalarData(d: z.infer<typeof JournalSchema>) {
   const derived = frequencyFromIssues(d.issuesPerYear);
   return {
     name: d.name,
-    abbreviation: d.abbreviation.toUpperCase(),
+    // Stored as entered (mixed case allowed, e.g. "JoADMS") — only the cover
+    // badge upper-cases it for display.
+    abbreviation: d.abbreviation,
     shortName: blankToNull(d.shortName),
     website: blankToNull(d.website),
     issnOnline: blankToNull(d.issnOnline),
