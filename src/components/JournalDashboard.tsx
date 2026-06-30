@@ -1281,7 +1281,7 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
           </ul>
         ) : <MissingFlag label="Focus & scope" block />}
       </section>
-      <div>
+      <div className="journal-info-notes">
         {aboutNotes.map((note, index) => (
           <p key={index}>{note}</p>
         ))}

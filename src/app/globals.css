@@ -2084,20 +2084,15 @@ button {
   max-height: 15.5mm;
 }
 
-.front-cover-publisher-logo {
-  background: #fff;
-  display: block;
-  max-height: 16mm;
-  max-width: 28mm;
-  object-fit: contain;
-}
-
+/* Both cover-footer logos share one equal box (same width + height) and each
+   image is fit to contain within it. */
+.front-cover-publisher-logo,
 .front-cover-journal-logo {
   background: #fff;
   display: block;
-  max-height: 18mm;
-  max-width: 24mm;
+  height: 17mm;
   object-fit: contain;
+  width: 28mm;
 }
 
 .pdf-header {
@@ -2476,10 +2471,18 @@ button {
 
 .management-page {
   color: #222;
+  display: flex;
+  flex-direction: column;
   font-family: Arial, Helvetica, sans-serif;
   font-size: calc(8.2pt * var(--page-scale));
   line-height: calc(1.16 * var(--page-scale));
   padding: 14mm 15mm 15mm;
+}
+
+/* Pin the contact-boxes section to the bottom of the page (clearing the folio). */
+.management-page .management-contact-boxes {
+  margin-bottom: calc(5mm * var(--page-scale));
+  margin-top: auto;
 }
 
 .page4-block,
@@ -3051,7 +3054,15 @@ button {
 
 /* === Manuscript Engine page — banner + feature list redesign === */
 .manuscript-page {
+  display: flex;
+  flex-direction: column;
   text-align: center;
+}
+
+/* Pin the contact notice to the bottom of the page (clearing the folio). */
+.manuscript-page .manuscript-notice {
+  margin-bottom: calc(6mm * var(--page-scale));
+  margin-top: auto;
 }
 
 .manuscript-banner {
@@ -3828,10 +3839,17 @@ button {
 
 .journal-info-page {
   color: #222;
+  display: flex;
+  flex-direction: column;
   font-family: Arial, Helvetica, sans-serif;
   font-size: calc(8.55pt * var(--page-scale));
   line-height: calc(1.16 * var(--page-scale));
   padding: 14mm 18mm calc(16mm * var(--page-scale));
+}
+
+/* Pin the closing notes (published-by / copyright / permissions) to the bottom. */
+.journal-info-page .journal-info-notes {
+  margin-top: auto;
 }
 
 .journal-info-head {
