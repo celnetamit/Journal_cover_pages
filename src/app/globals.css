@@ -2777,14 +2777,13 @@ button {
 }
 
 .management-photo-grid {
-  display: flex;
-  flex-wrap: wrap;
-  column-gap: calc(7mm * var(--page-scale));
+  column-gap: calc(6mm * var(--page-scale));
+  display: grid;
+  /* Always 4 equal columns spanning the full content width (no side gaps). */
+  grid-template-columns: repeat(4, 1fr);
+  margin: 0 0 calc(8mm * var(--page-scale));
   row-gap: calc(4mm * var(--page-scale));
-  justify-content: center;
-  margin: 0 auto calc(8mm * var(--page-scale));
-  /* 4 columns max: 4×40mm + 3×7mm = 181mm (a 5th would overflow → wraps). */
-  max-width: 181mm;
+  width: 100%;
 }
 
 /* Internal members: details on the left, photo on the right (row-reverse keeps
@@ -2795,7 +2794,7 @@ button {
   gap: calc(3.5mm * var(--page-scale));
   min-height: 0;
   text-align: left;
-  width: 40mm;
+  width: 100%;
 }
 
 .management-photo-grid .management-profile-details {
@@ -3031,6 +3030,110 @@ button {
   text-align: center;
 }
 
+/* === Manuscript Engine page — banner + feature list redesign === */
+.manuscript-page {
+  text-align: center;
+}
+
+.manuscript-banner {
+  align-items: center;
+  display: flex;
+  gap: calc(4mm * var(--page-scale));
+  justify-content: space-between;
+  margin-bottom: calc(10mm * var(--page-scale));
+}
+
+/* Black "Submit Now and Track" ribbon with a notched (flag) bottom edge. */
+.manuscript-ribbon {
+  background: #111;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+  color: #fff;
+  font-size: calc(10.5pt * var(--page-scale));
+  font-weight: 700;
+  line-height: 1.12;
+  padding: calc(4mm * var(--page-scale)) calc(4mm * var(--page-scale)) calc(7mm * var(--page-scale));
+  text-align: center;
+  width: calc(28mm * var(--page-scale));
+}
+
+.manuscript-brand {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  gap: calc(3mm * var(--page-scale));
+  justify-content: center;
+}
+
+.manuscript-engine-name {
+  font-size: calc(20pt * var(--page-scale));
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.manuscript-page .manuscript-engine-logo {
+  height: auto;
+  max-height: calc(24mm * var(--page-scale));
+  max-width: calc(72mm * var(--page-scale));
+  object-fit: contain;
+  width: auto;
+}
+
+/* Large left-pointing solid arrow on the right of the banner. */
+.manuscript-arrow {
+  border-bottom: calc(11mm * var(--page-scale)) solid transparent;
+  border-right: calc(13mm * var(--page-scale)) solid #111;
+  border-top: calc(11mm * var(--page-scale)) solid transparent;
+  display: block;
+  height: 0;
+  width: 0;
+}
+
+.manuscript-features {
+  display: grid;
+  gap: calc(7mm * var(--page-scale));
+  list-style: none;
+  margin: 0 auto calc(9mm * var(--page-scale));
+  padding: 0;
+  text-align: left;
+  width: 92%;
+}
+
+.manuscript-features li {
+  align-items: start;
+  display: grid;
+  gap: calc(3mm * var(--page-scale));
+  grid-template-columns: calc(8mm * var(--page-scale)) 1fr;
+}
+
+.manuscript-features .feature-icon {
+  color: #111;
+  flex: none;
+  height: calc(6mm * var(--page-scale));
+  margin-top: calc(0.8mm * var(--page-scale));
+  width: calc(6mm * var(--page-scale));
+}
+
+.manuscript-features .feature-text {
+  font-size: calc(12pt * var(--page-scale));
+  line-height: 1.4;
+}
+
+.manuscript-scan-label {
+  font-size: calc(11.5pt * var(--page-scale));
+  font-weight: 700;
+  margin: 0 auto calc(8mm * var(--page-scale));
+  width: 88%;
+}
+
+.manuscript-qr {
+  box-shadow: none;
+  height: calc(50mm * var(--page-scale));
+  margin: 0 auto calc(9mm * var(--page-scale));
+  width: calc(50mm * var(--page-scale));
+}
+
 .page-rule {
   /* Top horizontal rule removed from all pages per request. */
   display: none;
@@ -3226,6 +3329,28 @@ button {
 
 .publisher-logo.image-logo.consortium-logo img {
   max-height: 25mm;
+}
+
+/* Title page: publisher + company logos share one equal-size box (same width
+   and height for both), and each image is fit to contain within that box. These
+   override the per-brand and first-child sizing above. */
+.publisher-logo-row > .publisher-logo,
+.publisher-logo-row > .publisher-logo.image-logo {
+  height: 28mm;
+  max-height: 28mm;
+  max-width: 50mm;
+  min-height: 28mm;
+  min-width: 50mm;
+  width: 50mm;
+}
+
+.publisher-logo-row > .publisher-logo.image-logo img,
+.publisher-logo-row > .publisher-logo:first-child img {
+  height: 100%;
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  width: 100%;
 }
 
 .publisher-logo strong,

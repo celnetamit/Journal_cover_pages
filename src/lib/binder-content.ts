@@ -505,12 +505,12 @@ export const defaultManuscriptEngine: ManuscriptEngineSettings = {
   leadText:
     "Authors can submit manuscripts, track review progress, view decisions, and communicate with the editorial office through the journal manuscript engine.",
   steps: [
-    "Create or log in to the author account.",
-    "Select the journal and manuscript article type.",
-    "Upload manuscript, author declaration, and required files.",
-    "Confirm submission and track the peer-review workflow.",
+    "<strong>Simplify Submission:</strong> Submit your manuscript through our streamlined platform.",
+    "<strong>Save Time:</strong> Efficient workflows and quick publication turnaround times.",
+    "<strong>Streamlined Review:</strong> Accelerate your research with our seamless peer review process.",
+    "<strong>Secure and Confidential:</strong> Your work is handled with the utmost security and confidentiality.",
   ],
-  scanLabel: "Scan to open manuscript page",
+  scanLabel: "Scan the QR Code and Submit Your Manuscript Now on Manuscript Engine for Seamless Submission.",
   logoUrl: "",
 };
 

@@ -6,11 +6,14 @@ import { flushSync } from "react-dom";
 import {
   ArrowLeft,
   ArrowRight,
+  ClipboardCheck,
+  Clock,
   Download,
   Eye,
+  Lock,
   Printer,
-  QrCode,
   SlidersHorizontal,
+  SquarePen,
 } from "lucide-react";
 import FrontCoverCanvas from "@/components/FrontCoverCanvas";
 import { journalLookupKeys } from "@/lib/lookup";
@@ -575,7 +578,7 @@ function PageMasthead({ journal, subtitle }: { journal: Journal; subtitle?: stri
     <header className="page-masthead">
       <PublisherLogo mode={identity.logoMode} side="publisher" src={proxiedImage(journal.publisherLogo)} />
       <div className="page-masthead-text">
-        <div className="page-masthead-title">{titleCaseName(journal.name)}</div>
+        <RichText as="div" className="page-masthead-title" value={titleCaseName(journal.name)} />
         {subtitle ? <div className="page-masthead-sub">{subtitle}</div> : null}
       </div>
     </header>
@@ -953,7 +956,7 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
         </div>
         <ReqText as="b" value={publisherName} label="Publisher name" />
         <ReqText as="strong" value={companyName} label="Company name" />
-        <span><b>Sales Office:</b> <ReqText value={address} label="Sales office address" /></span>
+        <span><b>Corporate Office:</b> <ReqText value={address} label="Corporate office address" /></span>
         <span><b>Regd. Office:</b> <ReqText value={registeredOffice} label="Registered office" /></span>
         <span>Telephone No.: <ReqText value={phone} label="Publisher phone" />; Mobile No.: <ReqText value={mobile} label="Publisher mobile" />, E-mail: <ReqText value={email} label="Publisher email" /></span>
         <span className="cover-footer-web">Website: <ReqText value={website} label="Website" /> | CIN No.: <ReqText value={cin} label="CIN" /></span>
@@ -1056,7 +1059,6 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
   const sendToAddress = legal?.salesAddress || legal?.registeredAddress || journal.salesAddress || journal.address;
   const legalPhoneDisplay = legal?.phone || journal.publisherPhone;
   const legalEmail = legal?.publisherEmail || journal.publisherEmail;
-  const marketingOffice = legal?.registeredAddress || journal.address;
   // Frequency-based pricing: pick the tier matching the journal's issues-per-year.
   const issuesPerYear = Number(journal.issuesPerYear);
   const tier = Number.isFinite(issuesPerYear) ? tiers.find((t) => t.issuesPerYear === issuesPerYear) : undefined;
@@ -1065,11 +1067,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
   return (
     <section className="pdf-page payment-reference-page" data-export-group="internal">
       <p>
-        {isLaw
-          ? `${paymentPublisherName} (a division of ${companyName}) is the Publisher of Journal. Statements and opinions expressed in the Journal reflect the views of the author(s) and are not the opinion of ${paymentPublisherName} unless so stated.`
-          : isJournalsPub
-          ? `${paymentPublisherName} (a division of ${companyName}) having its Marketing office located at ${marketingOffice}, is the Publisher of the Journals. Statements and opinions expressed in the Journal reflect the views of the Author(s) and are not the opinion of ${paymentPublisherName} unless so stated.`
-          : `${paymentPublisherName} (an imprint of ${companyName}) having its marketing office located at ${marketingOffice}, is the Publisher of Journals. The author(s) or editor(s) expressed in the Journal reflect the views of the author(s) and are not the opinion of ${paymentPublisherName} unless so stated.`}
+        {`${paymentPublisherName} (a strong initiative of ${companyName}) is the Publisher of Journal. Statements and opinions expressed in the journal reflect the views of the author(s) and are not the opinion of ${journal.name} unless so stated.`}
       </p>
 
       <h1>SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, <ReqText value={subscriptionYear} label="Year" />)</h1>
@@ -1269,7 +1267,7 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
       </section>
       <section>
         <div className="journal-info-title-block">
-          <h2 className="journal-info-name">{journal.name}</h2>
+          <RichText as="h2" className="journal-info-name" value={journal.name} />
           {(journal.eIssn || journal.pIssn) ? (
             <p className="journal-info-issn">
               {[journal.eIssn ? `ISSN: ${journal.eIssn} (Online)` : null, journal.pIssn ? `ISSN: ${journal.pIssn} (Print)` : null].filter(Boolean).join(", ")}
@@ -1323,7 +1321,7 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
           ))}
         </div>
       ) : <MissingFlag label="Management members" block />}
-      <h2 className="management-journal-name">{journal.name}</h2>
+      <RichText as="h2" className="management-journal-name" value={journal.name} />
       {journal.showPublisherJournals && journal.publisherJournalNames.length ? (
         <>
           <h3 className="management-publisher-name">{publisherIdentity(journal).publisherName}</h3>
@@ -1394,9 +1392,14 @@ function ManagementProfile({ person, featured = false }: { person: ManagementPer
   );
 }
 
+// Icons for the manuscript feature list, matched to the default four features
+// by position. Extra features (if an admin adds more) simply render without an
+// icon.
+const MANUSCRIPT_FEATURE_ICONS = [ClipboardCheck, Clock, SquarePen, Lock];
+
 function ManuscriptEnginePage({ journal }: { journal: Journal }) {
-  // Shared content (heading, lead text, steps, logo) comes from the global
-  // Manuscript-engine settings; the QR + URL + notice are per-journal.
+  // Shared content (heading, feature list, logo) comes from the global
+  // Manuscript-engine settings; the QR + notice are per-journal.
   const engine = useContext(ManuscriptContext);
   const engineLogo = proxiedImage(engine.logoUrl);
   // Fixed closing notice; only the contact email is dynamic (publisher email).
@@ -1404,38 +1407,47 @@ function ManuscriptEnginePage({ journal }: { journal: Journal }) {
   const publisherEmail = legal?.publisherEmail || journal.publisherEmail;
   const noticePrefix = "Please don't hesitate to reach out to us. For any inquiries regarding APID and Manuscript submission, please contact us at ";
   // The QR encodes the journal's manuscript-submission URL (falling back to the
-  // journal website); the printed link shows the journal website.
+  // journal website).
   const submissionUrl = journal.manuscriptUrl?.trim() || journal.website?.trim() || defaultManuscriptUrl;
-  const url = journal.website?.trim() || journal.manuscriptUrl?.trim() || defaultManuscriptUrl;
   const qrSrc = submissionUrl
     ? `/api/qr?data=${encodeURIComponent(submissionUrl)}`
     : logoAssets.manuscriptQr.src;
   const pageScale = pageDensityScale(
-    `${url} ${engine.leadText} ${engine.steps.join(" ")} ${noticePrefix}${publisherEmail}`.length,
+    `${engine.steps.join(" ")} ${engine.scanLabel} ${noticePrefix}${publisherEmail}`.length,
     340,
   );
   return (
-    <section className="pdf-page details-page manuscript-page" data-export-group="internal" style={pageStyle(pageScale)}>
-      <div className="manuscript-head">
-        {engineLogo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="manuscript-engine-logo" src={engineLogo} alt={engine.heading} crossOrigin="anonymous" />
-        ) : null}
-        <h1>{engine.heading}</h1>
-      </div>
-      <RichText as="p" className="lead-text" value={engine.leadText} />
-      <div className="engine-panel">
-        <ol>
-          {engine.steps.map((step, index) => <RichText as="li" key={index} value={step} />)}
-        </ol>
-        <div>
-          <QrCode size={34} />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="qr-image" src={qrSrc} alt="Manuscript submission QR code" crossOrigin="anonymous" />
-          <span>{engine.scanLabel}</span>
+    <section className="pdf-page manuscript-page" data-export-group="internal" style={pageStyle(pageScale)}>
+      <div className="manuscript-banner">
+        <span className="manuscript-ribbon">Submit Now and Track</span>
+        <div className="manuscript-brand">
+          {engineLogo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="manuscript-engine-logo" src={engineLogo} alt={engine.heading} crossOrigin="anonymous" />
+          ) : (
+            <span className="manuscript-engine-name">{engine.heading}</span>
+          )}
         </div>
+        <span className="manuscript-arrow" aria-hidden="true" />
       </div>
-      <p className="url-line">{hasValue(url) ? url : <MissingFlag label="Journal website / manuscript URL" />}</p>
+
+      <ul className="manuscript-features">
+        {engine.steps.map((step, index) => {
+          const Icon = MANUSCRIPT_FEATURE_ICONS[index];
+          return (
+            <li key={index}>
+              {Icon ? <Icon className="feature-icon" aria-hidden="true" /> : <span className="feature-icon" />}
+              <RichText as="span" className="feature-text" value={step} />
+            </li>
+          );
+        })}
+      </ul>
+
+      <p className="manuscript-scan-label">{engine.scanLabel}</p>
+
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="qr-image manuscript-qr" src={qrSrc} alt="Manuscript submission QR code" crossOrigin="anonymous" />
+
       <p className="manuscript-notice">
         {noticePrefix}{hasValue(publisherEmail) ? publisherEmail : <MissingFlag label="Publisher email" />}
       </p>
@@ -1567,7 +1579,7 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
 
   const renderGroup = (g: EditorialChunk, key: string) => (
     <section key={key} className={g.single ? "editorial-section chief" : "editorial-section"}>
-      <h3>{g.heading}{g.continued ? " (continued)" : ""}</h3>
+      <h3>{g.heading}</h3>
       <div className={g.single ? "editor-grid chief" : "editor-grid"}>
         {g.members.map((member, i) => (
           <EditorialMemberLine key={`${member.role}-${member.name}-${i}`} member={member} />
@@ -1587,7 +1599,7 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
       >
         <section className="pdf-page editorial-page">
           <header className="editorial-header">
-            <h1 className="editorial-journal-name">{journalName}</h1>
+            <RichText as="h1" className="editorial-journal-name" value={journalName} />
             <h2 className="editorial-board-title">Editorial Board Members</h2>
           </header>
           {groups.map((g) => renderGroup({ ...g, continued: false }, `m-${g.heading}`))}
@@ -1596,10 +1608,12 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
 
       {pages.map((pageGroups, pi) => (
         <section key={pi} className="pdf-page editorial-page" data-export-group="internal">
-          <header className="editorial-header">
-            <h1 className="editorial-journal-name">{journalName}</h1>
-            <h2 className="editorial-board-title">Editorial Board Members{pi > 0 ? " (continued)" : ""}</h2>
-          </header>
+          {pi === 0 ? (
+            <header className="editorial-header">
+              <RichText as="h1" className="editorial-journal-name" value={journalName} />
+              <h2 className="editorial-board-title">Editorial Board Members</h2>
+            </header>
+          ) : null}
           {members.length === 0 && pi === 0 ? (
             <p className="editorial-empty">No editorial board members have been added for this journal yet.</p>
           ) : null}
@@ -1754,7 +1768,7 @@ function ContentHeader({ journal, draft, title }: { journal: Journal; draft: Bin
     <header className="content-masthead">
       <h1 className="content-title">{title}</h1>
       <div className="content-meta">
-        <div className="content-journal-name">{journal.name}</div>
+        <RichText as="div" className="content-journal-name" value={journal.name} />
         <div className="content-issue">Volume {draft.issueVolume} | Issue {draft.issueNumber}</div>
         {period ? <div className="content-period">{period}</div> : null}
       </div>
