@@ -2084,15 +2084,19 @@ button {
   max-height: 15.5mm;
 }
 
-/* Both cover-footer logos share one equal box (same width + height) and each
-   image is fit to contain within it. */
+/* Both cover-footer logos sit in one equal box (the centered footer-item). We
+   fix the HEIGHT and let the WIDTH follow (width: auto) so every logo shares the
+   same height baseline and keeps its intrinsic aspect ratio. We avoid a fixed
+   box + object-fit because html2canvas (the PDF exporter) ignores object-fit and
+   would stretch the logo to the full box, ballooning its width. max-width is a
+   safety cap so an unusually wide logo can't overflow the footer slot. */
 .front-cover-publisher-logo,
 .front-cover-journal-logo {
   background: #fff;
   display: block;
   height: 17mm;
-  object-fit: contain;
-  width: 28mm;
+  max-width: 28mm;
+  width: auto;
 }
 
 .pdf-header {
