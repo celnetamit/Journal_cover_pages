@@ -120,7 +120,7 @@ const defaultCoverPrinter = "Laxman Printo Graphics, Noida";
 const defaultRegisteredOffice =
   "Office No. 4, First Floor, CSC Pocket-E Market, Mayur Vihar, Phase-I, New Delhi-110091";
 const defaultCin = "U80302DL2005PTC138759";
-const maxFocusScopeKeywords = 7;
+const maxFocusScopeKeywords = 12;
 
 function pageStepperLabel(page: number) {
   if (page === 1) return "Cover Spread";

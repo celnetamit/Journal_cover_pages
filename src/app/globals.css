@@ -2838,6 +2838,25 @@ button {
   border-left: 1px solid #a9a9a9;
 }
 
+/* Per-column alignment: left box left, middle box centered, right box right.
+   The first box keeps the default (flex-start / left). */
+.contact-box:nth-child(2) {
+  align-items: center;
+  text-align: center;
+}
+
+.contact-box:nth-child(3) {
+  align-items: flex-end;
+  text-align: right;
+}
+
+/* Heading + footer (with its divider line) always span the full box width,
+   regardless of the box's alignment. */
+.contact-box-heading,
+.contact-box-footer {
+  align-self: stretch;
+}
+
 .contact-box-heading {
   font-style: italic;
   font-weight: 700;
