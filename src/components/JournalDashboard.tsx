@@ -1129,7 +1129,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
             <b>Please Send Demand Draft/Cheque to following address:</b><br />
             Subscription Department, {paymentPublisherName},<br />
             {companyName}<br />
-            {sendToAddress}<br />
+            <RichText as="span" value={sendToAddress} /><br />
             Tel.: {legalPhoneDisplay}
           </p>
         </div>
