@@ -107,7 +107,13 @@ export const getDynamicBinderData = cache(async (_journal?: Journal): Promise<Dy
   try {
     const journals = await prisma.journal.findMany({
       include: {
-        publisher: { include: { company: true } },
+        publisher: {
+          include: {
+            company: true,
+            // Management team is publisher-scoped: shared by all the publisher's journals.
+            members: { include: { profile: true }, orderBy: { order: "asc" } },
+          },
+        },
         members: { include: { profile: true }, orderBy: { order: "asc" } },
       },
     });
@@ -155,14 +161,17 @@ export const getDynamicBinderData = cache(async (_journal?: Journal): Promise<Dy
         }));
       if (editorial.length) addAliases(data.editorialByKey, editorial, aliases);
 
-      const toManagementPerson = (m: (typeof j.members)[number]): ManagementPersonData => ({
+      // Management team is sourced from the journal's PUBLISHER (publisher-scoped),
+      // so every journal under a publisher shows the same team.
+      const publisherMembers = j.publisher?.members ?? [];
+      const toManagementPerson = (m: (typeof publisherMembers)[number]): ManagementPersonData => ({
         name: m.profile.name,
         role: s(m.profile.designation) || JOURNAL_ROLE_LABELS[m.role] || "",
         department: s(m.profile.department),
         photo: s(m.profile.photoUrl),
       });
-      const headMembers = j.members.filter((m) => m.role === "MANAGEMENT_HEAD");
-      const memberRows = j.members.filter((m) => m.role === "MANAGEMENT_MEMBER");
+      const headMembers = publisherMembers.filter((m) => m.role === "MANAGEMENT_HEAD");
+      const memberRows = publisherMembers.filter((m) => m.role === "MANAGEMENT_MEMBER");
       if (headMembers.length || memberRows.length) {
         addAliases(
           data.managementByKey,

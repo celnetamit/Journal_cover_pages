@@ -1,50 +1,39 @@
 import Link from "next/link";
-import { addJournalMember, removeJournalMember } from "@/app/actions/entities";
+import { addPublisherMember, removePublisherMember } from "@/app/actions/entities";
 import { SearchableSelect, type Option } from "@/components/forms/Fields";
 
-// Grouped by the binder page the role feeds, so it's clear what each choice maps
-// to. Editorial-page roles split into the page's Editor-in-Chief / Associate /
-// Editors sections by their label. NOTE: the Management-page team is now
-// publisher-scoped — set it on the publisher (Admin → Publishers → Edit), not here.
-const ROLE_GROUPS: { label: string; roles: [string, string][] }[] = [
-  {
-    label: "Editorial page",
-    roles: [
-      ["EDITOR_IN_CHIEF", "Editor-in-Chief"],
-      ["ASSOCIATE_EDITOR_IN_CHIEF", "Associate Editor-in-Chief"],
-      ["EDITORIAL_BOARD", "Editorial Board"],
-      ["MANAGING_EDITOR", "Managing Editor"],
-      ["ADVISOR", "Advisor"],
-      ["REVIEWER", "Reviewer"],
-    ],
-  },
+// Publisher-scoped management team. Only the two management roles apply here —
+// this team is shared by every one of the publisher's journals' management page.
+const ROLES: [string, string][] = [
+  ["MANAGEMENT_HEAD", "Management Head (featured row)"],
+  ["MANAGEMENT_MEMBER", "Management Member (grid)"],
 ];
-const ROLE_LABEL = Object.fromEntries(ROLE_GROUPS.flatMap((g) => g.roles));
+const ROLE_LABEL = Object.fromEntries(ROLES);
 
-export type BoardMember = { id: string; role: string; order: number; profileName: string };
+export type PublisherBoardMember = { id: string; role: string; order: number; profileName: string };
 
 const control =
   "rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200";
 
-// Server component: manage the JournalMember links for a journal. Forms post to
-// server actions which revalidate this page.
-export default function JournalBoardEditor({
-  journalId,
+// Server component: manage the PublisherMember links for a publisher. Forms post
+// to server actions which revalidate this page.
+export default function PublisherBoardEditor({
+  publisherId,
   members,
   profiles,
 }: {
-  journalId: string;
-  members: BoardMember[];
+  publisherId: string;
+  members: PublisherBoardMember[];
   profiles: Option[];
 }) {
   return (
     <section className="mt-10 border-t border-slate-200 pt-8">
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Editorial board</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Publication &amp; Management Team</h2>
           <p className="text-sm text-slate-500">
-            Select a profile + role; the role decides the section it appears in on the Editorial page
-            (Editor-in-Chief / Associate / Editors). The Management-page team is set on the publisher.{" "}
+            Set this publisher&apos;s management team once here; it shows on every one of the publisher&apos;s
+            journals&apos; management page (Head = featured row, Member = grid).{" "}
             <Link href="/admin/profiles/new" className="text-slate-700 underline">Add a new profile</Link>
           </p>
         </div>
@@ -62,7 +51,7 @@ export default function JournalBoardEditor({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {members.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-4 text-center text-slate-400">No members yet.</td></tr>
+              <tr><td colSpan={4} className="px-4 py-4 text-center text-slate-400">No team members yet.</td></tr>
             )}
             {members.map((m) => (
               <tr key={m.id}>
@@ -70,7 +59,7 @@ export default function JournalBoardEditor({
                 <td className="px-4 py-3 font-medium text-slate-900">{m.profileName}</td>
                 <td className="px-4 py-3 text-slate-500">{m.order}</td>
                 <td className="px-4 py-3">
-                  <form action={removeJournalMember} className="flex justify-end">
+                  <form action={removePublisherMember} className="flex justify-end">
                     <input type="hidden" name="id" value={m.id} />
                     <button type="submit" className="text-red-600 hover:text-red-700">Remove</button>
                   </form>
@@ -81,8 +70,8 @@ export default function JournalBoardEditor({
         </table>
       </div>
 
-      <form action={addJournalMember} className="mt-4 flex flex-wrap items-end gap-3">
-        <input type="hidden" name="journalId" value={journalId} />
+      <form action={addPublisherMember} className="mt-4 flex flex-wrap items-end gap-3">
+        <input type="hidden" name="publisherId" value={publisherId} />
         <div className="flex-1">
           <SearchableSelect
             name="profileId"
@@ -93,13 +82,9 @@ export default function JournalBoardEditor({
         </div>
         <label>
           <span className="block text-xs text-slate-500">Role</span>
-          <select name="role" defaultValue="EDITORIAL_BOARD" className={`${control} mt-1`}>
-            {ROLE_GROUPS.map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                {group.roles.map(([value, text]) => (
-                  <option key={value} value={value}>{text}</option>
-                ))}
-              </optgroup>
+          <select name="role" defaultValue="MANAGEMENT_MEMBER" className={`${control} mt-1`}>
+            {ROLES.map(([value, text]) => (
+              <option key={value} value={value}>{text}</option>
             ))}
           </select>
         </label>

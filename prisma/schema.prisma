@@ -121,6 +121,7 @@ model Profile {
   updatedAt   DateTime @updatedAt
 
   memberships         JournalMember[]
+  publisherMemberships PublisherMember[]
   directorOfCompanies Company[]       @relation("CompanyDirector")
   managedDomains      Domain[]        @relation("DomainManager")
   managedJournals     Journal[]       @relation("JournalManager")
@@ -190,6 +191,10 @@ model Publisher {
   subscriptionManager   Profile? @relation("PublisherSubscriptionManager", fields: [subscriptionManagerId], references: [id], onDelete: SetNull)
   dispatchManagerId     String?
   dispatchManager       Profile? @relation("PublisherDispatchManager", fields: [dispatchManagerId], references: [id], onDelete: SetNull)
+
+  // Publication & Management Team shown on every one of this publisher's journals'
+  // management page (roles MANAGEMENT_HEAD / MANAGEMENT_MEMBER). Set once per publisher.
+  members  PublisherMember[]
 
   journals Journal[]
 }
@@ -331,6 +336,23 @@ model JournalMember {
 
   @@unique([journalId, profileId, role])
   @@index([journalId])
+}
+
+// Publisher-scoped management team. Mirrors JournalMember but tied to a publisher,
+// so the management page's team is set once per publisher and shared by all of its
+// journals. Only MANAGEMENT_HEAD / MANAGEMENT_MEMBER roles are used here.
+model PublisherMember {
+  id          String      @id @default(cuid())
+  publisherId String
+  profileId   String
+  role        JournalRole
+  order       Int         @default(0)
+
+  publisher Publisher @relation(fields: [publisherId], references: [id], onDelete: Cascade)
+  profile   Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([publisherId, profileId, role])
+  @@index([publisherId])
 }
 
 // ---------------------------------------------------------------------------

@@ -271,6 +271,37 @@ export async function removeJournalMember(formData: FormData): Promise<void> {
   revalidatePath("/");
 }
 
+// --- Publisher members (publisher-scoped management team) -----------------
+
+// The management team lives on the publisher and is shared by all its journals.
+// Only the two management roles are valid here.
+const PUBLISHER_MEMBER_ROLES = ["MANAGEMENT_HEAD", "MANAGEMENT_MEMBER"] as const;
+
+export async function addPublisherMember(formData: FormData): Promise<void> {
+  await requireRole("EDITOR");
+  const publisherId = String(formData.get("publisherId"));
+  const profileId = String(formData.get("profileId"));
+  const role = String(formData.get("role"));
+  const order = Number(formData.get("order")) || 0;
+  if (!publisherId || !profileId || !PUBLISHER_MEMBER_ROLES.includes(role as (typeof PUBLISHER_MEMBER_ROLES)[number])) return;
+
+  await prisma.publisherMember.upsert({
+    where: { publisherId_profileId_role: { publisherId, profileId, role: role as (typeof PUBLISHER_MEMBER_ROLES)[number] } },
+    update: { order },
+    create: { publisherId, profileId, role: role as (typeof PUBLISHER_MEMBER_ROLES)[number], order },
+  });
+  revalidatePath(`/admin/publishers/${publisherId}/edit`);
+  revalidatePath("/");
+}
+
+export async function removePublisherMember(formData: FormData): Promise<void> {
+  await requireRole("EDITOR");
+  const id = String(formData.get("id"));
+  const member = await prisma.publisherMember.delete({ where: { id } });
+  revalidatePath(`/admin/publishers/${member.publisherId}/edit`);
+  revalidatePath("/");
+}
+
 // --- Allowed sign-in domains (Google OAuth) ------------------------------
 
 // Normalize free-form input to a bare host: lowercase, drop scheme/path, and

@@ -388,9 +388,10 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
   // Focus notes mirror the journal record only (no built-in default).
   const withFocusNotes = withFocus.focusNotes?.length ? withFocus : { ...withFocus, focusNotes: journal.focusNotes };
 
-  // Resolve the management team from the journal's DB members (JournalMember +
-  // Profiles). When the saved draft team is still "default" (empty OR the legacy
-  // hardcoded seed team), use the DB team if present, otherwise clear it to []
+  // Resolve the management team from the journal's PUBLISHER team (PublisherMember
+  // + Profiles), shared by all the publisher's journals. When the saved draft team
+  // is still "default" (empty OR the legacy hardcoded seed team), use the DB team
+  // if present, otherwise clear it to []
   // so old binders flag the missing team instead of showing the seed sample.
   // A team the user actually edited inline is left untouched.
   const management = dynamicData ? findDynamicValue(journal, dynamicData.managementByKey) : undefined;
