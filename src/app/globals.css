@@ -2785,9 +2785,11 @@ button {
 
 .management-photo-grid {
   column-gap: calc(6mm * var(--page-scale));
-  display: grid;
-  /* Always 4 equal columns spanning the full content width (no side gaps). */
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  /* Up to 4 per row; a partial last row (or fewer than 4 members) centers
+     instead of hugging the left, so there's no empty gap on the right. */
+  justify-content: center;
   margin: 0 0 calc(8mm * var(--page-scale));
   row-gap: calc(4mm * var(--page-scale));
   width: 100%;
@@ -2797,11 +2799,13 @@ button {
    the photo-first DOM order while pinning it to the right edge). Capped at 16. */
 .management-photo-grid .management-profile {
   align-items: center;
+  /* Four per row: full width minus the three 6mm column-gaps, split 4 ways
+     (a hair narrower so sub-pixel rounding never wraps the 4th to a new row). */
+  flex: 0 0 calc((100% - 18.4mm * var(--page-scale)) / 4);
   flex-direction: row-reverse;
   gap: calc(3.5mm * var(--page-scale));
   min-height: 0;
   text-align: left;
-  width: 100%;
 }
 
 .management-photo-grid .management-profile-details {
@@ -3791,6 +3795,12 @@ button {
   grid-template-columns: 1fr;
   justify-items: center;
   text-align: center;
+}
+
+/* An odd trailing member is alone in its row: span both columns so it centers
+   across the full width instead of sitting in the left column. */
+.editor-grid:not(.chief) > .member-line:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 .member-line {
