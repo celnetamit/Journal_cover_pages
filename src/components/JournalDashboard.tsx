@@ -579,7 +579,7 @@ function PageMasthead({ journal, subtitle }: { journal: Journal; subtitle?: stri
     <header className="page-masthead">
       <PublisherLogo mode={identity.logoMode} side="publisher" src={proxiedImage(journal.publisherLogo)} />
       <div className="page-masthead-text">
-        <RichText as="div" className="page-masthead-title" value={titleCaseName(journal.name)} />
+        <RichText as="div" className="page-masthead-title" value={journal.name} />
         {subtitle ? <div className="page-masthead-sub">{subtitle}</div> : null}
       </div>
     </header>
@@ -930,7 +930,7 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
   const eIssn = draft.eIssn || journal.eIssn; // optional — blank renders empty
   // Per-issue override → Company.printedBy (single point of change) → app default.
   const printer = draft.coverPrinter || journal.printedBy || defaultCoverPrinter;
-  const title = draft.journalTitle?.trim() ? draft.journalTitle : titleCaseName(journal.name);
+  const title = draft.journalTitle?.trim() ? draft.journalTitle : journal.name;
   const publisherName = legal?.publisherName || journal.publisher;
   const companyName = legal?.companyName || journal.imprint;
   const address = draft.publisherAddress || legal?.salesAddress || legal?.registeredAddress || journal.salesAddress || journal.address;
@@ -1049,7 +1049,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
   // journal's subscription plans). No hardcoded brand defaults — blank values
   // are flagged on the page. (The surrounding policy narrative is standard text.)
   const publisherName = legal?.publisherName || journal.publisher;
-  const paymentPublisherName = isJournalsPub ? "Journals Pub" : publisherName;
+  const paymentPublisherName = isJournalsPub ? "JournalsPub" : publisherName;
   const companyName = legal?.companyName || journal.imprint;
   const payeeBankName = legal?.bankAccountName || companyName;
   const bankAccountNo = legal?.bankAccountNo;
@@ -1178,7 +1178,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
       <h2 className="no-divider">ADVERTISING AND COMMERCIAL REPRINT INQUIRIES</h2>
       {isJournalsPub || isLaw ? (
         <p>
-          {isLaw ? "Law Journals" : "Journals Pub"} with wide circulation and visibility offer an excellent media for showcasing/promotion of your
+          {isLaw ? "Law Journals" : "JournalsPub"} with wide circulation and visibility offer an excellent media for showcasing/promotion of your
           products/services and the events namely, Conferences, Symposia/Seminars, etc. These journals have very high
           potential to deliver the message across the targeted audience regularly with each published issue. The
           advertisements on bulk subscriptions, gift subscriptions or reprint purchases for distribution, etc. are also
@@ -1643,14 +1643,14 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
 // Tokens usable in director-desk + focus-note text, filled from the journal/issue.
 function applyBinderTokens(text: string, journal: Journal, draft: BinderDraft, email?: string): string {
   const abbreviation = draft.journalAbbreviation || journal.abbreviation || journal.shortName;
-  const shortName = journal.shortName || journal.abbreviation || titleCaseName(journal.name);
+  const shortName = journal.shortName || journal.abbreviation || journal.name;
   // Dynamic (per-journal/issue) token values render italic in the Director letter.
   const em = (value: string) => (value ? `<em>${value}</em>` : value);
   return text
     // "{journal short name}" first — it is not a substring conflict with "{journal}",
     // but replacing the longer token first keeps intent clear.
     .replaceAll("{journal short name}", em(shortName))
-    .replaceAll("{journal}", em(titleCaseName(journal.name)))
+    .replaceAll("{journal}", em(journal.name))
     .replaceAll("{abbreviation}", em(abbreviation))
     .replaceAll("{volume}", em(draft.issueVolume || defaultIssueVolume))
     .replaceAll("{issue}", em(draft.issueNumber || defaultIssueNumber))
