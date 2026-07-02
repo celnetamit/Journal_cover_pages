@@ -2805,6 +2805,9 @@ button {
   flex-direction: row-reverse;
   gap: calc(3.5mm * var(--page-scale));
   min-height: 0;
+  /* Hold the 1/4 flex-basis instead of growing to the text's min-content width
+     (default min-width:auto), so every row fills a full 4 and the text wraps. */
+  min-width: 0;
   text-align: left;
 }
 
