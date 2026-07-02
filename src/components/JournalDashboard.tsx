@@ -1457,8 +1457,13 @@ function ManuscriptEnginePage({ journal }: { journal: Journal }) {
   );
 }
 
+// The Editorial page's top-level title (h2). Also the heading of the fallback
+// section, so the two are kept in sync and the duplicate can be detected.
+const EDITORIAL_BOARD_TITLE = "Editorial Board Members";
+
 // Editorial sections in display order, matched by role keyword. Each member
-// falls into the first matching section; anything unmatched goes to "Editors".
+// falls into the first matching section; anything unmatched goes to the
+// fallback section titled EDITORIAL_BOARD_TITLE.
 const EDITORIAL_SECTIONS: { heading: string; match: (role: string) => boolean }[] = [
   { heading: "Editor-in-Chief", match: (r) => r.includes("chief") && !r.includes("associate") },
   { heading: "Associate Editor-in-Chief", match: (r) => r.includes("associate") && r.includes("chief") },
@@ -1490,7 +1495,7 @@ function buildEditorialGroups(members: EditorialMember[]): EditorialGroup[] {
   }
   return [
     ...buckets.filter((b) => b.members.length > 0),
-    ...(editors.length > 0 ? [{ heading: "Editors", members: editors }] : []),
+    ...(editors.length > 0 ? [{ heading: EDITORIAL_BOARD_TITLE, members: editors }] : []),
   ].map((g) => ({ ...g, single: g.members.length === 1 }));
 }
 
@@ -1526,10 +1531,10 @@ function paginateEditorial(container: HTMLElement, groups: EditorialGroup[]): Ed
       for (let j = i; j < Math.min(i + perRow, lines.length); j += 1) h = Math.max(h, lines[j].offsetHeight);
       rows.push(h);
     }
-    const headingCost = outer(sec.querySelector<HTMLElement>("h3"))
-      + (grid ? parseFloat(getComputedStyle(grid).marginTop) || 0 : 0);
+    const gridMarginTop = grid ? parseFloat(getComputedStyle(grid).marginTop) || 0 : 0;
+    const headingCost = outer(sec.querySelector<HTMLElement>("h3")) + gridMarginTop;
     const rowGap = grid ? parseFloat(getComputedStyle(grid).rowGap) || 0 : 0;
-    return { headingCost, rowGap, rows, perRow };
+    return { headingCost, gridMarginTop, rowGap, rows, perRow };
   });
 
   const pages: EditorialChunk[][] = [];
@@ -1551,7 +1556,7 @@ function paginateEditorial(container: HTMLElement, groups: EditorialGroup[]): Ed
         flush();
         chunk = [];
         continued = true;
-        used = m.headingCost; // heading repeats on the new page
+        used = m.gridMarginTop; // heading is hidden on the continuation page
       }
       chunk.push(...g.members.slice(r * m.perRow, r * m.perRow + m.perRow));
       used += rowCost;
@@ -1578,16 +1583,21 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupsKey]);
 
-  const renderGroup = (g: EditorialChunk, key: string) => (
-    <section key={key} className={g.single ? "editorial-section chief" : "editorial-section"}>
-      <h3>{g.heading}</h3>
-      <div className={g.single ? "editor-grid chief" : "editor-grid"}>
-        {g.members.map((member, i) => (
-          <EditorialMemberLine key={`${member.role}-${member.name}-${i}`} member={member} />
-        ))}
-      </div>
-    </section>
-  );
+  const renderGroup = (g: EditorialChunk, key: string, hasPageTitle: boolean) => {
+    // Hide the heading when it repeats on a continuation page, or when it would
+    // duplicate the page title (h2) shown at the top of the first page.
+    const showHeading = !g.continued && !(hasPageTitle && g.heading === EDITORIAL_BOARD_TITLE);
+    return (
+      <section key={key} className={g.single ? "editorial-section chief" : "editorial-section"}>
+        {showHeading ? <h3>{g.heading}</h3> : null}
+        <div className={g.single ? "editor-grid chief" : "editor-grid"}>
+          {g.members.map((member, i) => (
+            <EditorialMemberLine key={`${member.role}-${member.name}-${i}`} member={member} />
+          ))}
+        </div>
+      </section>
+    );
+  };
 
   return (
     <>
@@ -1601,9 +1611,11 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
         <section className="pdf-page editorial-page">
           <header className="editorial-header">
             <RichText as="h1" className="editorial-journal-name" value={journalName} />
-            <h2 className="editorial-board-title">Editorial Board Members</h2>
+            <h2 className="editorial-board-title">{EDITORIAL_BOARD_TITLE}</h2>
           </header>
-          {groups.map((g) => renderGroup({ ...g, continued: false }, `m-${g.heading}`))}
+          {/* The clone always renders every h3 (hasPageTitle=false) so heading
+              cost is measured; visual suppression happens on the real pages. */}
+          {groups.map((g) => renderGroup({ ...g, continued: false }, `m-${g.heading}`, false))}
         </section>
       </div>
 
@@ -1612,13 +1624,13 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
           {pi === 0 ? (
             <header className="editorial-header">
               <RichText as="h1" className="editorial-journal-name" value={journalName} />
-              <h2 className="editorial-board-title">Editorial Board Members</h2>
+              <h2 className="editorial-board-title">{EDITORIAL_BOARD_TITLE}</h2>
             </header>
           ) : null}
           {members.length === 0 && pi === 0 ? (
             <p className="editorial-empty">No editorial board members have been added for this journal yet.</p>
           ) : null}
-          {pageGroups.map((g, gi) => renderGroup(g, `${pi}-${gi}-${g.heading}`))}
+          {pageGroups.map((g, gi) => renderGroup(g, `${pi}-${gi}-${g.heading}`, pi === 0))}
           {/* Every editorial page gets a folio; PageSet renumbers them (and every
               page after) sequentially by DOM order. */}
           <PageNumber value={6 + pi} />
