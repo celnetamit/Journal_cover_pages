@@ -1457,13 +1457,12 @@ function ManuscriptEnginePage({ journal }: { journal: Journal }) {
   );
 }
 
-// The Editorial page's top-level title (h2). Also the heading of the fallback
-// section, so the two are kept in sync and the duplicate can be detected.
+// The Editorial page's top-level title (the h2 header at the top of the page).
 const EDITORIAL_BOARD_TITLE = "Editorial Board Members";
 
 // Editorial sections in display order, matched by role keyword. Each member
 // falls into the first matching section; anything unmatched goes to the
-// fallback section titled EDITORIAL_BOARD_TITLE.
+// fallback "Editors" section.
 const EDITORIAL_SECTIONS: { heading: string; match: (role: string) => boolean }[] = [
   { heading: "Editor-in-Chief", match: (r) => r.includes("chief") && !r.includes("associate") },
   { heading: "Associate Editor-in-Chief", match: (r) => r.includes("associate") && r.includes("chief") },
@@ -1495,7 +1494,7 @@ function buildEditorialGroups(members: EditorialMember[]): EditorialGroup[] {
   }
   return [
     ...buckets.filter((b) => b.members.length > 0),
-    ...(editors.length > 0 ? [{ heading: EDITORIAL_BOARD_TITLE, members: editors }] : []),
+    ...(editors.length > 0 ? [{ heading: "Editors", members: editors }] : []),
   ].map((g) => ({ ...g, single: g.members.length === 1 }));
 }
 
