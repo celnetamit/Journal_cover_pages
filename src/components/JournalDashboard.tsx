@@ -1583,13 +1583,13 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupsKey]);
 
-  const renderGroup = (g: EditorialChunk, key: string, hasPageTitle: boolean) => {
-    // Hide the heading when it repeats on a continuation page, or when it would
-    // duplicate the page title (h2) shown at the top of the first page.
-    const showHeading = !g.continued && !(hasPageTitle && g.heading === EDITORIAL_BOARD_TITLE);
+  const renderGroup = (g: EditorialChunk, key: string) => {
+    // Heading is hidden only when it repeats on a continuation page; a section
+    // starting fresh on a page always shows its heading (even if the fallback
+    // section's heading matches the page title).
     return (
       <section key={key} className={g.single ? "editorial-section chief" : "editorial-section"}>
-        {showHeading ? <h3>{g.heading}</h3> : null}
+        {g.continued ? null : <h3>{g.heading}</h3>}
         <div className={g.single ? "editor-grid chief" : "editor-grid"}>
           {g.members.map((member, i) => (
             <EditorialMemberLine key={`${member.role}-${member.name}-${i}`} member={member} />
@@ -1613,9 +1613,7 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
             <RichText as="h1" className="editorial-journal-name" value={journalName} />
             <h2 className="editorial-board-title">{EDITORIAL_BOARD_TITLE}</h2>
           </header>
-          {/* The clone always renders every h3 (hasPageTitle=false) so heading
-              cost is measured; visual suppression happens on the real pages. */}
-          {groups.map((g) => renderGroup({ ...g, continued: false }, `m-${g.heading}`, false))}
+          {groups.map((g) => renderGroup({ ...g, continued: false }, `m-${g.heading}`))}
         </section>
       </div>
 
@@ -1630,7 +1628,7 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
           {members.length === 0 && pi === 0 ? (
             <p className="editorial-empty">No editorial board members have been added for this journal yet.</p>
           ) : null}
-          {pageGroups.map((g, gi) => renderGroup(g, `${pi}-${gi}-${g.heading}`, pi === 0))}
+          {pageGroups.map((g, gi) => renderGroup(g, `${pi}-${gi}-${g.heading}`))}
           {/* Every editorial page gets a folio; PageSet renumbers them (and every
               page after) sequentially by DOM order. */}
           <PageNumber value={6 + pi} />
