@@ -463,13 +463,6 @@ export const defaultDirectorParagraphs = [
   "I hope you will enjoy reading this issue, and we welcome your feedback on any aspect of the Journal.",
 ];
 
-export const lawDirectorParagraphs = [
-  "It is my privilege to present the print version of the {journal}. The intention of this journal is to create an atmosphere that stimulates vision and research in the area of law and legal studies.",
-  "Law Journals aims to provide an academic medium and an important reference for the advancement and dissemination of research results that support high-level learning, teaching, and research in legal domains.",
-  "Lastly, I would like to express my sincere gratitude to our Editorial/Review Board, authors and publication team for their continued support, invaluable contributions and suggestions in the form of authoring writeups, reviewing, and providing constructive comments for the advancement of the journals.",
-  "I hope you will enjoy reading this issue and we welcome your feedback on any aspect of the Journal.",
-];
-
 export const defaultFocusNotes = [
   "Sections covered by this journal are review papers, research papers, interviews, news, companies/institutions write-ups, short popular articles and case studies.",
   "All contributions to the journal are rigorously refereed and are selected on the basis of quality and originality of the work. The journal publishes the most significant new research papers or any other original contribution in the form of reviews and reports on new concepts in all areas pertaining to its scope and research being done in the world, thus ensuring its scientific priority and significance.",

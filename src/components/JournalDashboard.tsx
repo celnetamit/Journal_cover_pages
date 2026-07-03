@@ -32,7 +32,6 @@ import {
   cleanIcv,
   frontCoverTitleClass,
   initials,
-  isLawJournal,
   lowerRoman,
   monthRangePresets,
   titleCaseName,
@@ -52,7 +51,6 @@ import {
   type ContentRow,
   boardMembers,
   defaultDirectorParagraphs,
-  lawDirectorParagraphs,
   defaultManuscriptEngine,
   type ManuscriptEngineSettings,
   logoAssets,
@@ -226,21 +224,23 @@ function focusScopeItemsForPage(draft: BinderDraft) {
   return merged;
 }
 
-function defaultDirectorDesk(journal: Journal) {
+function defaultDirectorDesk() {
   return {
     title: "Director's Desk",
     // No hardcoded person: the director name comes from the journal record;
     // blank when unset (rendered empty, not a baked-in default).
     name: "",
-    role: isLawJournal(journal) ? "Chairman & Director, Law Journals" : "Managing Director",
-    paragraphs: isLawJournal(journal) ? lawDirectorParagraphs : defaultDirectorParagraphs,
+    // One shared Director template for every journal (law included) — no
+    // per-brand variant; the journal record still overrides role/letter in Setup.
+    role: "Managing Director",
+    paragraphs: defaultDirectorParagraphs,
   };
 }
 
 // Director's Desk content sourced from the journal's Company (+ its director
 // Profile), falling back to the built-in defaults when a field is blank.
 function effectiveDirectorDesk(journal: Journal) {
-  const base = defaultDirectorDesk(journal);
+  const base = defaultDirectorDesk();
   return {
     // Heading keeps a standard label default so the section title is never empty.
     title: journal.directorDeskTitle?.trim() || base.title,
