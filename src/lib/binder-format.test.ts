@@ -4,14 +4,9 @@ import {
   compactKeyword,
   frontCoverTitleClass,
   initials,
-  isLawJournal,
   lowerRoman,
   titleCaseName,
 } from "@/lib/binder-format";
-import type { Journal } from "@/lib/journals";
-
-const journal = (over: Partial<Journal>): Journal =>
-  ({ publisher: "", imprint: "", domain: "", ...over } as Journal);
 
 describe("initials", () => {
   it("takes the first two word initials, uppercased", () => {
@@ -27,17 +22,6 @@ describe("titleCaseName", () => {
   });
   it("preserves the NOLEGEIN brand token", () => {
     expect(titleCaseName("NOLEGEIN journal")).toBe("NOLEGEIN Journal");
-  });
-});
-
-describe("isLawJournal", () => {
-  it("matches 'law' as a whole word (B7)", () => {
-    expect(isLawJournal(journal({ publisher: "Law Journals" }))).toBe(true);
-    expect(isLawJournal(journal({ domain: "Constitutional Law" }))).toBe(true);
-  });
-  it("does not match 'law' inside another word (B7)", () => {
-    expect(isLawJournal(journal({ publisher: "Flawless Publishing" }))).toBe(false);
-    expect(isLawJournal(journal({ domain: "Lawnmower Engineering" }))).toBe(false);
   });
 });
 

@@ -1,5 +1,3 @@
-import type { Journal } from "@/lib/journals";
-
 const romanNumerals = ["", "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"];
 
 const MONTHS = [
@@ -52,11 +50,6 @@ export function titleCaseName(name: string) {
     .replace(/\b\w+/g, (word) =>
       word === "NOLEGEIN" ? word : word[0].toUpperCase() + word.slice(1).toLowerCase(),
     );
-}
-
-export function isLawJournal(journal: Journal) {
-  // Word-boundary match so "Flawless", "Lawn", etc. don't trigger law branding.
-  return /\blaw\b/i.test(`${journal.publisher} ${journal.imprint} ${journal.domain}`);
 }
 
 export function compactKeyword(value: string) {
