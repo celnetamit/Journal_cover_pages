@@ -43,7 +43,10 @@ export async function requireSession(): Promise<SessionPayload> {
   return session;
 }
 
-const RANK: Record<Role, number> = { VIEWER: 1, EDITOR: 2, ADMIN: 3 };
+// JOURNAL_MANAGER sits below EDITOR: this keeps every existing requireRole("EDITOR"
+// | "ADMIN") gate denying managers by default. Their journal access is granted
+// explicitly per-journal (lib/journal-access.ts), not via this ladder.
+const RANK: Record<Role, number> = { VIEWER: 1, JOURNAL_MANAGER: 2, EDITOR: 3, ADMIN: 4 };
 
 export function hasRole(role: Role, min: Role): boolean {
   return RANK[role] >= RANK[min];
@@ -59,3 +62,10 @@ export async function requireRole(min: Role): Promise<SessionPayload> {
 
 export const canEdit = (role: Role) => hasRole(role, "EDITOR");
 export const isAdmin = (role: Role) => role === "ADMIN";
+export const isJournalManager = (role: Role) => role === "JOURNAL_MANAGER";
+
+// Anyone who may edit binder/cover content in the dashboard: editors, admins, and
+// journal managers (the latter only for journals they're assigned — enforced
+// separately by ownership checks). Distinct from canEdit, which gates the global
+// catalog/setup actions that managers must never reach.
+export const canEditBinders = (role: Role) => canEdit(role) || isJournalManager(role);

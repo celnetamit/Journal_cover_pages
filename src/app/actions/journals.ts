@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/session";
+import { requireJournalManageAccess } from "@/lib/journal-access";
+import { logAudit } from "@/lib/audit";
 import { dynamicKey } from "@/lib/lookup";
 import { frequencyFromIssues } from "@/lib/binder-format";
 
@@ -125,6 +127,23 @@ function scalarData(d: z.infer<typeof JournalSchema>) {
   };
 }
 
+// Human-readable list of which fields changed, for the audit log. Compares the
+// existing row against the new scalar payload + relation ids; arrays by value.
+function summarizeChanges(
+  existing: Record<string, unknown>,
+  next: Record<string, unknown>,
+): string {
+  const changed: string[] = [];
+  for (const [key, value] of Object.entries(next)) {
+    const before = existing[key];
+    const same = Array.isArray(value) || Array.isArray(before)
+      ? JSON.stringify(before ?? []) === JSON.stringify(value ?? [])
+      : (before ?? null) === (value ?? null);
+    if (!same) changed.push(key);
+  }
+  return changed.length ? `Changed ${changed.join(", ")}` : "No field changes";
+}
+
 async function uniqueSlug(base: string, excludeId?: string): Promise<string> {
   let candidate = base || "journal";
   let n = 2;
@@ -137,13 +156,15 @@ async function uniqueSlug(base: string, excludeId?: string): Promise<string> {
 }
 
 export async function createJournal(_prev: JournalActionState, formData: FormData): Promise<JournalActionState> {
-  await requireRole("EDITOR");
+  // Journal managers cannot create journals (requireRole denies them); only
+  // editors/admins reach here.
+  const session = await requireRole("EDITOR");
   const parsed = parse(formData);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   const d = parsed.data;
 
   const slug = await uniqueSlug(dynamicKey(d.slug || d.abbreviation) || dynamicKey(d.name));
-  await prisma.journal.create({
+  const created = await prisma.journal.create({
     data: {
       ...scalarData(d),
       slug,
@@ -152,27 +173,54 @@ export async function createJournal(_prev: JournalActionState, formData: FormDat
       manager: relation(d.managerId),
     },
   });
+  await logAudit({
+    action: "journal.create",
+    actor: session,
+    targetType: "Journal",
+    targetId: created.id,
+    targetName: created.name,
+    summary: "Created journal",
+  });
   revalidatePath("/journals");
   revalidatePath("/");
   redirect("/journals");
 }
 
 export async function updateJournal(id: string, _prev: JournalActionState, formData: FormData): Promise<JournalActionState> {
-  await requireRole("EDITOR");
+  // Editors/admins may edit any journal; a journal manager only an assigned one.
+  const session = await requireJournalManageAccess(id);
   const parsed = parse(formData);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   const d = parsed.data;
 
+  const existing = await prisma.journal.findUnique({ where: { id } });
+  if (!existing) return { error: "Journal not found." };
+
   const slug = await uniqueSlug(dynamicKey(d.slug || d.abbreviation) || dynamicKey(d.name), id);
+  const scalars = scalarData(d);
   await prisma.journal.update({
     where: { id },
     data: {
-      ...scalarData(d),
+      ...scalars,
       slug,
       domain: d.domainId ? { connect: { id: d.domainId } } : { disconnect: true },
       publisher: d.publisherId ? { connect: { id: d.publisherId } } : { disconnect: true },
       manager: d.managerId ? { connect: { id: d.managerId } } : { disconnect: true },
     },
+  });
+  await logAudit({
+    action: "journal.update",
+    actor: session,
+    targetType: "Journal",
+    targetId: id,
+    targetName: scalars.name,
+    summary: summarizeChanges(existing, {
+      ...scalars,
+      slug,
+      domainId: d.domainId || null,
+      publisherId: d.publisherId || null,
+      managerId: d.managerId || null,
+    }),
   });
   revalidatePath("/journals");
   revalidatePath("/");
@@ -180,9 +228,18 @@ export async function updateJournal(id: string, _prev: JournalActionState, formD
 }
 
 export async function deleteJournal(formData: FormData): Promise<void> {
-  await requireRole("ADMIN");
+  const session = await requireRole("ADMIN");
   const id = String(formData.get("id"));
+  const existing = await prisma.journal.findUnique({ where: { id }, select: { name: true } });
   await prisma.journal.delete({ where: { id } });
+  await logAudit({
+    action: "journal.delete",
+    actor: session,
+    targetType: "Journal",
+    targetId: id,
+    targetName: existing?.name ?? null,
+    summary: "Deleted journal",
+  });
   revalidatePath("/journals");
   revalidatePath("/");
 }

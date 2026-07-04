@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession, canEdit } from "@/lib/auth/session";
+import { getSession, canEditBinders } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
 const MAX_BYTES = 50 * 1024 * 1024; // 50 MB
@@ -16,7 +16,7 @@ const ALLOWED = new Set([
 export async function POST(req: Request) {
   const session = await getSession();
   if (!session) return new NextResponse(null, { status: 401 });
-  if (!canEdit(session.role)) return new NextResponse(null, { status: 403 });
+  if (!canEditBinders(session.role)) return new NextResponse(null, { status: 403 });
 
   let form: FormData;
   try {

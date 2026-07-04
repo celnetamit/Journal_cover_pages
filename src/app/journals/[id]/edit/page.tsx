@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { requireRole } from "@/lib/auth/session";
+import { canEdit } from "@/lib/auth/session";
+import { requireJournalManageAccess } from "@/lib/journal-access";
 import { prisma } from "@/lib/prisma";
 import { getJournalFormOptions } from "@/lib/journal-options";
 import { updateJournal } from "@/app/actions/journals";
@@ -9,8 +10,12 @@ import JournalBoardEditor from "@/components/admin/JournalBoardEditor";
 export const dynamic = "force-dynamic";
 
 export default async function EditJournalPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireRole("EDITOR");
   const { id } = await params;
+  // Admits editors/admins for any journal, a manager only for an assigned one.
+  const session = await requireJournalManageAccess(id);
+  // Board-member editing runs under requireRole("EDITOR") actions, so managers
+  // (who can't reach those) only get the journal-record form.
+  const showBoardEditor = canEdit(session.role);
 
   const [journal, options, members] = await Promise.all([
     prisma.journal.findUnique({ where: { id } }),
@@ -62,11 +67,13 @@ export default async function EditJournalPage({ params }: { params: Promise<{ id
         options={options}
         submitLabel="Save changes"
       />
-      <JournalBoardEditor
-        journalId={id}
-        profiles={options.profiles}
-        members={members.map((m) => ({ id: m.id, role: m.role, order: m.order, profileName: m.profile.name }))}
-      />
+      {showBoardEditor && (
+        <JournalBoardEditor
+          journalId={id}
+          profiles={options.profiles}
+          members={members.map((m) => ({ id: m.id, role: m.role, order: m.order, profileName: m.profile.name }))}
+        />
+      )}
     </main>
   );
 }

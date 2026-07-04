@@ -19,6 +19,7 @@ datasource db {
 enum UserRole {
   ADMIN
   EDITOR
+  JOURNAL_MANAGER
   VIEWER
 }
 
@@ -70,6 +71,31 @@ model User {
 
   uploadedAssets Asset[]
   editedBinders  Binder[]
+  // Journals this login account (a JOURNAL_MANAGER) is allowed to edit. Distinct
+  // from Journal.manager, which is a display Profile — this is an access grant.
+  managedJournals Journal[]  @relation("JournalManagerUsers")
+  auditLogs       AuditLog[]
+}
+
+// Append-only record of catalog changes (currently journal create/update/delete),
+// shown in the admin-only /admin/logs activity page. actorEmail/actorName are
+// snapshots so the entry survives the user being deleted.
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String // e.g. "journal.update", "journal.create", "journal.delete"
+  actorId    String?
+  actorEmail String
+  actorName  String?
+  targetType String // e.g. "Journal"
+  targetId   String?
+  targetName String?
+  summary    String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
 }
 
 // Global, shared content for the Manuscript page (the same engine for every
@@ -320,6 +346,8 @@ model Journal {
   members       JournalMember[]
   binders       Binder[]
   subscriptions JournalSubscription[]
+  // Login accounts (JOURNAL_MANAGER role) granted edit access to this journal.
+  managerUsers  User[]                @relation("JournalManagerUsers")
 
   @@index([abbreviation])
 }

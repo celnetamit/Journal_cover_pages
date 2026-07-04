@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { Fragment, useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   createUser,
   deleteUser,
   resetPassword,
   setUserActive,
+  setUserJournals,
   setUserRole,
   type ActionState,
 } from "@/app/actions/users";
@@ -18,9 +19,12 @@ type Row = {
   role: string;
   active: boolean;
   createdAt: string;
+  managedJournalIds: string[];
 };
 
-const ROLES = ["ADMIN", "EDITOR", "VIEWER"] as const;
+type JournalOption = { id: string; name: string };
+
+const ROLES = ["ADMIN", "EDITOR", "JOURNAL_MANAGER", "VIEWER"] as const;
 
 const inputClass =
   "rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200";
@@ -28,13 +32,18 @@ const inputClass =
 export default function UserManager({
   currentUserId,
   users,
+  journals,
 }: {
   currentUserId: string;
   users: Row[];
+  journals: JournalOption[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
+  // Which user's journal-assignment panel is open, and its working selection.
+  const [assignFor, setAssignFor] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return q
@@ -63,6 +72,35 @@ export default function UserManager({
     fd.set("id", id);
     fd.set("role", role);
     run(setUserRole, fd);
+  }
+
+  function openAssign(u: Row) {
+    if (assignFor === u.id) {
+      setAssignFor(null);
+      return;
+    }
+    setAssignFor(u.id);
+    setSelected(new Set(u.managedJournalIds));
+  }
+
+  function toggleJournal(journalId: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(journalId)) next.delete(journalId);
+      else next.add(journalId);
+      return next;
+    });
+  }
+
+  function saveAssign(userId: string) {
+    const fd = new FormData();
+    fd.set("id", userId);
+    selected.forEach((jid) => fd.append("journalIds", jid));
+    startTransition(async () => {
+      await setUserJournals(fd);
+      setAssignFor(null);
+      router.refresh();
+    });
   }
 
   function toggleActive(id: string, active: boolean) {
@@ -143,8 +181,10 @@ export default function UserManager({
           <tbody className="divide-y divide-slate-100">
             {filtered.map((u) => {
               const isSelf = u.id === currentUserId;
+              const isManager = u.role === "JOURNAL_MANAGER";
               return (
-                <tr key={u.id} className={u.active ? "" : "bg-slate-50/60"}>
+                <Fragment key={u.id}>
+                <tr className={u.active ? "" : "bg-slate-50/60"}>
                   <td className="px-4 py-3">
                     <div className="font-medium text-slate-900">{u.name || "—"}</div>
                     <div className="text-slate-500">{u.email}</div>
@@ -173,6 +213,15 @@ export default function UserManager({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-3 text-sm">
+                      {isManager && (
+                        <button
+                          onClick={() => openAssign(u)}
+                          disabled={isPending}
+                          className="text-slate-600 hover:text-slate-900"
+                        >
+                          Journals ({u.managedJournalIds.length})
+                        </button>
+                      )}
                       <button onClick={() => reset(u.id)} disabled={isPending} className="text-slate-600 hover:text-slate-900">
                         Reset password
                       </button>
@@ -193,6 +242,51 @@ export default function UserManager({
                     </div>
                   </td>
                 </tr>
+                {isManager && assignFor === u.id && (
+                  <tr className="bg-slate-50/60">
+                    <td colSpan={4} className="px-4 py-4">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-sm font-medium text-slate-700">
+                          Assigned journals — {u.name || u.email}
+                        </span>
+                        <span className="text-xs text-slate-500">{selected.size} selected</span>
+                      </div>
+                      {journals.length === 0 ? (
+                        <p className="text-sm text-slate-500">No journals exist yet.</p>
+                      ) : (
+                        <div className="grid max-h-64 grid-cols-1 gap-1 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2 sm:grid-cols-2">
+                          {journals.map((j) => (
+                            <label key={j.id} className="flex items-center gap-2 rounded px-2 py-1 text-sm text-slate-700 hover:bg-slate-50">
+                              <input
+                                type="checkbox"
+                                checked={selected.has(j.id)}
+                                onChange={() => toggleJournal(j.id)}
+                              />
+                              <span>{j.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          onClick={() => saveAssign(u.id)}
+                          disabled={isPending}
+                          className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                        >
+                          Save assignments
+                        </button>
+                        <button
+                          onClick={() => setAssignFor(null)}
+                          disabled={isPending}
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               );
             })}
           </tbody>

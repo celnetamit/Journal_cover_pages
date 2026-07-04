@@ -7,10 +7,21 @@ export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
   const session = await requireRole("ADMIN");
-  const users = await prisma.user.findMany({
-    orderBy: [{ active: "desc" }, { createdAt: "asc" }],
-    select: { id: true, email: true, name: true, role: true, active: true, createdAt: true },
-  });
+  const [users, journals] = await Promise.all([
+    prisma.user.findMany({
+      orderBy: [{ active: "desc" }, { createdAt: "asc" }],
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        active: true,
+        createdAt: true,
+        managedJournals: { select: { id: true } },
+      },
+    }),
+    prisma.journal.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-4xl p-6">
@@ -25,7 +36,12 @@ export default async function UsersPage() {
       </div>
       <UserManager
         currentUserId={session.userId}
-        users={users.map((u) => ({ ...u, createdAt: u.createdAt.toISOString() }))}
+        journals={journals}
+        users={users.map((u) => ({
+          ...u,
+          createdAt: u.createdAt.toISOString(),
+          managedJournalIds: u.managedJournals.map((j) => j.id),
+        }))}
       />
     </main>
   );

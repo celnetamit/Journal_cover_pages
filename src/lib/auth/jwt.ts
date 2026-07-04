@@ -2,7 +2,10 @@ import { SignJWT, jwtVerify } from "jose";
 
 // Roles mirror the Prisma UserRole enum. Kept as a local union so this module
 // stays free of the Prisma client (it is imported by proxy.ts on every request).
-export type Role = "ADMIN" | "EDITOR" | "VIEWER";
+// JOURNAL_MANAGER is a scoped role: it is *below* EDITOR on the ladder (so it is
+// denied from every requireRole("EDITOR") gate) and gains journal access only
+// through explicit per-journal ownership checks (see lib/journal-access.ts).
+export type Role = "ADMIN" | "EDITOR" | "JOURNAL_MANAGER" | "VIEWER";
 
 export type SessionPayload = {
   userId: string;

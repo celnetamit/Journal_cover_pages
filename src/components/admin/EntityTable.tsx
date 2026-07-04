@@ -18,6 +18,7 @@ export default function EntityTable({
   columns,
   rows,
   canDelete,
+  canCreate = true,
   newLabel = "New",
   deleteAction = deleteEntity,
   exportEntity,
@@ -32,6 +33,8 @@ export default function EntityTable({
   columns: string[];
   rows: Row[];
   canDelete: boolean;
+  // When false, hides the "New" button (e.g. journal managers can't create).
+  canCreate?: boolean;
   newLabel?: string;
   deleteAction?: (formData: FormData) => Promise<void>;
   // When set, shows the CSV export link (/api/export/{exportEntity}) + import form.
@@ -66,9 +69,11 @@ export default function EntityTable({
               Export CSV
             </a>
           )}
-          <Link href={`${basePath}/new`} data-tour="new-entity-btn" className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800">
-            {newLabel}
-          </Link>
+          {canCreate && (
+            <Link href={`${basePath}/new`} data-tour="new-entity-btn" className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800">
+              {newLabel}
+            </Link>
+          )}
         </div>
       </div>
 

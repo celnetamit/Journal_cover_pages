@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Logo from "@/components/Logo";
-import { getSession, isAdmin, canEdit } from "@/lib/auth/session";
+import { getSession, isAdmin, canEdit, canEditBinders } from "@/lib/auth/session";
 import { logout } from "@/app/actions/auth";
 import StartTrainingButton from "@/components/tour/StartTrainingButton";
 
@@ -17,15 +17,17 @@ export default async function AppHeader() {
         <Logo size={26} />
       </Link>
       <nav className="flex items-center gap-4">
+        {/* Journal managers get the Journals link (their edit gateway) but not the
+            full Setup hub, which is editor/admin-only. */}
+        {canEditBinders(session.role) && (
+          <Link href="/journals" className="text-slate-600 hover:text-slate-900">
+            Journals
+          </Link>
+        )}
         {canEdit(session.role) && (
-          <>
-            <Link href="/journals" className="text-slate-600 hover:text-slate-900">
-              Journals
-            </Link>
-            <Link href="/admin" className="text-slate-600 hover:text-slate-900">
-              Setup
-            </Link>
-          </>
+          <Link href="/admin" className="text-slate-600 hover:text-slate-900">
+            Setup
+          </Link>
         )}
         {isAdmin(session.role) && (
           <Link href="/admin/users" className="text-slate-600 hover:text-slate-900">
@@ -35,7 +37,7 @@ export default async function AppHeader() {
         <Link href="/guide" className="text-slate-600 hover:text-slate-900">
           Guide
         </Link>
-        {canEdit(session.role) && <StartTrainingButton />}
+        {canEditBinders(session.role) && <StartTrainingButton />}
         <span className="text-slate-500">
           {label}
           <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs uppercase text-slate-600">

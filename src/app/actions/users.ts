@@ -8,7 +8,7 @@ import { getSession, requireRole } from "@/lib/auth/session";
 
 export type ActionState = { error?: string; ok?: boolean } | undefined;
 
-const ROLES = ["ADMIN", "EDITOR", "VIEWER"] as const;
+const ROLES = ["ADMIN", "EDITOR", "JOURNAL_MANAGER", "VIEWER"] as const;
 
 const CreateSchema = z.object({
   name: z.string().trim().max(120).optional(),
@@ -54,6 +54,18 @@ export async function setUserRole(formData: FormData): Promise<void> {
   if (session?.userId === id && role !== "ADMIN") return;
 
   await prisma.user.update({ where: { id }, data: { role: role as (typeof ROLES)[number] } });
+  revalidatePath("/admin/users");
+}
+
+// Set which journals a JOURNAL_MANAGER may edit (their access grant). Admin only.
+export async function setUserJournals(formData: FormData): Promise<void> {
+  await requireRole("ADMIN");
+  const id = String(formData.get("id"));
+  const journalIds = formData.getAll("journalIds").map(String).filter(Boolean);
+  await prisma.user.update({
+    where: { id },
+    data: { managedJournals: { set: journalIds.map((jid) => ({ id: jid })) } },
+  });
   revalidatePath("/admin/users");
 }
 

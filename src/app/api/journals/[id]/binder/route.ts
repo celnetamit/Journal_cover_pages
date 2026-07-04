@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getSession, canEdit } from "@/lib/auth/session";
+import { getSession, canEditBinders } from "@/lib/auth/session";
+import { canManageJournal } from "@/lib/journal-access";
 import { listBinders, saveBinder } from "@/lib/binder-store";
 import type { BinderDraft } from "@/lib/binder-content";
 
@@ -17,9 +18,11 @@ export async function GET(_req: Request, { params }: Params) {
 export async function PUT(req: Request, { params }: Params) {
   const session = await getSession();
   if (!session) return new NextResponse(null, { status: 401 });
-  if (!canEdit(session.role)) return new NextResponse(null, { status: 403 });
+  if (!canEditBinders(session.role)) return new NextResponse(null, { status: 403 });
 
   const { id } = await params;
+  // A journal manager may only save binders for journals assigned to them.
+  if (!(await canManageJournal(session, id))) return new NextResponse(null, { status: 403 });
   let body: { draft?: BinderDraft; baseUpdatedAt?: string; binderId?: string };
   try {
     body = await req.json();
