@@ -28,6 +28,7 @@ import { RichText, ReqText, MissingFlag, hasValue } from "@/components/RichText"
 import { inlineToPlainText } from "@/lib/rich-text";
 import type { SubscriptionTier } from "@/lib/subscription-tiers";
 import { exportBookToPdf, type ExportMode } from "@/lib/pdf-export";
+import { extractKeywordTopics } from "@/lib/keyword-topics";
 import {
   cleanIcv,
   frontCoverTitleClass,
@@ -202,7 +203,7 @@ function normalizeScopePhrase(value: string): string {
 // Focus & Scope comes from the journal entry only — its own focusScope field.
 // No keyword substitution or built-in defaults: an empty record shows nothing.
 function journalFocusScope(focus: { focusScope?: string[]; keywords?: string[] } | undefined) {
-  const source = focus?.keywords?.length ? focus.keywords : focus?.focusScope;
+  const source = focus?.keywords?.length ? extractKeywordTopics(focus.keywords.join("\n")) : focus?.focusScope;
   return (source || []).map(normalizeScopePhrase).filter(Boolean);
 }
 
@@ -1206,9 +1207,17 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
   const companyName = legal?.companyName || journal.imprint;
   const issueWord = issueCountWord(Number(journal.issuesPerYear)) || "—";
   const closingWebsite = journal.website || legal?.website || journal.companyWebsite;
+  const issuePhrase = issueWord === "—" ? "" : `${issueWord.toLowerCase()} times a year`;
   // About-page closing paragraphs — fixed template filled with dynamic values.
+  const aboutIntroText = issuePhrase
+    ? `The ${journal.name} is published ${issuePhrase} by ${publisherName} (a strong initiative of ${companyName}), India.`
+    : `The ${journal.name} is published by ${publisherName} (a strong initiative of ${companyName}), India.`;
   const aboutNotes = [
-    `The ${journal.name} is published ${issueWord} times a year by ${publisherName} (a strong initiative of ${companyName}), India.`,
+    <>
+      The {journal.name} is published{" "}
+      {issuePhrase ? <i>{issuePhrase}</i> : null}{" "}
+      by {publisherName} (a strong initiative of {companyName}), India.
+    </>,
     "The views and opinions expressed in the articles are those of the respective author(s) and do not necessarily reflect the views or opinions of the Editor, Editorial Board, or Publisher.",
     "All rights reserved. No part of this publication may be reproduced, stored in a retrieval system, or transmitted in any form or by any means, whether electronic, mechanical, photocopying, recording, or otherwise, without prior written permission of the Publisher.",
     "To cite any material published in this journal, either in English or in translation, please provide the complete bibliographic reference to the original work.",
@@ -1223,7 +1232,7 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
   const aboutMissing = !hasValue(aboutText);
   const publisherLine = `Publisher of the Journal: ${publisherName}`;
   const pageScale = pageDensityScale(
-    [aboutText ?? "", publisherLine, ...scopeItems, ...aboutNotes].join(" ").length,
+    [aboutText ?? "", publisherLine, ...scopeItems, aboutIntroText, ...aboutNotes.slice(1).map((note) => String(note))].join(" ").length,
     2350,
   );
 

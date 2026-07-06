@@ -13,6 +13,7 @@ import path from "node:path";
 import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { parseCsv } from "../src/lib/csv";
+import { extractKeywordTopics } from "../src/lib/keyword-topics";
 import {
   PrismaClient,
   type JournalFrequency,
@@ -50,31 +51,17 @@ function dynamicKey(value: string | undefined): string {
     .trim();
 }
 
+function normalizeRishabhEmail(name: string, email: string | undefined): string | undefined {
+  if (dynamicKey(name) !== "rishabhpandey") return email;
+  if (!email) return "Rishabh@stmjournals.com";
+  return dynamicKey(email) === "computerscelnetin" ? "Rishabh@stmjournals.com" : email;
+}
+
 function splitList(value: string | undefined): string[] {
   return clean(value)
     .split(/\n|•|†|;|•|,/g)
     .map((item) => item.trim())
     .filter(Boolean);
-}
-
-function extractKeywordTopics(value: string | undefined): string[] {
-  const raw = String(value ?? "");
-  const items = Array.from(raw.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)).map((match) => match[1]);
-  const chunks = items.length ? items : clean(raw).split(/\r?\n+/);
-  const seen = new Set<string>();
-  const result: string[] = [];
-
-  for (const chunk of chunks) {
-    const cleaned = clean(chunk);
-    if (!cleaned) continue;
-    const topic = cleaned.includes(":") ? cleaned.split(":")[0] : cleaned;
-    const normalized = topic.replace(/\s+/g, " ").trim();
-    if (!normalized || /^keywords?$/i.test(normalized) || seen.has(normalized)) continue;
-    seen.add(normalized);
-    result.push(normalized);
-  }
-
-  return result;
 }
 
 function toInt(value: string | undefined): number | null {
@@ -171,17 +158,22 @@ async function upsertProfile(data: {
 }): Promise<string | null> {
   const name = clean(data.name);
   if (!name) return null;
-  const key = (data.email && dynamicKey(data.email)) || dynamicKey(name);
+  const inputEmail = data.email || undefined;
+  const email = normalizeRishabhEmail(name, inputEmail);
+  const key = (email && dynamicKey(email)) || dynamicKey(name);
   if (profileCache.has(key)) return profileCache.get(key)!;
 
-  const existing = data.email
-    ? await prisma.profile.findFirst({ where: { email: data.email } })
+  const existing = email && inputEmail && email !== inputEmail
+    ? await prisma.profile.findFirst({ where: { OR: [{ email }, { email: inputEmail }] } })
+    : email
+      ? await prisma.profile.findFirst({ where: { email } })
     : await prisma.profile.findFirst({ where: { name, email: null } });
 
   const row = existing
     ? await prisma.profile.update({
-        where: { id: existing.id },
-        data: {
+      where: { id: existing.id },
+      data: {
+          email: email || undefined,
           designation: data.designation || undefined,
           department: data.department || undefined,
           photoUrl: data.photoUrl || undefined,
@@ -190,7 +182,7 @@ async function upsertProfile(data: {
     : await prisma.profile.create({
         data: {
           name,
-          email: data.email || null,
+          email: email || null,
           designation: data.designation || null,
           department: data.department || null,
           photoUrl: data.photoUrl || null,
@@ -301,7 +293,7 @@ async function seedJournals(subscriptionIds: Record<SubscriptionMode, string>) {
       coverFrontUrl: pick(row, "Journal Image URL") || pick(row, "Journal Image/Logo") || null,
       logoUrl: pick(row, "Journal Logo URL") || null,
       about: pick(row, "About Journal") || null,
-      keywords: splitList(pick(row, "Focus and Scope (Keywords)") || pick(row, "Keywords")),
+      keywords: extractKeywordTopics(pick(row, "Keywords")),
       domainId,
       publisherId,
       managerId,

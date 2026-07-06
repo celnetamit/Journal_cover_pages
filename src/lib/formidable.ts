@@ -3,6 +3,7 @@ import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { dynamicKey } from "@/lib/lookup";
 import type { Journal } from "@/lib/journals";
+import { extractKeywordTopics } from "@/lib/keyword-topics";
 
 export type EditorialMember = {
   role: string;
@@ -142,7 +143,7 @@ export const getDynamicBinderData = cache(async (_journal?: Journal): Promise<Dy
         abbreviation: j.abbreviation,
         about: s(j.publisher?.about),
         focusScope: j.focusScope,
-        keywords: j.keywords,
+        keywords: extractKeywordTopics(j.keywords.join("\n")),
         binderText: s(j.publisher?.about),
       }, aliases);
 

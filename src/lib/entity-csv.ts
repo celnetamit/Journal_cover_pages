@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { dynamicKey } from "@/lib/lookup";
+import { extractKeywordTopics } from "@/lib/keyword-topics";
 
 export type EntityKey = "journals" | "profiles" | "companies" | "publishers" | "domains" | "subscriptions";
 
@@ -228,7 +229,7 @@ export const ENTITY_SPECS: Record<EntityKey, Spec> = {
           sjif: nul(r.sjif), icv: nul(r.icv), doi: nul(r.doi), impactFactor: nul(r.impactFactor),
           frequency, issuesPerYear: num(r.issuesPerYear),
           directorDeskTitle: nul(r.directorDeskTitle), directorDeskParagraphs: unlist(r.directorDeskParagraphs),
-          focusScope: unlist(r.focusScope), focusNotes: unlist(r.focusNotes), objectives: unlist(r.objectives), salientFeatures: unlist(r.salientFeatures), keywords: unlist(r.keywords), indexing: unlist(r.indexing),
+          focusScope: unlist(r.focusScope), focusNotes: unlist(r.focusNotes), objectives: unlist(r.objectives), salientFeatures: unlist(r.salientFeatures), keywords: extractKeywordTopics(r.keywords), indexing: unlist(r.indexing),
           domainId: r.domain ? resolveDomain(r.domain) : null,
           publisherId: r.publisher ? resolvePublisher(r.publisher) : null,
           managerId: r.manager ? resolveProfile(r.manager) : null,
