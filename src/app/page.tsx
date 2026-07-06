@@ -78,6 +78,7 @@ export default async function Home() {
       serverDrafts={serverDrafts}
       canEdit={canEditBinders(session.role)}
       profiles={profiles}
+      currentUser={{ name: session.name, email: session.email }}
       legalData={legalData}
       manuscriptEngine={manuscriptEngine}
       subscriptionTiers={subscriptionTiers}

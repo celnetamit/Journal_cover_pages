@@ -49,6 +49,7 @@ export type BinderDraft = {
   cin: string;
   // Page 3 (subscription/legal) full-text override — blank = use generated content.
   paymentOverride: string;
+  comments: BinderComment[];
 };
 
 // Default manuscript-submission URL (encoded in the Manuscript page QR) used
@@ -372,6 +373,18 @@ export type ContentRow = {
   title: string;
   author: string;
   page: string;
+};
+
+export type BinderCommentTargetKind = "area" | "content" | "line" | "image";
+
+export type BinderComment = {
+  id: string;
+  page: number;
+  targetKind: BinderCommentTargetKind;
+  targetLabel: string;
+  authorName: string;
+  message: string;
+  createdAt: string;
 };
 
 export const boardMembers = [

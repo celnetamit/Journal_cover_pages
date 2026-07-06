@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { createContext, startTransition, useContext, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { createContext, startTransition, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { flushSync } from "react-dom";
 import {
   ArrowLeft,
@@ -38,6 +38,8 @@ import {
 } from "@/lib/binder-format";
 import {
   type BinderDraft,
+  type BinderComment,
+  type BinderCommentTargetKind,
   defaultBinderPageLayouts,
   defaultFrontCoverLayout,
   defaultSpineMm,
@@ -84,6 +86,18 @@ type ConflictState = {
 };
 
 type ProfilePick = { id: string; name: string; role: string; photo: string };
+type CommentTargetSelection = {
+  page: number;
+  targetKind: BinderCommentTargetKind;
+  targetLabel: string;
+};
+type CommentDraft = {
+  page: number;
+  targetKind: BinderCommentTargetKind;
+  targetLabel: string;
+  authorName: string;
+  message: string;
+};
 
 // Per-journal legal/subscription data for the Subscription page, provided via context so the
 // page render components can read it without prop-threading through BinderPage.
@@ -102,6 +116,7 @@ type Props = {
   serverDrafts: Record<string, StoredDraft>;
   canEdit: boolean;
   profiles: ProfilePick[];
+  currentUser: { name: string | null; email: string };
   legalData: Record<string, LegalInfo>;
   manuscriptEngine: ManuscriptEngineSettings;
   subscriptionTiers: SubscriptionTier[];
@@ -131,6 +146,217 @@ function pageStepperLabel(page: number) {
   if (page === 8) return "Director";
   if (page === 9) return "Contents";
   return `Page ${page}`;
+}
+
+function commentTargetLabel(kind: BinderCommentTargetKind) {
+  return {
+    area: "Area",
+    content: "Content",
+    line: "Line",
+    image: "Image",
+  }[kind];
+}
+
+function defaultCommentLabel(page: number, kind: BinderCommentTargetKind) {
+  return `${pageStepperLabel(page)} • ${commentTargetLabel(kind)}`;
+}
+
+function commentTargetSelectionKey(target: CommentTargetSelection | null) {
+  if (!target) return "";
+  return `${target.page}:${target.targetKind}:${target.targetLabel}`;
+}
+
+function commentTargetAttrs(target: CommentTargetSelection): Record<string, string> {
+  return {
+    "data-comment-target-page": String(target.page),
+    "data-comment-target-kind": target.targetKind,
+    "data-comment-target-label": target.targetLabel,
+  };
+}
+
+function extractCommentTarget(event: MouseEvent<HTMLElement>, fallbackPage: number): CommentTargetSelection | null {
+  const element = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-comment-target-kind]");
+  if (!element) return null;
+  const page = Number(element.dataset.commentTargetPage || fallbackPage);
+  const targetKind = element.dataset.commentTargetKind as BinderCommentTargetKind | undefined;
+  const targetLabel = element.dataset.commentTargetLabel?.trim() || "";
+  if (!Number.isFinite(page) || !targetKind || !targetLabel) return null;
+  return { page, targetKind, targetLabel };
+}
+
+function commentSort(a: BinderComment, b: BinderComment) {
+  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+}
+
+function createCommentDraft(page: number, currentUser: { name: string | null; email: string }) {
+  return {
+    page,
+    targetKind: "content" as BinderCommentTargetKind,
+    targetLabel: pageStepperLabel(page),
+    authorName: currentUser.name?.trim() || currentUser.email,
+    message: "",
+  };
+}
+
+function CommentBadge({ kind }: { kind: BinderCommentTargetKind }) {
+  return <span className={`comment-badge kind-${kind}`}>{commentTargetLabel(kind)}</span>;
+}
+
+function PageAnnotations({ page, comments }: { page: number; comments: BinderComment[] }) {
+  const items = comments.filter((comment) => comment.page === page).sort(commentSort);
+  if (items.length === 0) return null;
+
+  return (
+    <aside className="page-annotations" aria-label={`Comments for ${pageStepperLabel(page)}`}>
+      <div className="page-annotations-head">
+        <span>Comments &amp; remarks</span>
+        <small>{items.length} note{items.length === 1 ? "" : "s"}</small>
+      </div>
+      <div className="page-annotations-list">
+        {items.slice(0, 3).map((comment) => (
+          <article className="page-annotation" key={comment.id}>
+            <div className="page-annotation-meta">
+              <CommentBadge kind={comment.targetKind} />
+              <strong>{comment.authorName}</strong>
+            </div>
+            <div className="page-annotation-target">{comment.targetLabel}</div>
+            <p>{comment.message}</p>
+          </article>
+        ))}
+        {items.length > 3 ? <div className="page-annotations-more">+{items.length - 3} more</div> : null}
+      </div>
+    </aside>
+  );
+}
+
+function CommentEditorPanel({
+  page,
+  comments,
+  currentUser,
+  seed,
+  onAddComment,
+  onRemoveComment,
+}: {
+  page: number;
+  comments: BinderComment[];
+  currentUser: { name: string | null; email: string };
+  seed?: CommentTargetSelection | null;
+  onAddComment: (comment: BinderComment) => void;
+  onRemoveComment: (id: string) => void;
+}) {
+  const initial = seed && seed.page === page
+    ? {
+        page,
+        targetKind: seed.targetKind,
+        targetLabel: seed.targetLabel,
+        authorName: currentUser.name?.trim() || currentUser.email,
+        message: "",
+      }
+    : createCommentDraft(page, currentUser);
+  const [commentDraft, setCommentDraft] = useState<CommentDraft>(() => initial);
+
+  function addComment() {
+    const message = commentDraft.message.trim();
+    if (!message) return;
+    const authorName = commentDraft.authorName.trim() || currentUser.name || currentUser.email;
+    const targetLabel = commentDraft.targetLabel.trim() || defaultCommentLabel(page, commentDraft.targetKind);
+    onAddComment({
+      id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `comment-${Date.now()}`,
+      page,
+      targetKind: commentDraft.targetKind,
+      targetLabel,
+      authorName,
+      message,
+      createdAt: new Date().toISOString(),
+    });
+    setCommentDraft(createCommentDraft(page, currentUser));
+  }
+
+  return (
+    <>
+      <div className="editor-row-head">
+        <span>Comments &amp; remarks for {pageStepperLabel(page)}</span>
+        <div className="editor-row-actions">
+          <button type="button" onClick={() => setCommentDraft(createCommentDraft(page, currentUser))}>Reset draft</button>
+        </div>
+      </div>
+      <div className="editor-note">
+        These annotations are saved inside the issue draft. They appear in the preview and exported PDF, but stay hidden when printing.
+      </div>
+      <div className="comment-editor">
+        <div className="comment-editor-grid">
+          <label>
+            <span>Target type</span>
+            <select
+              value={commentDraft.targetKind}
+              onChange={(event) => {
+                const targetKind = event.target.value as BinderCommentTargetKind;
+                setCommentDraft((current) => ({
+                  ...current,
+                  targetKind,
+                  targetLabel:
+                    current.targetLabel.trim() === "" || current.targetLabel.trim() === pageStepperLabel(page)
+                      ? defaultCommentLabel(page, targetKind)
+                      : current.targetLabel,
+                }));
+              }}
+            >
+              <option value="content">Content</option>
+              <option value="area">Area</option>
+              <option value="line">Line</option>
+              <option value="image">Image</option>
+            </select>
+          </label>
+          <label>
+            <span>Target label</span>
+            <input
+              value={commentDraft.targetLabel}
+              onChange={(event) => setCommentDraft((current) => ({ ...current, targetLabel: event.target.value }))}
+              placeholder={defaultCommentLabel(page, commentDraft.targetKind)}
+            />
+          </label>
+          <label>
+            <span>Commented by</span>
+            <input
+              value={commentDraft.authorName}
+              onChange={(event) => setCommentDraft((current) => ({ ...current, authorName: event.target.value }))}
+              placeholder={currentUser.name || currentUser.email}
+            />
+          </label>
+          <label className="comment-editor-message">
+            <span>Remark</span>
+            <textarea
+              rows={3}
+              value={commentDraft.message}
+              onChange={(event) => setCommentDraft((current) => ({ ...current, message: event.target.value }))}
+              placeholder="Write the comment or remark here."
+            />
+          </label>
+        </div>
+        <div className="comment-editor-actions">
+          <button type="button" onClick={addComment}>Add comment</button>
+          <span>{comments.length} saved on this page</span>
+        </div>
+      </div>
+      <div className="comment-list">
+        {comments.length ? (
+          comments.map((comment) => (
+            <article key={comment.id} className="comment-item">
+              <div className="comment-item-head">
+                <CommentBadge kind={comment.targetKind} />
+                <strong>{comment.authorName}</strong>
+                <span>{comment.targetLabel}</span>
+                <button type="button" onClick={() => onRemoveComment(comment.id)}>Delete</button>
+              </div>
+              <p>{comment.message}</p>
+            </article>
+          ))
+        ) : (
+          <p className="comment-empty">No comments yet on this page.</p>
+        )}
+      </div>
+    </>
+  );
 }
 
 
@@ -308,6 +534,7 @@ function draftFromDynamic(journal: Journal, dynamicData: DynamicBinderData): Bin
     directorPhotoImage: directorDesk.photo || undefined,
     directorSignatureImage: directorDesk.signature || undefined,
     contentRows: [],
+    comments: [],
     coverPrinter: "",
     publisherAddress: "",
     publisherPhone: "",
@@ -352,6 +579,21 @@ function migratedManagementHeads(draft: BinderDraft): ManagementPerson[] {
 
 function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicData?: DynamicBinderData) {
   const directorDesk = effectiveDirectorDesk(journal);
+  const comments = Array.isArray(draft.comments)
+    ? draft.comments
+        .map((comment, index) => ({
+          id: comment?.id?.trim() || `comment-${index + 1}`,
+          page: Number.isFinite(Number(comment?.page)) ? Number(comment.page) : 1,
+          targetKind: comment?.targetKind === "area" || comment?.targetKind === "content" || comment?.targetKind === "line" || comment?.targetKind === "image"
+            ? comment.targetKind
+            : "content",
+          targetLabel: comment?.targetLabel?.trim() || "General note",
+          authorName: comment?.authorName?.trim() || "Anonymous",
+          message: comment?.message?.trim() || "",
+          createdAt: comment?.createdAt?.trim() || new Date(0).toISOString(),
+        }))
+        .filter((comment) => comment.message.length > 0)
+    : [];
   const hydratedDraft = {
     ...draft,
     sjif: draft.sjif ?? journal.impactFactor ?? "",
@@ -375,6 +617,7 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
     directorParagraphs: hasDirectorContent(draft.directorParagraphs) ? draft.directorParagraphs : directorDesk.paragraphs,
     directorPhotoImage: draft.directorPhotoImage || directorDesk.photo || undefined,
     directorSignatureImage: draft.directorSignatureImage || directorDesk.signature || undefined,
+    comments,
   };
   // About & Focus/Scope always mirror the journal record (Setup). A saved draft's
   // own about/focusScope are overlaid on every load so later record edits show on
@@ -812,11 +1055,13 @@ function CoverSpreadPage({
   draft,
   interactive = false,
   onLayoutChange,
+  onCommentTargetSelect,
 }: {
   journal: Journal;
   draft: BinderDraft;
   interactive?: boolean;
   onLayoutChange?: (layout: BinderDraft["frontCoverLayout"]) => void;
+  onCommentTargetSelect?: (target: CommentTargetSelection) => void;
 }) {
   const spineMm = draft.spineMm ?? defaultSpineMm;
   const pageW = draft.coverPageWidthMm ?? defaultCoverPageWidthMm;
@@ -829,17 +1074,25 @@ function CoverSpreadPage({
       className="pdf-page cover-spread-page"
       data-export-group="cover"
       data-page-title="Digital library back and journal front cover"
+      onClickCapture={(event) => {
+        const target = onCommentTargetSelect ? extractCommentTarget(event, 1) : null;
+        if (target && onCommentTargetSelect) onCommentTargetSelect(target);
+      }}
       // Drive the print size from the editable cover dimensions. The data-* attrs
       // are read by the PDF export so its trim matches this on-screen cut size.
       data-cover-trim-w={spreadW}
       data-cover-trim-h={pageH}
       style={{ width: `${spreadW}mm`, height: `${pageH}mm`, padding: `${padV}mm ${padH}mm` }}
     >
-      <DigitalLibraryBackCover draft={draft} />
+      <div {...commentTargetAttrs({ page: 1, targetKind: "image", targetLabel: "Back cover artwork" })}>
+        <DigitalLibraryBackCover draft={draft} />
+      </div>
       {/* Printed spine — sits between the back and front cover panels.
           (Journal-name text on the spine is hidden for now.) */}
-      <div className="cover-spine" style={{ width: `${spineMm}mm` }} aria-label={`Spine ${spineMm}mm`} />
-      <JournalFrontCover journal={journal} draft={draft} interactive={interactive} onLayoutChange={onLayoutChange} />
+      <div {...commentTargetAttrs({ page: 1, targetKind: "line", targetLabel: `Spine ${spineMm}mm` })} className="cover-spine" style={{ width: `${spineMm}mm` }} aria-label={`Spine ${spineMm}mm`} />
+      <div {...commentTargetAttrs({ page: 1, targetKind: "image", targetLabel: "Front cover artwork" })}>
+        <JournalFrontCover journal={journal} draft={draft} interactive={interactive} onLayoutChange={onLayoutChange} />
+      </div>
       {/* TEMP dimension guide (on-screen only; remove later). */}
       <CoverDimensionGuides spineMm={spineMm} pageW={pageW} pageH={pageH} padH={padH} padV={padV} />
     </section>
@@ -906,7 +1159,15 @@ function CoverDimensionGuides({ spineMm, pageW, pageH, padH, padV }: { spineMm: 
   );
 }
 
-function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+function CoverPage({
+  journal,
+  draft,
+  onCommentTargetSelect,
+}: {
+  journal: Journal;
+  draft: BinderDraft;
+  onCommentTargetSelect?: (target: CommentTargetSelection) => void;
+}) {
   const identity = publisherIdentity(journal); // used only for logoMode (styling)
   const legal = useContext(LegalContext)[journal.id];
 
@@ -927,14 +1188,34 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
   const cin = draft.cin || legal?.cin;
 
   return (
-    <section className="pdf-page cover-page" data-export-group="internal" data-page-title="Journal Name with volume issue page">
+    <section
+      className="pdf-page cover-page"
+      data-export-group="internal"
+      data-page-title="Journal Name with volume issue page"
+      onClickCapture={(event) => {
+        const target = onCommentTargetSelect ? extractCommentTarget(event, 2) : null;
+        if (target && onCommentTargetSelect) onCommentTargetSelect(target);
+      }}
+    >
       <div className="page-rule" />
       {/* e-ISSN is optional — the whole line is hidden when unset. */}
-      {eIssn.trim() ? <p className="cover-issn">ISSN: {eIssn}</p> : null}
-      <p className="cover-printer">Printed by : <ReqText value={printer} label="Printed by" /></p>
-      <ReqText as="h1" value={title} label="Journal title" />
-      <p className="issue-line">Volume <ReqText value={draft.issueVolume} label="Volume" /> | Issue <ReqText value={draft.issueNumber} label="Issue" /></p>
-      <p className="cover-meta"><ReqText value={draft.issueMonthRange.replace(/\s*-\s*/g, "-")} label="Month range" /> | <ReqText value={draft.issueYear} label="Year" /></p>
+      {eIssn.trim() ? (
+        <p {...commentTargetAttrs({ page: 2, targetKind: "line", targetLabel: "ISSN line" })} className="cover-issn">
+          ISSN: {eIssn}
+        </p>
+      ) : null}
+      <p {...commentTargetAttrs({ page: 2, targetKind: "line", targetLabel: "Printed by line" })} className="cover-printer">
+        Printed by : <ReqText value={printer} label="Printed by" />
+      </p>
+      <div {...commentTargetAttrs({ page: 2, targetKind: "content", targetLabel: "Journal title" })}>
+        <ReqText as="h1" value={title} label="Journal title" />
+      </div>
+      <p {...commentTargetAttrs({ page: 2, targetKind: "line", targetLabel: "Volume and issue line" })} className="issue-line">
+        Volume <ReqText value={draft.issueVolume} label="Volume" /> | Issue <ReqText value={draft.issueNumber} label="Issue" />
+      </p>
+      <p {...commentTargetAttrs({ page: 2, targetKind: "line", targetLabel: "Month and year line" })} className="cover-meta">
+        <ReqText value={draft.issueMonthRange.replace(/\s*-\s*/g, "-")} label="Month range" /> | <ReqText value={draft.issueYear} label="Year" />
+      </p>
       <div className="cover-footer">
         <div className="publisher-logo-row">
           <PublisherLogo mode={identity.logoMode} side="publisher" src={proxiedImage(journal.publisherLogo)} />
@@ -942,11 +1223,20 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
         </div>
         <ReqText as="b" value={publisherName} label="Publisher name" />
         <ReqText as="strong" value={companyName} label="Company name" />
-        <span><b>Corporate Office:</b> <ReqText value={address} label="Corporate office address" /></span>
-        <span><b>Regd. Office:</b> <ReqText value={registeredOffice} label="Registered office" /></span>
-        <span>Telephone No.: <ReqText value={phone} label="Publisher phone" />; Mobile No.: <ReqText value={mobile} label="Publisher mobile" />, E-mail: <ReqText value={email} label="Publisher email" /></span>
-        <span className="cover-footer-web">Website: <ReqText value={website} label="Website" /> | CIN No.: <ReqText value={cin} label="CIN" /></span>
+        <span {...commentTargetAttrs({ page: 2, targetKind: "content", targetLabel: "Corporate office line" })}>
+          <b>Corporate Office:</b> <ReqText value={address} label="Corporate office address" />
+        </span>
+        <span {...commentTargetAttrs({ page: 2, targetKind: "content", targetLabel: "Registered office line" })}>
+          <b>Regd. Office:</b> <ReqText value={registeredOffice} label="Registered office" />
+        </span>
+        <span {...commentTargetAttrs({ page: 2, targetKind: "content", targetLabel: "Contact line" })}>
+          Telephone No.: <ReqText value={phone} label="Publisher phone" />; Mobile No.: <ReqText value={mobile} label="Publisher mobile" />, E-mail: <ReqText value={email} label="Publisher email" />
+        </span>
+        <span {...commentTargetAttrs({ page: 2, targetKind: "content", targetLabel: "Website and CIN line" })} className="cover-footer-web">
+          Website: <ReqText value={website} label="Website" /> | CIN No.: <ReqText value={cin} label="CIN" />
+        </span>
       </div>
+      <PageAnnotations page={1} comments={draft.comments} />
       <PageNumber value={1} />
     </section>
   );
@@ -1012,14 +1302,30 @@ function Amount({ value, currency, label }: { value: number | null; currency: "i
   return <>{currency === "inr" ? `₹${value.toLocaleString("en-IN")}` : `$${value.toLocaleString("en-US")}`}</>;
 }
 
-function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+function PaymentPage({
+  journal,
+  draft,
+  onCommentTargetSelect,
+}: {
+  journal: Journal;
+  draft: BinderDraft;
+  onCommentTargetSelect?: (target: CommentTargetSelection) => void;
+}) {
   const legal = useContext(LegalContext)[journal.id];
   const tiers = useContext(SubscriptionTiersContext);
   const override = draft.paymentOverride?.trim();
   if (override) {
     return (
-      <section className="pdf-page payment-reference-page" data-export-group="internal">
+      <section
+        className="pdf-page payment-reference-page"
+        data-export-group="internal"
+        onClickCapture={(event) => {
+          const target = onCommentTargetSelect ? extractCommentTarget(event, 3) : null;
+          if (target && onCommentTargetSelect) onCommentTargetSelect(target);
+        }}
+      >
         <RichText as="div" className="payment-override" value={draft.paymentOverride} />
+        <PageAnnotations page={3} comments={draft.comments} />
         <PageNumber value={2} />
       </section>
     );
@@ -1051,14 +1357,23 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
   const issueWord = issueCountWord(issuesPerYear);
 
   return (
-    <section className="pdf-page payment-reference-page" data-export-group="internal">
-      <p>
+    <section
+      className="pdf-page payment-reference-page"
+      data-export-group="internal"
+      onClickCapture={(event) => {
+        const target = onCommentTargetSelect ? extractCommentTarget(event, 3) : null;
+        if (target && onCommentTargetSelect) onCommentTargetSelect(target);
+      }}
+    >
+      <p {...commentTargetAttrs({ page: 3, targetKind: "content", targetLabel: "Subscription overview" })}>
         {`${paymentPublisherName} (a strong initiative of ${companyName}) is the Publisher of Journal. Statements and opinions expressed in the journal reflect the views of the author(s) and are not the opinion of ${journal.name} unless so stated.`}
       </p>
 
-      <h1>SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, <ReqText value={subscriptionYear} label="Year" />)</h1>
+      <h1 {...commentTargetAttrs({ page: 3, targetKind: "line", targetLabel: "Subscription heading" })}>
+        SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, <ReqText value={subscriptionYear} label="Year" />)
+      </h1>
       <div className="subscription-columns">
-        <div className="subscription-column">
+        <div {...commentTargetAttrs({ page: 3, targetKind: "area", targetLabel: "National subscription column" })} className="subscription-column">
           <p><b>National Subscription</b> (₹, India)</p>
           {tier ? (
             <ul className="checkbox-list">
@@ -1068,7 +1383,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
             </ul>
           ) : <MissingFlag label="Subscription pricing — set the journal's Issues per year and a matching pricing tier" block />}
         </div>
-        <div className="subscription-column">
+        <div {...commentTargetAttrs({ page: 3, targetKind: "area", targetLabel: "International subscription column" })} className="subscription-column">
           <p><b>International Subscription</b> ($, outside India)</p>
           {tier ? (
             <ul className="checkbox-list">
@@ -1080,7 +1395,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
         </div>
       </div>
       {/* Static for all journals: single hard copy charges for the author. */}
-      <div className="author-copy-block">
+      <div {...commentTargetAttrs({ page: 3, targetKind: "area", targetLabel: "Author copy block" })} className="author-copy-block">
         <p><b>For Author&apos;s Copy</b></p>
         <ul className="checkbox-list">
           <li>India: ₹1,500 includes single hard copy of Author&apos;s Journal.</li>
@@ -1088,14 +1403,14 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
           <li>Other Countries: $200 includes single hard copy of Author&apos;s Journal.</li>
         </ul>
       </div>
-      <p>
+      <p {...commentTargetAttrs({ page: 3, targetKind: "content", targetLabel: "Payment and legal text" })}>
         To purchase print compilations of any back issues, please send your query to <ReqText value={legalEmail} label="Publisher e-mail" />. Subscriptions must be
         prepaid. Rates for deliveries outside India exclude shipping charges. Please note that all prices are subject to change without prior notice.
       </p>
 
       <h2>MODE OF PAYMENT</h2>
       <div className="payment-mode-columns">
-        <div className="payment-mode-column">
+        <div {...commentTargetAttrs({ page: 3, targetKind: "line", targetLabel: "NEFT / RTGS payment block" })} className="payment-mode-column">
           <p><b>Pay Through NEFT/RTGS/Online Transfer</b></p>
           <p>
             Account Number: <ReqText value={bankAccountNo} label="Bank account no." /><br />
@@ -1106,7 +1421,7 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
             Swift Code: <ReqText value={bankSwift} label="Swift code" />
           </p>
         </div>
-        <div className="payment-mode-column">
+        <div {...commentTargetAttrs({ page: 3, targetKind: "area", targetLabel: "Cheque / demand draft block" })} className="payment-mode-column">
           <p>
             <b>Pay Through Cheque/Demand Draft</b><br />
             At Par Cheque, Demand Draft, and RTGS (payment to be made in favor of {companyName}, payable at Delhi/New Delhi).
@@ -1189,16 +1504,25 @@ function PaymentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
       </ul>
 
       <h2 className="no-divider">{isJournalsPub || isLaw ? "LEGAL DISPUTES" : "LEGAL DISPUTE"}</h2>
-      <p>
+      <p {...commentTargetAttrs({ page: 3, targetKind: "content", targetLabel: "Legal disputes line" })}>
         All the legal disputes are subjected to Delhi Jurisdiction only. If you have any questions, please contact the
         Publication Management Team at <ReqText value={legalEmail} label="Publisher e-mail" />; Tel: <ReqText value={legalPhoneDisplay} label="Publisher phone" />.
       </p>
+      <PageAnnotations page={3} comments={draft.comments} />
       <PageNumber value={2} />
     </section>
   );
 }
 
-function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+function JournalDetailsPage({
+  journal,
+  draft,
+  onCommentTargetSelect,
+}: {
+  journal: Journal;
+  draft: BinderDraft;
+  onCommentTargetSelect?: (target: CommentTargetSelection) => void;
+}) {
   const scopeItems = focusScopeItemsForPage(draft);
   const legal = useContext(LegalContext)[journal.id];
   const publisherEmail = legal?.publisherEmail || journal.publisherEmail;
@@ -1236,58 +1560,79 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
   );
 
   return (
-    <section className="pdf-page journal-info-page" data-export-group="internal" style={pageStyle(pageScale)}>
+    <section
+      className="pdf-page journal-info-page"
+      data-export-group="internal"
+      style={pageStyle(pageScale)}
+      onClickCapture={(event) => {
+        const target = onCommentTargetSelect ? extractCommentTarget(event, 4) : null;
+        if (target && onCommentTargetSelect) onCommentTargetSelect(target);
+      }}
+    >
       {aboutMissing ? (
         <MissingFlag label="About" block />
       ) : (
-        <p>
+        <p {...commentTargetAttrs({ page: 4, targetKind: "content", targetLabel: "About text" })}>
           <ReqText as="b" value={publisherName} label="Publisher name" /> <RichText value={aboutText} />
         </p>
       )}
       <section>
-        <h2>Objectives</h2>
+        <h2 {...commentTargetAttrs({ page: 4, targetKind: "line", targetLabel: "Objectives heading" })}>Objectives</h2>
         {objectiveItems.length ? (
-          <ul>
+          <ul {...commentTargetAttrs({ page: 4, targetKind: "area", targetLabel: "Objectives list" })}>
             {objectiveItems.map((item, index) => <RichText as="li" key={`${item}-${index}`} value={item} />)}
           </ul>
         ) : <MissingFlag label="Objectives" block />}
       </section>
       <section>
-        <h2>Salient Features</h2>
+        <h2 {...commentTargetAttrs({ page: 4, targetKind: "line", targetLabel: "Salient features heading" })}>Salient Features</h2>
         {salientItems.length ? (
-          <ul>
+          <ul {...commentTargetAttrs({ page: 4, targetKind: "area", targetLabel: "Salient features list" })}>
             {salientItems.map((item, index) => <RichText as="li" key={`${item}-${index}`} value={item} />)}
           </ul>
         ) : <MissingFlag label="Salient features" block />}
       </section>
       <section>
         <div className="journal-info-title-block">
-          <RichText as="h2" className="journal-info-name" value={journal.name} />
+          <div {...commentTargetAttrs({ page: 4, targetKind: "content", targetLabel: "Journal title block" })}>
+            <RichText as="h2" className="journal-info-name" value={journal.name} />
+          </div>
           {(journal.eIssn || journal.pIssn) ? (
             <p className="journal-info-issn">
               {[journal.eIssn ? `ISSN: ${journal.eIssn} (Online)` : null, journal.pIssn ? `ISSN: ${journal.pIssn} (Print)` : null].filter(Boolean).join(", ")}
             </p>
           ) : null}
-          <p className="journal-info-publisher">{publisherLine}</p>
+          <p {...commentTargetAttrs({ page: 4, targetKind: "line", targetLabel: "Publisher line" })} className="journal-info-publisher">
+            {publisherLine}
+          </p>
         </div>
-        <h2>Focus and Scope</h2>
+        <h2 {...commentTargetAttrs({ page: 4, targetKind: "line", targetLabel: "Focus and scope heading" })}>Focus and Scope</h2>
         {scopeItems.length > 0 ? (
-          <ul className="focus-list">
+          <ul {...commentTargetAttrs({ page: 4, targetKind: "area", targetLabel: "Focus and scope list" })} className="focus-list">
             {scopeItems.map((item, index) => <RichText as="li" key={`${item}-${index}`} value={item} />)}
           </ul>
         ) : <MissingFlag label="Focus & scope" block />}
       </section>
-      <div className="journal-info-notes">
+      <div {...commentTargetAttrs({ page: 4, targetKind: "area", targetLabel: "Closing notes" })} className="journal-info-notes">
         {aboutNotes.map((note, index) => (
           <p key={index}>{note}</p>
         ))}
       </div>
+      <PageAnnotations page={4} comments={draft.comments} />
       <PageNumber value={3} />
     </section>
   );
 }
 
-function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+function TeamPage({
+  journal,
+  draft,
+  onCommentTargetSelect,
+}: {
+  journal: Journal;
+  draft: BinderDraft;
+  onCommentTargetSelect?: (target: CommentTargetSelection) => void;
+}) {
   const legal = useContext(LegalContext)[journal.id];
   // Contact-box footers: journal website, publisher phone, publisher email.
   const journalWebsite = journal.website || legal?.website || journal.companyWebsite;
@@ -1299,11 +1644,28 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
   );
 
   return (
-    <section className="pdf-page management-page" data-export-group="internal" style={pageStyle(pageScale)}>
+    <section
+      className="pdf-page management-page"
+      data-export-group="internal"
+      style={pageStyle(pageScale)}
+      onClickCapture={(event) => {
+        const target = onCommentTargetSelect ? extractCommentTarget(event, 5) : null;
+        if (target && onCommentTargetSelect) onCommentTargetSelect(target);
+      }}
+    >
       <div className="page-rule" />
-      <h1>Publication and Management Team</h1>
+      <h1 {...commentTargetAttrs({ page: 5, targetKind: "line", targetLabel: "Publication and Management Team heading" })}>
+        Publication and Management Team
+      </h1>
       {draft.managementHeads.length ? (
-        <div className={draft.managementHeads.length > 1 ? "management-head-row multi" : "management-head-row"}>
+        <div
+          {...commentTargetAttrs({
+            page: 5,
+            targetKind: "area",
+            targetLabel: "Management heads block",
+          })}
+          className={draft.managementHeads.length > 1 ? "management-head-row multi" : "management-head-row"}
+        >
           {draft.managementHeads.map((head, index) => (
             <ManagementProfile key={index} person={head} featured />
           ))}
@@ -1311,17 +1673,21 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
       ) : <MissingFlag label="Management head(s)" block />}
       <div className="management-band">Members</div>
       {draft.managementMembers.length ? (
-        <div className="management-photo-grid">
+        <div {...commentTargetAttrs({ page: 5, targetKind: "area", targetLabel: "Management members grid" })} className="management-photo-grid">
           {draft.managementMembers.slice(0, 16).map((member, index) => (
             <ManagementProfile key={index} person={member} />
           ))}
         </div>
       ) : <MissingFlag label="Management members" block />}
-      <RichText as="h2" className="management-journal-name" value={journal.name} />
+      <div {...commentTargetAttrs({ page: 5, targetKind: "content", targetLabel: "Journal name block" })}>
+        <RichText as="h2" className="management-journal-name" value={journal.name} />
+      </div>
       {journal.showPublisherJournals && journal.publisherJournalNames.length ? (
         <>
-          <h3 className="management-publisher-name">{publisherIdentity(journal).publisherName}</h3>
-          <ul className="management-journal-list">
+          <h3 {...commentTargetAttrs({ page: 5, targetKind: "line", targetLabel: "Publisher name line" })} className="management-publisher-name">
+            {publisherIdentity(journal).publisherName}
+          </h3>
+          <ul {...commentTargetAttrs({ page: 5, targetKind: "area", targetLabel: "Publisher journal list" })} className="management-journal-list">
             {journal.publisherJournalNames.map((name) => <li key={name}>{name}</li>)}
           </ul>
         </>
@@ -1340,6 +1706,7 @@ function TeamPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) 
           person={journal.subscriptionManager}
         />
       </div>
+      <PageAnnotations page={5} comments={draft.comments} />
       <PageNumber value={4} />
     </section>
   );
@@ -1393,7 +1760,13 @@ function ManagementProfile({ person, featured = false }: { person: ManagementPer
 // icon.
 const MANUSCRIPT_FEATURE_ICONS = [ClipboardCheck, Clock, SquarePen, Lock];
 
-function ManuscriptEnginePage({ journal }: { journal: Journal }) {
+function ManuscriptEnginePage({
+  journal,
+  onCommentTargetSelect,
+}: {
+  journal: Journal;
+  onCommentTargetSelect?: (target: CommentTargetSelection) => void;
+}) {
   // Shared content (heading, feature list, logo) comes from the global
   // Manuscript-engine settings; the QR + notice are per-journal.
   const engine = useContext(ManuscriptContext);
@@ -1413,8 +1786,16 @@ function ManuscriptEnginePage({ journal }: { journal: Journal }) {
     340,
   );
   return (
-    <section className="pdf-page manuscript-page" data-export-group="internal" style={pageStyle(pageScale)}>
-      <div className="manuscript-banner">
+    <section
+      className="pdf-page manuscript-page"
+      data-export-group="internal"
+      style={pageStyle(pageScale)}
+      onClickCapture={(event) => {
+        const target = onCommentTargetSelect ? extractCommentTarget(event, 6) : null;
+        if (target && onCommentTargetSelect) onCommentTargetSelect(target);
+      }}
+    >
+      <div {...commentTargetAttrs({ page: 6, targetKind: "image", targetLabel: "Manuscript banner and logo" })} className="manuscript-banner">
         <span className="manuscript-ribbon">Submit Now and Track</span>
         <div className="manuscript-brand">
           {engineLogo ? (
@@ -1427,7 +1808,7 @@ function ManuscriptEnginePage({ journal }: { journal: Journal }) {
         <span className="manuscript-arrow" aria-hidden="true" />
       </div>
 
-      <ul className="manuscript-features">
+      <ul {...commentTargetAttrs({ page: 6, targetKind: "area", targetLabel: "Manuscript feature list" })} className="manuscript-features">
         {engine.steps.map((step, index) => {
           const Icon = MANUSCRIPT_FEATURE_ICONS[index];
           return (
@@ -1439,14 +1820,17 @@ function ManuscriptEnginePage({ journal }: { journal: Journal }) {
         })}
       </ul>
 
-      <p className="manuscript-scan-label">{engine.scanLabel}</p>
+      <p {...commentTargetAttrs({ page: 6, targetKind: "line", targetLabel: "Manuscript scan label" })} className="manuscript-scan-label">
+        {engine.scanLabel}
+      </p>
 
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="qr-image manuscript-qr" src={qrSrc} alt="Manuscript submission QR code" crossOrigin="anonymous" />
+      <img {...commentTargetAttrs({ page: 6, targetKind: "image", targetLabel: "Manuscript QR code" })} className="qr-image manuscript-qr" src={qrSrc} alt="Manuscript submission QR code" crossOrigin="anonymous" />
 
-      <p className="manuscript-notice">
+      <p {...commentTargetAttrs({ page: 6, targetKind: "content", targetLabel: "Manuscript contact notice" })} className="manuscript-notice">
         {noticePrefix}{hasValue(publisherEmail) ? publisherEmail : <MissingFlag label="Publisher email" />}
       </p>
+      <PageAnnotations page={6} comments={[]} />
       <PageNumber value={5} />
     </section>
   );
@@ -1561,7 +1945,15 @@ function paginateEditorial(container: HTMLElement, groups: EditorialGroup[]): Ed
   return pages.length ? pages : [all];
 }
 
-function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+function EditorialPage({
+  journal,
+  draft,
+  onCommentTargetSelect,
+}: {
+  journal: Journal;
+  draft: BinderDraft;
+  onCommentTargetSelect?: (target: CommentTargetSelection) => void;
+}) {
   const members = draft.editorialBoard;
   const groups = buildEditorialGroups(members);
   const journalName = journal.name;
@@ -1612,7 +2004,15 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
       </div>
 
       {pages.map((pageGroups, pi) => (
-        <section key={pi} className="pdf-page editorial-page" data-export-group="internal">
+        <section
+          key={pi}
+          className="pdf-page editorial-page"
+          data-export-group="internal"
+          onClickCapture={(event) => {
+            const target = onCommentTargetSelect ? extractCommentTarget(event, 7) : null;
+            if (target && onCommentTargetSelect) onCommentTargetSelect(target);
+          }}
+        >
           {pi === 0 ? (
             <header className="editorial-header">
               <RichText as="h1" className="editorial-journal-name" value={journalName} />
@@ -1622,7 +2022,19 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
           {members.length === 0 && pi === 0 ? (
             <p className="editorial-empty">No editorial board members have been added for this journal yet.</p>
           ) : null}
-          {pageGroups.map((g, gi) => renderGroup(g, `${pi}-${gi}-${g.heading}`))}
+          {pageGroups.map((g, gi) => (
+            <div
+              {...commentTargetAttrs({
+                page: 7,
+                targetKind: "area",
+                targetLabel: `${g.heading} section`,
+              })}
+              key={`${pi}-${gi}-${g.heading}`}
+            >
+              {renderGroup(g, `${pi}-${gi}-${g.heading}`)}
+            </div>
+          ))}
+          <PageAnnotations page={7} comments={draft.comments} />
           {/* Every editorial page gets a folio; PageSet renumbers them (and every
               page after) sequentially by DOM order. */}
           <PageNumber value={6 + pi} />
@@ -1653,7 +2065,15 @@ function applyBinderTokens(text: string, journal: Journal, draft: BinderDraft, e
     .replaceAll("{email}", em(email || publisherIdentity(journal).email));
 }
 
-function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+function DirectorPage({
+  journal,
+  draft,
+  onCommentTargetSelect,
+}: {
+  journal: Journal;
+  draft: BinderDraft;
+  onCommentTargetSelect?: (target: CommentTargetSelection) => void;
+}) {
   const paragraphs = directorParagraphsForJournal(journal).filter((paragraph) => paragraph.trim());
   const letterMissing = paragraphs.length === 0;
   const pageScale = pageDensityScale(paragraphs.join(" ").length, 3600);
@@ -1663,11 +2083,21 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
   const seal = proxiedImage(journal.publisherSeal);
 
   return (
-    <section className="pdf-page director-page" data-export-group="internal" style={pageStyle(pageScale)}>
+    <section
+      className="pdf-page director-page"
+      data-export-group="internal"
+      style={pageStyle(pageScale)}
+      onClickCapture={(event) => {
+        const target = onCommentTargetSelect ? extractCommentTarget(event, 8) : null;
+        if (target && onCommentTargetSelect) onCommentTargetSelect(target);
+      }}
+    >
       <div className="page-rule" />
-      <RichText as="h1" value={effectiveDirectorDesk(journal).title} />
+      <h1 {...commentTargetAttrs({ page: 8, targetKind: "line", targetLabel: "Director desk title" })}>
+        <RichText as="span" value={effectiveDirectorDesk(journal).title} />
+      </h1>
       {/* Two-column brand band: company logo (left) + publisher seal (right). */}
-      <div className="director-brands">
+      <div {...commentTargetAttrs({ page: 8, targetKind: "image", targetLabel: "Director brand band" })} className="director-brands">
         <div className="director-brand-col">
           <PublisherLogo mode={identity.logoMode} side="company" src={companyLogo} />
         </div>
@@ -1680,7 +2110,7 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
           )}
         </div>
       </div>
-      <div className="director-letter">
+      <div {...commentTargetAttrs({ page: 8, targetKind: "content", targetLabel: "Director letter" })} className="director-letter">
         {letterMissing ? (
           <p className="director-letter-missing" role="alert">
             ⚠ Director&apos;s Desk letter is not set for this journal. Please add it in the
@@ -1695,7 +2125,7 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
           </>
         )}
       </div>
-      <div className="signature">
+      <div {...commentTargetAttrs({ page: 8, targetKind: "image", targetLabel: "Director signature block" })} className="signature">
         {draft.directorSignatureImage || journal.directorSignature ? (
           <Image
             src={draft.directorSignatureImage || journal.directorSignature || ""}
@@ -1709,6 +2139,7 @@ function DirectorPage({ journal, draft }: { journal: Journal; draft: BinderDraft
         <RichText as="b" value={draft.directorRole} />
         <RichText as="i" value={journal.publisher} />
       </div>
+      <PageAnnotations page={8} comments={draft.comments} />
       <PageNumber value={7} />
     </section>
   );
@@ -1721,8 +2152,12 @@ const CONTENT_FIRST_PAGE_NUMBER = 8;
 function ContentRowCells({ row }: { row: ContentRow }) {
   return (
     <>
-      <td><RichText as="b" value={row.title} /><RichText as="span" value={row.author} /></td>
-      <td>{row.page}</td>
+      <td {...commentTargetAttrs({ page: 9, targetKind: "content", targetLabel: `${row.title} title cell` })}>
+        <RichText as="b" value={row.title} /><RichText as="span" value={row.author} />
+      </td>
+      <td {...commentTargetAttrs({ page: 9, targetKind: "line", targetLabel: `${row.title} page cell` })}>
+        {row.page}
+      </td>
     </>
   );
 }
@@ -1781,7 +2216,15 @@ function ContentHeader({ journal, draft, title }: { journal: Journal; draft: Bin
   );
 }
 
-function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+function ContentPage({
+  journal,
+  draft,
+  onCommentTargetSelect,
+}: {
+  journal: Journal;
+  draft: BinderDraft;
+  onCommentTargetSelect?: (target: CommentTargetSelection) => void;
+}) {
   // Record-only: no hardcoded sample rows; an empty list is flagged below.
   const rows = draft.contentRows;
   const rowsKey = rows.map((row) => `${row.title}|${row.author}|${row.page}`).join("\n");
@@ -1818,15 +2261,24 @@ function ContentPage({ journal, draft }: { journal: Journal; draft: BinderDraft 
           key={pageIndex}
           className="pdf-page content-page"
           data-export-group="internal"
+          onClickCapture={(event) => {
+            const target = onCommentTargetSelect ? extractCommentTarget(event, 9) : null;
+            if (target && onCommentTargetSelect) onCommentTargetSelect(target);
+          }}
         >
           <ContentHeader journal={journal} draft={draft} title={pageIndex === 0 ? "Contents" : "Contents (continued)"} />
           {pageRows.length ? (
             <table className="contents-table">
               <tbody>
-                {pageRows.map((row, index) => <tr key={`${row.title}-${index}`}><ContentRowCells row={row} /></tr>)}
+                {pageRows.map((row, index) => (
+                  <tr key={`${row.title}-${index}`}>
+                    <ContentRowCells row={row} />
+                  </tr>
+                ))}
               </tbody>
             </table>
           ) : <MissingFlag label="Contents / article list" block />}
+          <PageAnnotations page={9} comments={draft.comments} />
           <PageNumber value={CONTENT_FIRST_PAGE_NUMBER + pageIndex} />
         </section>
       ))}
@@ -1851,12 +2303,14 @@ function BinderPage({
   draft,
   interactiveCover = false,
   onFrontCoverLayoutChange,
+  onCommentTargetSelect,
 }: {
   page: number;
   journal: Journal;
   draft: BinderDraft;
   interactiveCover?: boolean;
   onFrontCoverLayoutChange?: (layout: BinderDraft["frontCoverLayout"]) => void;
+  onCommentTargetSelect?: (target: CommentTargetSelection) => void;
 }) {
   const currentJournal = draftJournal(journal, draft);
 
@@ -1868,30 +2322,39 @@ function BinderPage({
           draft={draft}
           interactive={interactiveCover}
           onLayoutChange={onFrontCoverLayoutChange}
+          onCommentTargetSelect={onCommentTargetSelect}
         />
       );
     case 2:
-      return <CoverPage journal={currentJournal} draft={draft} />;
+      return <CoverPage journal={currentJournal} draft={draft} onCommentTargetSelect={onCommentTargetSelect} />;
     case 3:
-      return <PaymentPage journal={currentJournal} draft={draft} />;
+      return <PaymentPage journal={currentJournal} draft={draft} onCommentTargetSelect={onCommentTargetSelect} />;
     case 4:
-      return <JournalDetailsPage journal={currentJournal} draft={draft} />;
+      return <JournalDetailsPage journal={currentJournal} draft={draft} onCommentTargetSelect={onCommentTargetSelect} />;
     case 5:
-      return <TeamPage journal={currentJournal} draft={draft} />;
+      return <TeamPage journal={currentJournal} draft={draft} onCommentTargetSelect={onCommentTargetSelect} />;
     case 6:
-      return <ManuscriptEnginePage journal={currentJournal} />;
+      return <ManuscriptEnginePage journal={currentJournal} onCommentTargetSelect={onCommentTargetSelect} />;
     case 7:
-      return <EditorialPage journal={currentJournal} draft={draft} />;
+      return <EditorialPage journal={currentJournal} draft={draft} onCommentTargetSelect={onCommentTargetSelect} />;
     case 8:
-      return <DirectorPage journal={currentJournal} draft={draft} />;
+      return <DirectorPage journal={currentJournal} draft={draft} onCommentTargetSelect={onCommentTargetSelect} />;
     case 9:
-      return <ContentPage journal={currentJournal} draft={draft} />;
+      return <ContentPage journal={currentJournal} draft={draft} onCommentTargetSelect={onCommentTargetSelect} />;
     default:
-      return <CoverSpreadPage journal={currentJournal} draft={draft} />;
+      return <CoverSpreadPage journal={currentJournal} draft={draft} onCommentTargetSelect={onCommentTargetSelect} />;
   }
 }
 
-function PageSet({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+function PageSet({
+  journal,
+  draft,
+  onCommentTargetSelect,
+}: {
+  journal: Journal;
+  draft: BinderDraft;
+  onCommentTargetSelect?: (target: CommentTargetSelection) => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   // Editorial and Contents paginate to a variable number of pages at runtime, so
   // the folios can't be hardcoded. Renumber the live page numbers by DOM order
@@ -1915,7 +2378,7 @@ function PageSet({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
   return (
     <div className="page-set" ref={ref}>
       {Array.from({ length: totalPages }, (_, index) => (
-        <BinderPage key={index + 1} page={index + 1} journal={journal} draft={draft} />
+        <BinderPage key={index + 1} page={index + 1} journal={journal} draft={draft} onCommentTargetSelect={onCommentTargetSelect} />
       ))}
     </div>
   );
@@ -1970,6 +2433,8 @@ function SectionEditor({
   exportError,
   onExport,
   profiles,
+  currentUser,
+  commentTarget,
 }: {
   journal: Journal;
   draft: BinderDraft;
@@ -1982,6 +2447,8 @@ function SectionEditor({
   exportError: ExportError;
   onExport: (mode: ExportMode) => void;
   profiles: ProfilePick[];
+  currentUser: { name: string | null; email: string };
+  commentTarget: CommentTargetSelection | null;
 }) {
   const legalForJournal = useContext(LegalContext)[journal.id];
   const subscriptionTiers = useContext(SubscriptionTiersContext);
@@ -2212,6 +2679,15 @@ function SectionEditor({
         <button type="button" data-tour="save-page" onClick={onSave}>Save Page {activePage} Details</button>
         {saveStatus ? <span>{saveStatus}</span> : null}
       </div>
+      <CommentEditorPanel
+        key={`${activePage}-${commentTargetSelectionKey(commentTarget) || "default"}-${currentUser.email}`}
+        page={activePage}
+        comments={draft.comments.filter((comment) => comment.page === activePage).sort(commentSort)}
+        currentUser={currentUser}
+        seed={commentTarget}
+        onAddComment={(comment) => onChange({ ...draft, comments: [...draft.comments, comment] })}
+        onRemoveComment={(id) => onChange({ ...draft, comments: draft.comments.filter((comment) => comment.id !== id) })}
+      />
       {uploadError ? <div className="upload-error" role="alert">{uploadError}</div> : null}
       {activePage === 1 ? (
         <>
@@ -2841,7 +3317,7 @@ function SectionEditor({
   );
 }
 
-export default function JournalDashboard({ journals, defaultJournalId, dynamicData, serverDrafts, canEdit, profiles, legalData, manuscriptEngine, subscriptionTiers }: Props) {
+export default function JournalDashboard({ journals, defaultJournalId, dynamicData, serverDrafts, canEdit, profiles, currentUser, legalData, manuscriptEngine, subscriptionTiers }: Props) {
   const [selectedId, setSelectedId] = useState(defaultJournalId);
   const [drafts, setDrafts] = useState<Record<string, BinderDraft>>(() => initialDrafts(journals, dynamicData, serverDrafts));
   const [updatedAtById, setUpdatedAtById] = useState<Record<string, string>>(() =>
@@ -2855,6 +3331,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   const [dirtyIds, setDirtyIds] = useState<Set<string>>(() => new Set());
   const [conflict, setConflict] = useState<ConflictState | null>(null);
   const [activePage, setActivePage] = useState(1);
+  const [commentTarget, setCommentTarget] = useState<CommentTargetSelection | null>(null);
   const [dashboardMode, setDashboardMode] = useState<"templates" | "preview">("templates");
   const [saveStatus, setSaveStatus] = useState("");
   const [journalQuery, setJournalQuery] = useState("");
@@ -2908,6 +3385,12 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
       }));
     }
     void loadBinders(id);
+  }
+
+  function selectCommentTarget(target: CommentTargetSelection) {
+    setActivePage(target.page);
+    setCommentTarget(target);
+    setDashboardMode("templates");
   }
 
   function markDirty(journalId: string) {
@@ -3386,13 +3869,14 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
               <span className="live-badge">Realtime Live Canvas</span>
               <div className="active-page-preview">
                 {dashboardMode === "preview" ? (
-                  <PageSet journal={primaryJournal} draft={primaryDraft} />
+                  <PageSet journal={primaryJournal} draft={primaryDraft} onCommentTargetSelect={selectCommentTarget} />
                 ) : (
                   <BinderPage
                     page={activePage}
                     journal={primaryJournal}
                     draft={primaryDraft}
                     interactiveCover={false}
+                    onCommentTargetSelect={selectCommentTarget}
                     onFrontCoverLayoutChange={(frontCoverLayout) =>
                       startTransition(() => {
                         updateDraft(primaryJournal.id, {
@@ -3419,6 +3903,8 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                 exportError={exportError}
                 onExport={runExport}
                 profiles={profiles}
+                currentUser={currentUser}
+                commentTarget={commentTarget}
               />
             ) : (
               <section className="export-panel" data-tour="export-actions">

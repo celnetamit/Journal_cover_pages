@@ -4146,6 +4146,244 @@ button {
   font-size: 0.8rem;
 }
 
+.page-annotations {
+  position: absolute;
+  right: 12mm;
+  top: 14mm;
+  width: min(60mm, 28vw);
+  max-height: 114mm;
+  overflow: hidden;
+  z-index: 6;
+  border: 1px solid rgba(30, 41, 59, 0.16);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  color: #0f172a;
+  padding: 0.55rem 0.65rem 0.6rem;
+  pointer-events: none;
+}
+
+.page-annotations-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.45rem;
+}
+
+.page-annotations-head span {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page-annotations-head small {
+  font-size: 0.62rem;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.page-annotations-list {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.page-annotation {
+  display: grid;
+  gap: 0.18rem;
+  font-size: 0.68rem;
+  line-height: 1.25;
+}
+
+.page-annotation-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.32rem;
+  flex-wrap: wrap;
+}
+
+.page-annotation-meta strong {
+  font-size: 0.66rem;
+}
+
+.page-annotation-target {
+  font-size: 0.62rem;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.page-annotation p {
+  margin: 0;
+  font-size: 0.7rem;
+  color: #111827;
+  overflow: hidden;
+}
+
+.page-annotations-more {
+  font-size: 0.64rem;
+  color: #475569;
+  padding-top: 0.1rem;
+}
+
+.comment-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.12rem 0.42rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.comment-badge.kind-content {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.comment-badge.kind-area {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.comment-badge.kind-line {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.comment-badge.kind-image {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.comment-editor {
+  border: 1px solid #dbe4f0;
+  border-radius: 0.8rem;
+  background: linear-gradient(180deg, #fbfdff 0%, #f7fbff 100%);
+  padding: 0.8rem;
+}
+
+.comment-editor-grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.comment-editor-grid label {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.comment-editor-grid span {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.comment-editor-grid input,
+.comment-editor-grid select,
+.comment-editor-grid textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.55rem;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.82rem;
+  padding: 0.48rem 0.56rem;
+}
+
+.comment-editor-grid textarea {
+  resize: vertical;
+  min-height: 5rem;
+}
+
+.comment-editor-message {
+  grid-column: 1 / -1;
+}
+
+.comment-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.comment-editor-actions span {
+  color: #475569;
+  font-size: 0.75rem;
+}
+
+.comment-list {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.comment-item {
+  border: 1px solid #dbe4f0;
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 0.65rem 0.7rem;
+  display: grid;
+  gap: 0.32rem;
+}
+
+.comment-item-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.comment-item-head strong,
+.comment-item-head span,
+.comment-item p {
+  font-size: 0.76rem;
+}
+
+.comment-item-head span {
+  color: #64748b;
+}
+
+.comment-item-head button {
+  margin-left: auto;
+  padding: 0.22rem 0.45rem;
+  font-size: 0.72rem;
+}
+
+.comment-item p {
+  margin: 0;
+  line-height: 1.4;
+  color: #0f172a;
+}
+
+.comment-empty {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+[data-comment-target-kind] {
+  cursor: crosshair;
+  transition: outline-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+[data-comment-target-kind]:hover {
+  outline: 1px dashed rgba(37, 99, 235, 0.5);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.08);
+}
+
+[data-comment-target-kind]:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.7);
+  outline-offset: 3px;
+}
+
 @media print {
   @page {
     margin: 0;
@@ -4173,7 +4411,8 @@ button {
   .live-canvas-panel,
   .live-badge,
   .admin-panel,
-  .preview-heading {
+  .preview-heading,
+  .page-annotations {
     display: none !important;
   }
 
