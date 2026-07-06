@@ -6,6 +6,7 @@ type Params = { params: Promise<{ id: string }> };
 // never changes (a new upload creates a new id), so it is safe to cache hard.
 export async function GET(req: Request, { params }: Params) {
   const { id } = await params;
+  const grayscale = new URL(req.url).searchParams.get("grayscale") === "1";
 
   // Cheap revalidation: the id is the ETag, so a matching request returns 304.
   if (req.headers.get("if-none-match") === `"${id}"`) {
@@ -15,10 +16,18 @@ export async function GET(req: Request, { params }: Params) {
   const asset = await prisma.asset.findUnique({ where: { id } });
   if (!asset) return new Response(null, { status: 404 });
 
-  return new Response(Buffer.from(asset.data), {
+  let bytes: Buffer = Buffer.from(asset.data);
+  if (grayscale) {
+    const { default: sharp } = await import("sharp");
+    bytes = Buffer.from(await sharp(bytes).grayscale().toBuffer());
+  }
+
+  const body = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+
+  return new Response(body, {
     headers: {
       "Content-Type": asset.mimeType,
-      "Content-Length": String(asset.byteSize),
+      "Content-Length": String(bytes.byteLength),
       "Cache-Control": "public, max-age=31536000, immutable",
       ETag: `"${asset.id}"`,
       // Defense-in-depth for user-uploaded files (e.g. an SVG containing a

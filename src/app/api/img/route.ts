@@ -20,8 +20,10 @@ export async function GET(req: Request) {
   const session = await getSession();
   if (!session) return new NextResponse(null, { status: 401 });
 
-  const raw = new URL(req.url).searchParams.get("url");
+  const parsed = new URL(req.url);
+  const raw = parsed.searchParams.get("url");
   if (!raw) return new NextResponse(null, { status: 400 });
+  const grayscale = parsed.searchParams.get("grayscale") === "1";
 
   let target: URL;
   try {
@@ -46,10 +48,18 @@ export async function GET(req: Request) {
   const bytes = Buffer.from(await upstream.arrayBuffer());
   if (bytes.length > MAX_BYTES) return new NextResponse(null, { status: 413 });
 
-  return new NextResponse(bytes, {
+  let output: Buffer = bytes;
+  if (grayscale) {
+    const { default: sharp } = await import("sharp");
+    output = Buffer.from(await sharp(bytes).grayscale().toBuffer());
+  }
+
+  const body = output.buffer.slice(output.byteOffset, output.byteOffset + output.byteLength) as ArrayBuffer;
+
+  return new NextResponse(body, {
     headers: {
       "Content-Type": contentType,
-      "Content-Length": String(bytes.length),
+      "Content-Length": String(output.length),
       "Cache-Control": "public, max-age=86400",
     },
   });

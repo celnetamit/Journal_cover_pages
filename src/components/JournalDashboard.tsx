@@ -19,7 +19,7 @@ import FrontCoverCanvas from "@/components/FrontCoverCanvas";
 import { journalLookupKeys } from "@/lib/lookup";
 import type { DynamicBinderData, EditorialMember } from "@/lib/formidable";
 import type { Journal, ContactPerson } from "@/lib/journals";
-import { proxiedImage } from "@/lib/image";
+import { proxiedGrayscaleImage, proxiedImage } from "@/lib/image";
 import type { LegalInfo } from "@/lib/legal-data";
 import Page3Editor from "@/components/Page3Editor";
 import SaveFocusToJournal from "@/components/SaveFocusToJournal";
@@ -108,6 +108,7 @@ const ManuscriptContext = createContext<ManuscriptEngineSettings>(defaultManuscr
 
 // Frequency-based subscription pricing tiers, keyed by issues-per-year.
 const SubscriptionTiersContext = createContext<SubscriptionTier[]>([]);
+const PdfExportContext = createContext(false);
 
 type Props = {
   journals: Journal[];
@@ -237,7 +238,7 @@ function PageAnnotations({ page, comments }: { page: number; comments: BinderCom
         <small>{items.length} note{items.length === 1 ? "" : "s"}</small>
       </div>
       <div className="page-annotations-list">
-        {items.slice(0, 3).map((comment) => (
+        {items.map((comment) => (
           <article className="page-annotation" key={comment.id}>
             <div className="page-annotation-meta">
               <CommentBadge kind={comment.targetKind} />
@@ -247,7 +248,6 @@ function PageAnnotations({ page, comments }: { page: number; comments: BinderCom
             <p>{comment.message}</p>
           </article>
         ))}
-        {items.length > 3 ? <div className="page-annotations-more">+{items.length - 3} more</div> : null}
       </div>
     </aside>
   );
@@ -1746,13 +1746,21 @@ function ContactBox({ heading, person, showPhoto = true }: {
   person: ContactPerson;
   showPhoto?: boolean;
 }) {
+  const exportSnapshot = useContext(PdfExportContext);
   const name = inlineToPlainText(person.name);
   return (
     <div className="contact-box">
       <b className="contact-box-heading">{heading}</b>
       {showPhoto ? (
         person.photo ? (
-          <Image className="contact-box-photo" src={proxiedImage(person.photo)} alt={name} width={90} height={90} unoptimized />
+          <Image
+            className="contact-box-photo"
+            src={exportSnapshot ? proxiedGrayscaleImage(person.photo) : proxiedImage(person.photo)}
+            alt={name}
+            width={90}
+            height={90}
+            unoptimized
+          />
         ) : (
           <span className="contact-box-photo contact-box-photo-placeholder">{initials(name || "—")}</span>
         )
@@ -1766,10 +1774,17 @@ function ContactBox({ heading, person, showPhoto = true }: {
 }
 
 function ManagementProfile({ person, featured = false }: { person: ManagementPerson; featured?: boolean }) {
+  const exportSnapshot = useContext(PdfExportContext);
   return (
     <article className={featured ? "management-profile featured" : "management-profile"}>
       {person.photo ? (
-        <Image src={proxiedImage(person.photo)} alt={inlineToPlainText(person.name)} width={90} height={90} unoptimized />
+        <Image
+          src={exportSnapshot ? proxiedGrayscaleImage(person.photo) : proxiedImage(person.photo)}
+          alt={inlineToPlainText(person.name)}
+          width={90}
+          height={90}
+          unoptimized
+        />
       ) : (
         <span className="management-initials">{initials(inlineToPlainText(person.name) || "Member")}</span>
       )}
@@ -4073,11 +4088,13 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
         ) : null}
 
         {bookSnapshot ? (
-          <div id="pdf-book" className={`pdf-export-source ${bookSnapshot.includeComments ? "" : "comments-hidden"}`} aria-hidden="true">
-            {bookSnapshot.entries.map((entry) => (
-              <PageSet key={entry.journal.id} journal={entry.journal} draft={entry.draft} />
-            ))}
-          </div>
+          <PdfExportContext.Provider value={true}>
+            <div id="pdf-book" className={`pdf-export-source ${bookSnapshot.includeComments ? "" : "comments-hidden"}`} aria-hidden="true">
+              {bookSnapshot.entries.map((entry) => (
+                <PageSet key={entry.journal.id} journal={entry.journal} draft={entry.draft} />
+              ))}
+            </div>
+          </PdfExportContext.Provider>
         ) : null}
       </section>
     </main>
