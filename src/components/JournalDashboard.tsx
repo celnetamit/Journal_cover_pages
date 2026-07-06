@@ -339,7 +339,7 @@ function CommentEditorPanel({
             <span>Commented by</span>
             <input
               value={commentDraft.authorName}
-              onChange={(event) => setCommentDraft((current) => ({ ...current, authorName: event.target.value }))}
+              readOnly
               placeholder={currentUser.name || currentUser.email}
             />
           </label>
