@@ -1704,12 +1704,28 @@ button {
      height "indefinite" for percentage children in some browsers (image collapses). */
   align-self: stretch;
   height: 100%;
+  width: 100%;
   /* Share the space left over after the spine equally, so a wider spine shrinks
      the covers instead of overflowing/clipping them. */
   flex: 1 1 0;
   min-width: 0;
   display: block;
   position: relative;
+}
+
+.cover-spread-page > [data-comment-target-kind="image"] {
+  align-self: stretch;
+  display: block;
+  flex: 1 1 0;
+  height: 100%;
+  min-width: 0;
+  position: relative;
+}
+
+.cover-spread-page > [data-comment-target-kind="image"] > .digital-library-cover,
+.cover-spread-page > [data-comment-target-kind="image"] > .journal-front-cover {
+  height: 100%;
+  width: 100%;
 }
 
 .cover-spread-page .cover-panel-image {
@@ -4373,6 +4389,35 @@ button {
   transition: outline-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
 }
 
+[data-comment-count]:not([data-comment-count="0"]) {
+  cursor: help;
+}
+
+[data-comment-count]:not([data-comment-count="0"])::after {
+  align-items: center;
+  background: #0f172a;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+  color: #fff;
+  content: "✎";
+  display: flex;
+  font-size: 0.64rem;
+  font-weight: 800;
+  height: 1rem;
+  justify-content: center;
+  line-height: 1;
+  position: absolute;
+  right: -0.35rem;
+  top: -0.4rem;
+  width: 1rem;
+  z-index: 8;
+}
+
+[data-comment-count]:not([data-comment-count="0"]):hover::after {
+  background: #1d4ed8;
+}
+
 [data-comment-target-kind]:hover {
   outline: 1px dashed rgba(37, 99, 235, 0.5);
   outline-offset: 2px;
@@ -4412,7 +4457,8 @@ button {
   .live-badge,
   .admin-panel,
   .preview-heading,
-  .page-annotations {
+  .page-annotations,
+  [data-comment-count]:not([data-comment-count="0"])::after {
     display: none !important;
   }
 

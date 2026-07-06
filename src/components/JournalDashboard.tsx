@@ -166,11 +166,32 @@ function commentTargetSelectionKey(target: CommentTargetSelection | null) {
   return `${target.page}:${target.targetKind}:${target.targetLabel}`;
 }
 
-function commentTargetAttrs(target: CommentTargetSelection): Record<string, string> {
+function commentsForTarget(comments: BinderComment[], target: CommentTargetSelection) {
+  return comments.filter(
+    (comment) =>
+      comment.page === target.page &&
+      comment.targetKind === target.targetKind &&
+      comment.targetLabel === target.targetLabel,
+  ).sort(commentSort);
+}
+
+function commentTargetTooltip(items: BinderComment[]) {
+  if (items.length === 0) return "";
+  return items
+    .map((comment) => `${comment.authorName}: ${comment.message}`)
+    .join("\n\n");
+}
+
+function commentTargetAttrs(comments: BinderComment[], target: CommentTargetSelection): Record<string, string> {
+  const items = commentsForTarget(comments, target);
+  const tooltip = commentTargetTooltip(items);
   return {
     "data-comment-target-page": String(target.page),
     "data-comment-target-kind": target.targetKind,
     "data-comment-target-label": target.targetLabel,
+    "data-comment-count": String(items.length),
+    "data-comment-tooltip": tooltip,
+    title: tooltip || `Comment target: ${target.targetLabel}`,
   };
 }
 
@@ -1084,13 +1105,13 @@ function CoverSpreadPage({
       data-cover-trim-h={pageH}
       style={{ width: `${spreadW}mm`, height: `${pageH}mm`, padding: `${padV}mm ${padH}mm` }}
     >
-      <div {...commentTargetAttrs({ page: 1, targetKind: "image", targetLabel: "Back cover artwork" })}>
+      <div {...commentTargetAttrs(draft.comments, { page: 1, targetKind: "image", targetLabel: "Back cover artwork" })}>
         <DigitalLibraryBackCover draft={draft} />
       </div>
       {/* Printed spine — sits between the back and front cover panels.
           (Journal-name text on the spine is hidden for now.) */}
-      <div {...commentTargetAttrs({ page: 1, targetKind: "line", targetLabel: `Spine ${spineMm}mm` })} className="cover-spine" style={{ width: `${spineMm}mm` }} aria-label={`Spine ${spineMm}mm`} />
-      <div {...commentTargetAttrs({ page: 1, targetKind: "image", targetLabel: "Front cover artwork" })}>
+      <div {...commentTargetAttrs(draft.comments, { page: 1, targetKind: "line", targetLabel: `Spine ${spineMm}mm` })} className="cover-spine" style={{ width: `${spineMm}mm` }} aria-label={`Spine ${spineMm}mm`} />
+      <div {...commentTargetAttrs(draft.comments, { page: 1, targetKind: "image", targetLabel: "Front cover artwork" })}>
         <JournalFrontCover journal={journal} draft={draft} interactive={interactive} onLayoutChange={onLayoutChange} />
       </div>
       {/* TEMP dimension guide (on-screen only; remove later). */}
@@ -1200,20 +1221,20 @@ function CoverPage({
       <div className="page-rule" />
       {/* e-ISSN is optional — the whole line is hidden when unset. */}
       {eIssn.trim() ? (
-        <p {...commentTargetAttrs({ page: 2, targetKind: "line", targetLabel: "ISSN line" })} className="cover-issn">
+        <p {...commentTargetAttrs(draft.comments, { page: 2, targetKind: "line", targetLabel: "ISSN line" })} className="cover-issn">
           ISSN: {eIssn}
         </p>
       ) : null}
-      <p {...commentTargetAttrs({ page: 2, targetKind: "line", targetLabel: "Printed by line" })} className="cover-printer">
+      <p {...commentTargetAttrs(draft.comments, { page: 2, targetKind: "line", targetLabel: "Printed by line" })} className="cover-printer">
         Printed by : <ReqText value={printer} label="Printed by" />
       </p>
-      <div {...commentTargetAttrs({ page: 2, targetKind: "content", targetLabel: "Journal title" })}>
+      <div {...commentTargetAttrs(draft.comments, { page: 2, targetKind: "content", targetLabel: "Journal title" })}>
         <ReqText as="h1" value={title} label="Journal title" />
       </div>
-      <p {...commentTargetAttrs({ page: 2, targetKind: "line", targetLabel: "Volume and issue line" })} className="issue-line">
+      <p {...commentTargetAttrs(draft.comments, { page: 2, targetKind: "line", targetLabel: "Volume and issue line" })} className="issue-line">
         Volume <ReqText value={draft.issueVolume} label="Volume" /> | Issue <ReqText value={draft.issueNumber} label="Issue" />
       </p>
-      <p {...commentTargetAttrs({ page: 2, targetKind: "line", targetLabel: "Month and year line" })} className="cover-meta">
+      <p {...commentTargetAttrs(draft.comments, { page: 2, targetKind: "line", targetLabel: "Month and year line" })} className="cover-meta">
         <ReqText value={draft.issueMonthRange.replace(/\s*-\s*/g, "-")} label="Month range" /> | <ReqText value={draft.issueYear} label="Year" />
       </p>
       <div className="cover-footer">
@@ -1223,16 +1244,16 @@ function CoverPage({
         </div>
         <ReqText as="b" value={publisherName} label="Publisher name" />
         <ReqText as="strong" value={companyName} label="Company name" />
-        <span {...commentTargetAttrs({ page: 2, targetKind: "content", targetLabel: "Corporate office line" })}>
+        <span {...commentTargetAttrs(draft.comments, { page: 2, targetKind: "content", targetLabel: "Corporate office line" })}>
           <b>Corporate Office:</b> <ReqText value={address} label="Corporate office address" />
         </span>
-        <span {...commentTargetAttrs({ page: 2, targetKind: "content", targetLabel: "Registered office line" })}>
+        <span {...commentTargetAttrs(draft.comments, { page: 2, targetKind: "content", targetLabel: "Registered office line" })}>
           <b>Regd. Office:</b> <ReqText value={registeredOffice} label="Registered office" />
         </span>
-        <span {...commentTargetAttrs({ page: 2, targetKind: "content", targetLabel: "Contact line" })}>
+        <span {...commentTargetAttrs(draft.comments, { page: 2, targetKind: "content", targetLabel: "Contact line" })}>
           Telephone No.: <ReqText value={phone} label="Publisher phone" />; Mobile No.: <ReqText value={mobile} label="Publisher mobile" />, E-mail: <ReqText value={email} label="Publisher email" />
         </span>
-        <span {...commentTargetAttrs({ page: 2, targetKind: "content", targetLabel: "Website and CIN line" })} className="cover-footer-web">
+        <span {...commentTargetAttrs(draft.comments, { page: 2, targetKind: "content", targetLabel: "Website and CIN line" })} className="cover-footer-web">
           Website: <ReqText value={website} label="Website" /> | CIN No.: <ReqText value={cin} label="CIN" />
         </span>
       </div>
@@ -1365,15 +1386,15 @@ function PaymentPage({
         if (target && onCommentTargetSelect) onCommentTargetSelect(target);
       }}
     >
-      <p {...commentTargetAttrs({ page: 3, targetKind: "content", targetLabel: "Subscription overview" })}>
+      <p {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "content", targetLabel: "Subscription overview" })}>
         {`${paymentPublisherName} (a strong initiative of ${companyName}) is the Publisher of Journal. Statements and opinions expressed in the journal reflect the views of the author(s) and are not the opinion of ${journal.name} unless so stated.`}
       </p>
 
-      <h1 {...commentTargetAttrs({ page: 3, targetKind: "line", targetLabel: "Subscription heading" })}>
+      <h1 {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "line", targetLabel: "Subscription heading" })}>
         SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, <ReqText value={subscriptionYear} label="Year" />)
       </h1>
       <div className="subscription-columns">
-        <div {...commentTargetAttrs({ page: 3, targetKind: "area", targetLabel: "National subscription column" })} className="subscription-column">
+        <div {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "area", targetLabel: "National subscription column" })} className="subscription-column">
           <p><b>National Subscription</b> (₹, India)</p>
           {tier ? (
             <ul className="checkbox-list">
@@ -1383,7 +1404,7 @@ function PaymentPage({
             </ul>
           ) : <MissingFlag label="Subscription pricing — set the journal's Issues per year and a matching pricing tier" block />}
         </div>
-        <div {...commentTargetAttrs({ page: 3, targetKind: "area", targetLabel: "International subscription column" })} className="subscription-column">
+        <div {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "area", targetLabel: "International subscription column" })} className="subscription-column">
           <p><b>International Subscription</b> ($, outside India)</p>
           {tier ? (
             <ul className="checkbox-list">
@@ -1395,7 +1416,7 @@ function PaymentPage({
         </div>
       </div>
       {/* Static for all journals: single hard copy charges for the author. */}
-      <div {...commentTargetAttrs({ page: 3, targetKind: "area", targetLabel: "Author copy block" })} className="author-copy-block">
+      <div {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "area", targetLabel: "Author copy block" })} className="author-copy-block">
         <p><b>For Author&apos;s Copy</b></p>
         <ul className="checkbox-list">
           <li>India: ₹1,500 includes single hard copy of Author&apos;s Journal.</li>
@@ -1403,14 +1424,14 @@ function PaymentPage({
           <li>Other Countries: $200 includes single hard copy of Author&apos;s Journal.</li>
         </ul>
       </div>
-      <p {...commentTargetAttrs({ page: 3, targetKind: "content", targetLabel: "Payment and legal text" })}>
+      <p {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "content", targetLabel: "Payment and legal text" })}>
         To purchase print compilations of any back issues, please send your query to <ReqText value={legalEmail} label="Publisher e-mail" />. Subscriptions must be
         prepaid. Rates for deliveries outside India exclude shipping charges. Please note that all prices are subject to change without prior notice.
       </p>
 
       <h2>MODE OF PAYMENT</h2>
       <div className="payment-mode-columns">
-        <div {...commentTargetAttrs({ page: 3, targetKind: "line", targetLabel: "NEFT / RTGS payment block" })} className="payment-mode-column">
+        <div {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "line", targetLabel: "NEFT / RTGS payment block" })} className="payment-mode-column">
           <p><b>Pay Through NEFT/RTGS/Online Transfer</b></p>
           <p>
             Account Number: <ReqText value={bankAccountNo} label="Bank account no." /><br />
@@ -1421,7 +1442,7 @@ function PaymentPage({
             Swift Code: <ReqText value={bankSwift} label="Swift code" />
           </p>
         </div>
-        <div {...commentTargetAttrs({ page: 3, targetKind: "area", targetLabel: "Cheque / demand draft block" })} className="payment-mode-column">
+        <div {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "area", targetLabel: "Cheque / demand draft block" })} className="payment-mode-column">
           <p>
             <b>Pay Through Cheque/Demand Draft</b><br />
             At Par Cheque, Demand Draft, and RTGS (payment to be made in favor of {companyName}, payable at Delhi/New Delhi).
@@ -1504,7 +1525,7 @@ function PaymentPage({
       </ul>
 
       <h2 className="no-divider">{isJournalsPub || isLaw ? "LEGAL DISPUTES" : "LEGAL DISPUTE"}</h2>
-      <p {...commentTargetAttrs({ page: 3, targetKind: "content", targetLabel: "Legal disputes line" })}>
+      <p {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "content", targetLabel: "Legal disputes line" })}>
         All the legal disputes are subjected to Delhi Jurisdiction only. If you have any questions, please contact the
         Publication Management Team at <ReqText value={legalEmail} label="Publisher e-mail" />; Tel: <ReqText value={legalPhoneDisplay} label="Publisher phone" />.
       </p>
@@ -1553,9 +1574,8 @@ function JournalDetailsPage({
   const objectiveItems = journal.objectives;
   const salientItems = journal.salientFeatures;
   const aboutMissing = !hasValue(aboutText);
-  const publisherLine = `Publisher of the Journal: ${publisherName}`;
   const pageScale = pageDensityScale(
-    [aboutText ?? "", publisherLine, ...scopeItems, aboutIntroText, ...aboutNotes.slice(1).map((note) => String(note))].join(" ").length,
+    [aboutText ?? "", ...scopeItems, aboutIntroText, ...aboutNotes.slice(1).map((note) => String(note))].join(" ").length,
     2350,
   );
 
@@ -1572,29 +1592,29 @@ function JournalDetailsPage({
       {aboutMissing ? (
         <MissingFlag label="About" block />
       ) : (
-        <p {...commentTargetAttrs({ page: 4, targetKind: "content", targetLabel: "About text" })}>
+        <p {...commentTargetAttrs(draft.comments, { page: 4, targetKind: "content", targetLabel: "About text" })}>
           <ReqText as="b" value={publisherName} label="Publisher name" /> <RichText value={aboutText} />
         </p>
       )}
       <section>
-        <h2 {...commentTargetAttrs({ page: 4, targetKind: "line", targetLabel: "Objectives heading" })}>Objectives</h2>
+        <h2 {...commentTargetAttrs(draft.comments, { page: 4, targetKind: "line", targetLabel: "Objectives heading" })}>Objectives</h2>
         {objectiveItems.length ? (
-          <ul {...commentTargetAttrs({ page: 4, targetKind: "area", targetLabel: "Objectives list" })}>
+          <ul {...commentTargetAttrs(draft.comments, { page: 4, targetKind: "area", targetLabel: "Objectives list" })}>
             {objectiveItems.map((item, index) => <RichText as="li" key={`${item}-${index}`} value={item} />)}
           </ul>
         ) : <MissingFlag label="Objectives" block />}
       </section>
       <section>
-        <h2 {...commentTargetAttrs({ page: 4, targetKind: "line", targetLabel: "Salient features heading" })}>Salient Features</h2>
+        <h2 {...commentTargetAttrs(draft.comments, { page: 4, targetKind: "line", targetLabel: "Salient features heading" })}>Salient Features</h2>
         {salientItems.length ? (
-          <ul {...commentTargetAttrs({ page: 4, targetKind: "area", targetLabel: "Salient features list" })}>
+          <ul {...commentTargetAttrs(draft.comments, { page: 4, targetKind: "area", targetLabel: "Salient features list" })}>
             {salientItems.map((item, index) => <RichText as="li" key={`${item}-${index}`} value={item} />)}
           </ul>
         ) : <MissingFlag label="Salient features" block />}
       </section>
       <section>
         <div className="journal-info-title-block">
-          <div {...commentTargetAttrs({ page: 4, targetKind: "content", targetLabel: "Journal title block" })}>
+          <div {...commentTargetAttrs(draft.comments, { page: 4, targetKind: "content", targetLabel: "Journal title block" })}>
             <RichText as="h2" className="journal-info-name" value={journal.name} />
           </div>
           {(journal.eIssn || journal.pIssn) ? (
@@ -1602,18 +1622,15 @@ function JournalDetailsPage({
               {[journal.eIssn ? `ISSN: ${journal.eIssn} (Online)` : null, journal.pIssn ? `ISSN: ${journal.pIssn} (Print)` : null].filter(Boolean).join(", ")}
             </p>
           ) : null}
-          <p {...commentTargetAttrs({ page: 4, targetKind: "line", targetLabel: "Publisher line" })} className="journal-info-publisher">
-            {publisherLine}
-          </p>
         </div>
-        <h2 {...commentTargetAttrs({ page: 4, targetKind: "line", targetLabel: "Focus and scope heading" })}>Focus and Scope</h2>
+        <h2 {...commentTargetAttrs(draft.comments, { page: 4, targetKind: "line", targetLabel: "Focus and scope heading" })}>Focus and Scope</h2>
         {scopeItems.length > 0 ? (
-          <ul {...commentTargetAttrs({ page: 4, targetKind: "area", targetLabel: "Focus and scope list" })} className="focus-list">
+          <ul {...commentTargetAttrs(draft.comments, { page: 4, targetKind: "area", targetLabel: "Focus and scope list" })} className="focus-list">
             {scopeItems.map((item, index) => <RichText as="li" key={`${item}-${index}`} value={item} />)}
           </ul>
         ) : <MissingFlag label="Focus & scope" block />}
       </section>
-      <div {...commentTargetAttrs({ page: 4, targetKind: "area", targetLabel: "Closing notes" })} className="journal-info-notes">
+      <div {...commentTargetAttrs(draft.comments, { page: 4, targetKind: "area", targetLabel: "Closing notes" })} className="journal-info-notes">
         {aboutNotes.map((note, index) => (
           <p key={index}>{note}</p>
         ))}
@@ -1654,12 +1671,12 @@ function TeamPage({
       }}
     >
       <div className="page-rule" />
-      <h1 {...commentTargetAttrs({ page: 5, targetKind: "line", targetLabel: "Publication and Management Team heading" })}>
+      <h1 {...commentTargetAttrs(draft.comments, { page: 5, targetKind: "line", targetLabel: "Publication and Management Team heading" })}>
         Publication and Management Team
       </h1>
       {draft.managementHeads.length ? (
         <div
-          {...commentTargetAttrs({
+          {...commentTargetAttrs(draft.comments, {
             page: 5,
             targetKind: "area",
             targetLabel: "Management heads block",
@@ -1673,21 +1690,21 @@ function TeamPage({
       ) : <MissingFlag label="Management head(s)" block />}
       <div className="management-band">Members</div>
       {draft.managementMembers.length ? (
-        <div {...commentTargetAttrs({ page: 5, targetKind: "area", targetLabel: "Management members grid" })} className="management-photo-grid">
+        <div {...commentTargetAttrs(draft.comments, { page: 5, targetKind: "area", targetLabel: "Management members grid" })} className="management-photo-grid">
           {draft.managementMembers.slice(0, 16).map((member, index) => (
             <ManagementProfile key={index} person={member} />
           ))}
         </div>
       ) : <MissingFlag label="Management members" block />}
-      <div {...commentTargetAttrs({ page: 5, targetKind: "content", targetLabel: "Journal name block" })}>
+      <div {...commentTargetAttrs(draft.comments, { page: 5, targetKind: "content", targetLabel: "Journal name block" })}>
         <RichText as="h2" className="management-journal-name" value={journal.name} />
       </div>
       {journal.showPublisherJournals && journal.publisherJournalNames.length ? (
         <>
-          <h3 {...commentTargetAttrs({ page: 5, targetKind: "line", targetLabel: "Publisher name line" })} className="management-publisher-name">
+          <h3 {...commentTargetAttrs(draft.comments, { page: 5, targetKind: "line", targetLabel: "Publisher name line" })} className="management-publisher-name">
             {publisherIdentity(journal).publisherName}
           </h3>
-          <ul {...commentTargetAttrs({ page: 5, targetKind: "area", targetLabel: "Publisher journal list" })} className="management-journal-list">
+          <ul {...commentTargetAttrs(draft.comments, { page: 5, targetKind: "area", targetLabel: "Publisher journal list" })} className="management-journal-list">
             {journal.publisherJournalNames.map((name) => <li key={name}>{name}</li>)}
           </ul>
         </>
@@ -1762,9 +1779,11 @@ const MANUSCRIPT_FEATURE_ICONS = [ClipboardCheck, Clock, SquarePen, Lock];
 
 function ManuscriptEnginePage({
   journal,
+  draft,
   onCommentTargetSelect,
 }: {
   journal: Journal;
+  draft: BinderDraft;
   onCommentTargetSelect?: (target: CommentTargetSelection) => void;
 }) {
   // Shared content (heading, feature list, logo) comes from the global
@@ -1795,7 +1814,7 @@ function ManuscriptEnginePage({
         if (target && onCommentTargetSelect) onCommentTargetSelect(target);
       }}
     >
-      <div {...commentTargetAttrs({ page: 6, targetKind: "image", targetLabel: "Manuscript banner and logo" })} className="manuscript-banner">
+      <div {...commentTargetAttrs(draft.comments, { page: 6, targetKind: "image", targetLabel: "Manuscript banner and logo" })} className="manuscript-banner">
         <span className="manuscript-ribbon">Submit Now and Track</span>
         <div className="manuscript-brand">
           {engineLogo ? (
@@ -1808,7 +1827,7 @@ function ManuscriptEnginePage({
         <span className="manuscript-arrow" aria-hidden="true" />
       </div>
 
-      <ul {...commentTargetAttrs({ page: 6, targetKind: "area", targetLabel: "Manuscript feature list" })} className="manuscript-features">
+      <ul {...commentTargetAttrs(draft.comments, { page: 6, targetKind: "area", targetLabel: "Manuscript feature list" })} className="manuscript-features">
         {engine.steps.map((step, index) => {
           const Icon = MANUSCRIPT_FEATURE_ICONS[index];
           return (
@@ -1820,17 +1839,17 @@ function ManuscriptEnginePage({
         })}
       </ul>
 
-      <p {...commentTargetAttrs({ page: 6, targetKind: "line", targetLabel: "Manuscript scan label" })} className="manuscript-scan-label">
+      <p {...commentTargetAttrs(draft.comments, { page: 6, targetKind: "line", targetLabel: "Manuscript scan label" })} className="manuscript-scan-label">
         {engine.scanLabel}
       </p>
 
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img {...commentTargetAttrs({ page: 6, targetKind: "image", targetLabel: "Manuscript QR code" })} className="qr-image manuscript-qr" src={qrSrc} alt="Manuscript submission QR code" crossOrigin="anonymous" />
+      <img {...commentTargetAttrs(draft.comments, { page: 6, targetKind: "image", targetLabel: "Manuscript QR code" })} className="qr-image manuscript-qr" src={qrSrc} alt="Manuscript submission QR code" crossOrigin="anonymous" />
 
-      <p {...commentTargetAttrs({ page: 6, targetKind: "content", targetLabel: "Manuscript contact notice" })} className="manuscript-notice">
+      <p {...commentTargetAttrs(draft.comments, { page: 6, targetKind: "content", targetLabel: "Manuscript contact notice" })} className="manuscript-notice">
         {noticePrefix}{hasValue(publisherEmail) ? publisherEmail : <MissingFlag label="Publisher email" />}
       </p>
-      <PageAnnotations page={6} comments={[]} />
+      <PageAnnotations page={6} comments={draft.comments} />
       <PageNumber value={5} />
     </section>
   );
@@ -2024,7 +2043,7 @@ function EditorialPage({
           ) : null}
           {pageGroups.map((g, gi) => (
             <div
-              {...commentTargetAttrs({
+              {...commentTargetAttrs(draft.comments, {
                 page: 7,
                 targetKind: "area",
                 targetLabel: `${g.heading} section`,
@@ -2093,11 +2112,11 @@ function DirectorPage({
       }}
     >
       <div className="page-rule" />
-      <h1 {...commentTargetAttrs({ page: 8, targetKind: "line", targetLabel: "Director desk title" })}>
+      <h1 {...commentTargetAttrs(draft.comments, { page: 8, targetKind: "line", targetLabel: "Director desk title" })}>
         <RichText as="span" value={effectiveDirectorDesk(journal).title} />
       </h1>
       {/* Two-column brand band: company logo (left) + publisher seal (right). */}
-      <div {...commentTargetAttrs({ page: 8, targetKind: "image", targetLabel: "Director brand band" })} className="director-brands">
+      <div {...commentTargetAttrs(draft.comments, { page: 8, targetKind: "image", targetLabel: "Director brand band" })} className="director-brands">
         <div className="director-brand-col">
           <PublisherLogo mode={identity.logoMode} side="company" src={companyLogo} />
         </div>
@@ -2110,7 +2129,7 @@ function DirectorPage({
           )}
         </div>
       </div>
-      <div {...commentTargetAttrs({ page: 8, targetKind: "content", targetLabel: "Director letter" })} className="director-letter">
+      <div {...commentTargetAttrs(draft.comments, { page: 8, targetKind: "content", targetLabel: "Director letter" })} className="director-letter">
         {letterMissing ? (
           <p className="director-letter-missing" role="alert">
             ⚠ Director&apos;s Desk letter is not set for this journal. Please add it in the
@@ -2125,7 +2144,7 @@ function DirectorPage({
           </>
         )}
       </div>
-      <div {...commentTargetAttrs({ page: 8, targetKind: "image", targetLabel: "Director signature block" })} className="signature">
+      <div {...commentTargetAttrs(draft.comments, { page: 8, targetKind: "image", targetLabel: "Director signature block" })} className="signature">
         {draft.directorSignatureImage || journal.directorSignature ? (
           <Image
             src={draft.directorSignatureImage || journal.directorSignature || ""}
@@ -2149,13 +2168,13 @@ function DirectorPage({
 // additional pages instead of overflowing/clipping one fixed-height page.
 const CONTENT_FIRST_PAGE_NUMBER = 8;
 
-function ContentRowCells({ row }: { row: ContentRow }) {
+function ContentRowCells({ row, comments }: { row: ContentRow; comments: BinderComment[] }) {
   return (
     <>
-      <td {...commentTargetAttrs({ page: 9, targetKind: "content", targetLabel: `${row.title} title cell` })}>
+      <td {...commentTargetAttrs(comments, { page: 9, targetKind: "content", targetLabel: `${row.title} title cell` })}>
         <RichText as="b" value={row.title} /><RichText as="span" value={row.author} />
       </td>
-      <td {...commentTargetAttrs({ page: 9, targetKind: "line", targetLabel: `${row.title} page cell` })}>
+      <td {...commentTargetAttrs(comments, { page: 9, targetKind: "line", targetLabel: `${row.title} page cell` })}>
         {row.page}
       </td>
     </>
@@ -2250,7 +2269,7 @@ function ContentPage({
           <ContentHeader journal={journal} draft={draft} title="Contents" />
           <table className="contents-table">
             <tbody>
-              {rows.map((row, index) => <tr key={index}><ContentRowCells row={row} /></tr>)}
+              {rows.map((row, index) => <tr key={index}><ContentRowCells row={row} comments={draft.comments} /></tr>)}
             </tbody>
           </table>
         </section>
@@ -2272,7 +2291,7 @@ function ContentPage({
               <tbody>
                 {pageRows.map((row, index) => (
                   <tr key={`${row.title}-${index}`}>
-                    <ContentRowCells row={row} />
+                    <ContentRowCells row={row} comments={draft.comments} />
                   </tr>
                 ))}
               </tbody>
@@ -2334,7 +2353,7 @@ function BinderPage({
     case 5:
       return <TeamPage journal={currentJournal} draft={draft} onCommentTargetSelect={onCommentTargetSelect} />;
     case 6:
-      return <ManuscriptEnginePage journal={currentJournal} onCommentTargetSelect={onCommentTargetSelect} />;
+      return <ManuscriptEnginePage journal={currentJournal} draft={draft} onCommentTargetSelect={onCommentTargetSelect} />;
     case 7:
       return <EditorialPage journal={currentJournal} draft={draft} onCommentTargetSelect={onCommentTargetSelect} />;
     case 8:
