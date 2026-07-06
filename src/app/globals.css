@@ -1286,6 +1286,16 @@ button {
   display: none !important;
 }
 
+/* HTML-to-canvas export can render blend modes inconsistently, so force the
+   management/contact portraits into a plain grayscale treatment in the PDF
+   snapshot while leaving the live editor styling untouched. */
+.pdf-export-source .management-profile img,
+.pdf-export-source .management-initials,
+.pdf-export-source .contact-box-photo {
+  filter: grayscale(1) contrast(1.1) brightness(1.03) !important;
+  mix-blend-mode: normal !important;
+}
+
 .preview-panel {
   min-width: 0;
   overflow-x: auto;
