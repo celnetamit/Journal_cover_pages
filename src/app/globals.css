@@ -4183,7 +4183,7 @@ button {
   right: 12mm;
   top: 14mm;
   width: min(60mm, 28vw);
-  max-height: 114mm;
+  max-height: none;
   overflow: visible;
   z-index: 6;
   border: 1px solid rgba(30, 41, 59, 0.16);
