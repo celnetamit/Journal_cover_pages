@@ -177,19 +177,23 @@ function commentsForTarget(comments: BinderComment[], target: CommentTargetSelec
 
 function commentTargetTooltip(items: BinderComment[]) {
   if (items.length === 0) return "";
-  return items
-    .map((comment) => `${comment.authorName}: ${comment.message}`)
-    .join("\n\n");
+  const preview = items.slice(0, 2).map((comment) => `${comment.authorName}: ${comment.message}`);
+  if (items.length > 2) {
+    preview.push(`+${items.length - 2} more comment${items.length - 2 === 1 ? "" : "s"}`);
+  }
+  return preview.join("\n\n");
 }
 
 function commentTargetAttrs(comments: BinderComment[], target: CommentTargetSelection): Record<string, string> {
   const items = commentsForTarget(comments, target);
   const tooltip = commentTargetTooltip(items);
+  const countLabel = `${items.length} comment${items.length === 1 ? "" : "s"}`;
   return {
     "data-comment-target-page": String(target.page),
     "data-comment-target-kind": target.targetKind,
     "data-comment-target-label": target.targetLabel,
     "data-comment-count": String(items.length),
+    "aria-label": items.length > 0 ? `${target.targetLabel}. ${countLabel}` : target.targetLabel,
     ...(items.length > 0 ? { "data-comment-tooltip": tooltip, title: tooltip } : {}),
   };
 }
