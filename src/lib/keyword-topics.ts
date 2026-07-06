@@ -17,7 +17,7 @@ function clean(value: string | undefined): string {
 export function extractKeywordTopics(value: string | undefined): string[] {
   const raw = String(value ?? "");
   const items = Array.from(raw.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)).map((match) => match[1]);
-  const chunks = items.length ? items : clean(raw).split(/\r?\n+|\s*\|\s*/);
+  const chunks = items.length ? items : clean(raw).split(/\r?\n+|\s*[;|]\s*/);
   const seen = new Set<string>();
   const result: string[] = [];
 

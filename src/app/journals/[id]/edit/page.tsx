@@ -6,7 +6,6 @@ import { getJournalFormOptions } from "@/lib/journal-options";
 import { updateJournal } from "@/app/actions/journals";
 import JournalForm, { type JournalFormValues } from "@/components/JournalForm";
 import JournalBoardEditor from "@/components/admin/JournalBoardEditor";
-import { extractKeywordTopics } from "@/lib/keyword-topics";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +55,7 @@ export default async function EditJournalPage({ params }: { params: Promise<{ id
     domainId: journal.domainId ?? "",
     publisherId: journal.publisherId ?? "",
     managerId: journal.managerId ?? "",
-    focusScope: (journal.keywords.length ? extractKeywordTopics(journal.keywords.join("\n")) : journal.focusScope).join("\n"),
+    focusScope: journal.focusScope.join("\n"),
   };
 
   return (

@@ -28,7 +28,6 @@ import { RichText, ReqText, MissingFlag, hasValue } from "@/components/RichText"
 import { inlineToPlainText } from "@/lib/rich-text";
 import type { SubscriptionTier } from "@/lib/subscription-tiers";
 import { exportBookToPdf, type ExportMode } from "@/lib/pdf-export";
-import { extractKeywordTopics } from "@/lib/keyword-topics";
 import {
   cleanIcv,
   frontCoverTitleClass,
@@ -203,7 +202,7 @@ function normalizeScopePhrase(value: string): string {
 // Focus & Scope comes from the journal entry only — its own focusScope field.
 // No keyword substitution or built-in defaults: an empty record shows nothing.
 function journalFocusScope(focus: { focusScope?: string[]; keywords?: string[] } | undefined) {
-  const source = focus?.keywords?.length ? extractKeywordTopics(focus.keywords.join("\n")) : focus?.focusScope;
+  const source = focus?.focusScope?.length ? focus.focusScope : focus?.keywords;
   return (source || []).map(normalizeScopePhrase).filter(Boolean);
 }
 

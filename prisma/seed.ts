@@ -1,7 +1,7 @@
 /**
  * Seed the database from the committed CSVs (one-time import of record).
  *  - journals_list.csv  -> Domain, Company, Publisher, Profile, Journal, JournalMember
- *  - focus-and-scope_formidable_entries.csv -> Journal.about / focusScope / keywords
+ *  - abbreviation_main_keywords.csv -> Journal.focusScope / keywords
  * Plus global Subscription plans and a seeded admin User (from ADMIN_* env).
  *
  * Idempotent: re-running upserts on natural keys instead of duplicating rows.
@@ -291,8 +291,6 @@ async function seedJournals(subscriptionIds: Record<SubscriptionMode, string>) {
       frequency: mapFrequency(frequencyLabel, issuesPerYear),
       frequencyLabel: frequencyLabel || null,
       coverFrontUrl: pick(row, "Journal Image URL") || pick(row, "Journal Image/Logo") || null,
-      logoUrl: pick(row, "Journal Logo URL") || null,
-      about: pick(row, "About Journal") || null,
       keywords: extractKeywordTopics(pick(row, "Keywords")),
       domainId,
       publisherId,
@@ -350,20 +348,20 @@ async function addSubscriptionPrice(journalId: string, subscriptionId: string, p
 }
 
 async function seedFocusScope() {
-  const { rows, pick } = readCsv("focus-and-scope_formidable_entries.csv");
-  // Build best entry per abbreviation key (later rows win; prefer ones with content).
-  const byKey = new Map<string, { about: string; focus: string[]; keywords: string[] }>();
+  const { rows, pick } = readCsv("abbreviation_main_keywords.csv");
+  // Build best entry per abbreviation key (later rows win; prefer the row with
+  // the richer main-keyword list).
+  const byKey = new Map<string, { focus: string[]; keywords: string[] }>();
   for (const row of rows) {
     const abbr = pick(row, "Abbreviation") || pick(row, "Abberiviation");
     const key = dynamicKey(abbr);
     if (!key) continue;
-    const about = pick(row, "About");
-    const focus = extractKeywordTopics(pick(row, "Keywords"));
+    const focus = extractKeywordTopics(pick(row, "Main Keywords"));
     const keywords = focus;
     const existing = byKey.get(key);
     // Keep the richest entry seen for this key.
-    if (!existing || about.length + focus.length > existing.about.length + existing.focus.length) {
-      byKey.set(key, { about, focus, keywords });
+    if (!existing || focus.length > existing.focus.length) {
+      byKey.set(key, { focus, keywords });
     }
   }
 
@@ -424,7 +422,7 @@ async function main() {
   if (csvExists("journals_list.csv")) {
     const journals = await seedJournals(subscriptionIds);
     console.log(`• Journals upserted: ${journals}`);
-    if (csvExists("focus-and-scope_formidable_entries.csv")) {
+    if (csvExists("abbreviation_main_keywords.csv")) {
       const focus = await seedFocusScope();
       console.log(`• Focus/scope matched onto journals: ${focus}`);
     }
