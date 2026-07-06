@@ -1280,6 +1280,11 @@ button {
   width: max-content;
 }
 
+.pdf-export-source.comments-hidden .page-annotations,
+.pdf-export-source.comments-hidden [data-comment-count]:not([data-comment-count="0"])::after {
+  display: none !important;
+}
+
 .preview-panel {
   min-width: 0;
   overflow-x: auto;

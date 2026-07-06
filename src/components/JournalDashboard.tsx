@@ -778,19 +778,21 @@ function exportBaseSlug(journal: Journal | undefined, draft: BinderDraft | null)
     .replace(/^-|-$/g, "") || "journal";
 }
 
-function pdfFileName(journal: Journal | undefined, draft: BinderDraft | null, mode: ExportMode) {
-  return `${exportBaseSlug(journal, draft)}-${mode === "cover" ? "cover" : "internal-pages"}.pdf`;
+function pdfFileName(journal: Journal | undefined, draft: BinderDraft | null, mode: ExportMode, includeComments: boolean) {
+  const commentSuffix = includeComments ? "with-comments" : "raw";
+  return `${exportBaseSlug(journal, draft)}-${mode === "cover" ? "cover" : "internal-pages"}-${commentSuffix}.pdf`;
 }
 
-type ExportJob = { mode: ExportMode; filename: string };
-type ExportError = { mode: ExportMode; message: string } | null;
+type ExportJob = { mode: ExportMode; filename: string; includeComments: boolean };
+type ExportError = { mode: ExportMode; includeComments: boolean; message: string } | null;
 type BookEntry = { journal: Journal; draft: BinderDraft };
-type BookSnapshot = BookEntry[] | null;
+type BookSnapshot = { entries: BookEntry[]; includeComments: boolean } | null;
 
 
 function DownloadButton({
   label,
   mode,
+  includeComments,
   busy,
   disabled,
   error,
@@ -798,14 +800,15 @@ function DownloadButton({
 }: {
   label: string;
   mode: ExportMode;
+  includeComments: boolean;
   busy: boolean;
   disabled: boolean;
   error: string;
-  onExport: (mode: ExportMode) => void;
+  onExport: (mode: ExportMode, includeComments: boolean) => void;
 }) {
   return (
     <div className="download-button">
-      <button className="primary-action" disabled={disabled || busy} onClick={() => onExport(mode)}>
+      <button className="primary-action" disabled={disabled || busy} onClick={() => onExport(mode, includeComments)}>
         <Download size={16} />
         {busy ? "Preparing PDF..." : label}
       </button>
@@ -816,6 +819,10 @@ function DownloadButton({
       ) : null}
     </div>
   );
+}
+
+function exportBusyState(job: ExportJob | null, mode: ExportMode, includeComments: boolean) {
+  return job?.mode === mode && job.includeComments === includeComments;
 }
 
 function LogoThumb({ src, label }: { src: string; label: string }) {
@@ -2447,7 +2454,7 @@ function SectionEditor({
   saveStatus,
   onChange,
   onSave,
-  exportingMode,
+  exportingJob,
   exportError,
   onExport,
   profiles,
@@ -2461,9 +2468,9 @@ function SectionEditor({
   saveStatus: string;
   onChange: (draft: BinderDraft) => void;
   onSave: () => void;
-  exportingMode: ExportMode | null;
+  exportingJob: ExportJob | null;
   exportError: ExportError;
-  onExport: (mode: ExportMode) => void;
+  onExport: (mode: ExportMode, includeComments: boolean) => void;
   profiles: ProfilePick[];
   currentUser: { name: string | null; email: string };
   commentTarget: CommentTargetSelection | null;
@@ -2981,10 +2988,20 @@ function SectionEditor({
           <div className="final-export-actions">
             <DownloadButton
               mode="cover"
-              label="Download Cover PDF"
-              busy={exportingMode === "cover"}
-              disabled={exportingMode !== null}
-              error={exportError?.mode === "cover" ? exportError.message : ""}
+              label="Download raw PDF - Cover"
+              busy={exportBusyState(exportingJob, "cover", false)}
+              disabled={exportingJob !== null}
+              includeComments={false}
+              error={exportError?.mode === "cover" && exportError.includeComments === false ? exportError.message : ""}
+              onExport={onExport}
+            />
+            <DownloadButton
+              mode="cover"
+              label="Download with comments - Cover"
+              busy={exportBusyState(exportingJob, "cover", true)}
+              disabled={exportingJob !== null}
+              includeComments={true}
+              error={exportError?.mode === "cover" && exportError.includeComments === true ? exportError.message : ""}
               onExport={onExport}
             />
           </div>
@@ -3322,10 +3339,20 @@ function SectionEditor({
             <button type="button" className="secondary-action" onClick={onSave}>Save All Details</button>
             <DownloadButton
               mode="internal"
-              label="Download Internal Pages PDF"
-              busy={exportingMode === "internal"}
-              disabled={exportingMode !== null}
-              error={exportError?.mode === "internal" ? exportError.message : ""}
+              label="Download raw PDF - Internal pages"
+              busy={exportBusyState(exportingJob, "internal", false)}
+              disabled={exportingJob !== null}
+              includeComments={false}
+              error={exportError?.mode === "internal" && exportError.includeComments === false ? exportError.message : ""}
+              onExport={onExport}
+            />
+            <DownloadButton
+              mode="internal"
+              label="Download with comments - Internal pages"
+              busy={exportBusyState(exportingJob, "internal", true)}
+              disabled={exportingJob !== null}
+              includeComments={true}
+              error={exportError?.mode === "internal" && exportError.includeComments === true ? exportError.message : ""}
               onExport={onExport}
             />
           </div>
@@ -3676,15 +3703,15 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
 
   // PDF export: snapshot the active journal/draft, mount #pdf-book for html2canvas,
   // rasterize, then unmount so the 9-page export DOM stays out of the per-keystroke path.
-  function runExport(mode: ExportMode) {
+  function runExport(mode: ExportMode, includeComments: boolean) {
     if (exportJob || !primaryJournal || !primaryDraft) return;
     setExportError(null);
-    setBookSnapshot([{ journal: primaryJournal, draft: primaryDraft }]);
-    setExportJob({ mode, filename: pdfFileName(primaryJournal, primaryDraft, mode) });
+    setBookSnapshot({ entries: [{ journal: primaryJournal, draft: primaryDraft }], includeComments });
+    setExportJob({ mode, filename: pdfFileName(primaryJournal, primaryDraft, mode, includeComments), includeComments });
   }
 
   // W2 — combine the selected journals into one PDF (covers or internal pages).
-  function runBatchExport(mode: ExportMode) {
+  function runBatchExport(mode: ExportMode, includeComments: boolean) {
     if (exportJob) return;
     const entries = batchIds
       .map((id) => {
@@ -3694,8 +3721,12 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
       .filter((entry): entry is BookEntry => entry !== null);
     if (entries.length === 0) return;
     setExportError(null);
-    setBookSnapshot(entries);
-    setExportJob({ mode, filename: `journals-batch-${entries.length}-${mode === "cover" ? "covers" : "internal-pages"}.pdf` });
+    setBookSnapshot({ entries, includeComments });
+    setExportJob({
+      mode,
+      includeComments,
+      filename: `journals-batch-${entries.length}-${mode === "cover" ? "covers" : "internal-pages"}-${includeComments ? "with-comments" : "raw"}.pdf`,
+    });
   }
 
   useEffect(() => {
@@ -3718,6 +3749,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
         if (!cancelled) {
           setExportError({
             mode: job.mode,
+            includeComments: job.includeComments,
             message:
               "PDF export failed. A cover image may be blocking export (cross-origin), or the browser ran low on memory. Try re-uploading the image or using a smaller one.",
           });
@@ -3744,7 +3776,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
       if (primaryJournal && primaryDraft) {
         flushSync(() => {
           setIsPrinting(true);
-          setBookSnapshot([{ journal: primaryJournal, draft: primaryDraft }]);
+          setBookSnapshot({ entries: [{ journal: primaryJournal, draft: primaryDraft }], includeComments: false });
         });
       }
     }
@@ -3924,7 +3956,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                 saveStatus={saveStatus}
                 onChange={(draft) => updateDraft(primaryJournal.id, draft)}
                 onSave={saveCurrentDraft}
-                exportingMode={exportJob?.mode ?? null}
+                exportingJob={exportJob}
                 exportError={exportError}
                 onExport={runExport}
                 profiles={profiles}
@@ -3934,25 +3966,45 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
             ) : (
               <section className="export-panel" data-tour="export-actions">
                 <h2>Live Preview & Export</h2>
-                <p>Download the active journal as two separate PDFs: one cover spread and one internal-page file.</p>
+                <p>Download the active journal as separate PDFs, either raw or with comments, for the cover spread and internal-page file.</p>
                 <div className="toolbar">
                   <button className="secondary-action" disabled={exportJob !== null} onClick={() => window.print()}>
                     <Printer size={16} /> Print
                   </button>
                   <DownloadButton
                     mode="cover"
-                    label="Download Cover PDF"
-                    busy={exportJob?.mode === "cover"}
+                    includeComments={false}
+                    label="Download raw PDF - Cover"
+                    busy={exportBusyState(exportJob, "cover", false)}
                     disabled={exportJob !== null || selectedJournals.length === 0}
-                    error={exportError?.mode === "cover" ? exportError.message : ""}
+                    error={exportError?.mode === "cover" && exportError.includeComments === false ? exportError.message : ""}
+                    onExport={runExport}
+                  />
+                  <DownloadButton
+                    mode="cover"
+                    includeComments={true}
+                    label="Download with comments - Cover"
+                    busy={exportBusyState(exportJob, "cover", true)}
+                    disabled={exportJob !== null || selectedJournals.length === 0}
+                    error={exportError?.mode === "cover" && exportError.includeComments === true ? exportError.message : ""}
                     onExport={runExport}
                   />
                   <DownloadButton
                     mode="internal"
-                    label="Download Internal Pages PDF"
-                    busy={exportJob?.mode === "internal"}
+                    includeComments={false}
+                    label="Download raw PDF - Internal pages"
+                    busy={exportBusyState(exportJob, "internal", false)}
                     disabled={exportJob !== null || selectedJournals.length === 0}
-                    error={exportError?.mode === "internal" ? exportError.message : ""}
+                    error={exportError?.mode === "internal" && exportError.includeComments === false ? exportError.message : ""}
+                    onExport={runExport}
+                  />
+                  <DownloadButton
+                    mode="internal"
+                    includeComments={true}
+                    label="Download with comments - Internal pages"
+                    busy={exportBusyState(exportJob, "internal", true)}
+                    disabled={exportJob !== null || selectedJournals.length === 0}
+                    error={exportError?.mode === "internal" && exportError.includeComments === true ? exportError.message : ""}
                     onExport={runExport}
                   />
                 </div>
@@ -3987,11 +4039,17 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                     ))}
                   </div>
                   <div className="toolbar">
-                    <button className="secondary-action" disabled={exportJob !== null || batchIds.length === 0} onClick={() => runBatchExport("cover")}>
-                      {exportJob?.mode === "cover" ? "Preparing…" : `Download ${batchIds.length} Covers`}
+                    <button className="secondary-action" disabled={exportJob !== null || batchIds.length === 0} onClick={() => runBatchExport("cover", false)}>
+                      {exportBusyState(exportJob, "cover", false) ? "Preparing…" : `Download ${batchIds.length} Covers - Raw`}
                     </button>
-                    <button className="secondary-action" disabled={exportJob !== null || batchIds.length === 0} onClick={() => runBatchExport("internal")}>
-                      {exportJob?.mode === "internal" ? "Preparing…" : `Download ${batchIds.length} Internal Sets`}
+                    <button className="secondary-action" disabled={exportJob !== null || batchIds.length === 0} onClick={() => runBatchExport("cover", true)}>
+                      {exportBusyState(exportJob, "cover", true) ? "Preparing…" : `Download ${batchIds.length} Covers - With Comments`}
+                    </button>
+                    <button className="secondary-action" disabled={exportJob !== null || batchIds.length === 0} onClick={() => runBatchExport("internal", false)}>
+                      {exportBusyState(exportJob, "internal", false) ? "Preparing…" : `Download ${batchIds.length} Internal Sets - Raw`}
+                    </button>
+                    <button className="secondary-action" disabled={exportJob !== null || batchIds.length === 0} onClick={() => runBatchExport("internal", true)}>
+                      {exportBusyState(exportJob, "internal", true) ? "Preparing…" : `Download ${batchIds.length} Internal Sets - With Comments`}
                     </button>
                   </div>
                   <p className="batch-note">Selected journals combine into one PDF. Large batches are memory-heavy — about 25 journals at a time is a safe limit.</p>
@@ -4011,8 +4069,8 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
         ) : null}
 
         {bookSnapshot ? (
-          <div id="pdf-book" className="pdf-export-source" aria-hidden="true">
-            {bookSnapshot.map((entry) => (
+          <div id="pdf-book" className={`pdf-export-source ${bookSnapshot.includeComments ? "" : "comments-hidden"}`} aria-hidden="true">
+            {bookSnapshot.entries.map((entry) => (
               <PageSet key={entry.journal.id} journal={entry.journal} draft={entry.draft} />
             ))}
           </div>
