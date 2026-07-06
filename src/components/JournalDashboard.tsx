@@ -190,8 +190,7 @@ function commentTargetAttrs(comments: BinderComment[], target: CommentTargetSele
     "data-comment-target-kind": target.targetKind,
     "data-comment-target-label": target.targetLabel,
     "data-comment-count": String(items.length),
-    "data-comment-tooltip": tooltip,
-    title: tooltip || `Comment target: ${target.targetLabel}`,
+    ...(items.length > 0 ? { "data-comment-tooltip": tooltip, title: tooltip } : {}),
   };
 }
 

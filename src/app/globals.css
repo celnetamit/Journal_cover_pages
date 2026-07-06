@@ -4391,6 +4391,7 @@ button {
 
 [data-comment-count]:not([data-comment-count="0"]) {
   cursor: help;
+  position: relative;
 }
 
 [data-comment-count]:not([data-comment-count="0"])::after {
