@@ -57,6 +57,26 @@ function splitList(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
+function extractKeywordTopics(value: string | undefined): string[] {
+  const raw = String(value ?? "");
+  const items = Array.from(raw.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)).map((match) => match[1]);
+  const chunks = items.length ? items : clean(raw).split(/\r?\n+/);
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const chunk of chunks) {
+    const cleaned = clean(chunk);
+    if (!cleaned) continue;
+    const topic = cleaned.includes(":") ? cleaned.split(":")[0] : cleaned;
+    const normalized = topic.replace(/\s+/g, " ").trim();
+    if (!normalized || /^keywords?$/i.test(normalized) || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
+  }
+
+  return result;
+}
+
 function toInt(value: string | undefined): number | null {
   const match = clean(value).match(/\d+/);
   return match ? Number(match[0]) : null;
@@ -181,7 +201,7 @@ async function upsertProfile(data: {
 }
 
 function uniqueSlug(base: string, fallback: string): string {
-  let slug = base || fallback;
+  const slug = base || fallback;
   let candidate = slug;
   let n = 2;
   while (usedSlugs.has(candidate)) candidate = `${slug}-${n++}`;
@@ -346,8 +366,8 @@ async function seedFocusScope() {
     const key = dynamicKey(abbr);
     if (!key) continue;
     const about = pick(row, "About");
-    const focus = splitList(pick(row, "Focus & Scope"));
-    const keywords = splitList(pick(row, "Keywords"));
+    const focus = extractKeywordTopics(pick(row, "Keywords"));
+    const keywords = focus;
     const existing = byKey.get(key);
     // Keep the richest entry seen for this key.
     if (!existing || about.length + focus.length > existing.about.length + existing.focus.length) {

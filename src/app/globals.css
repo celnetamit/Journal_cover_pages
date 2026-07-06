@@ -1818,6 +1818,8 @@ button {
   overflow: hidden;
   position: relative;
   z-index: 1;
+  box-sizing: border-box;
+  padding-left: 4mm;
 }
 
 .front-cover-middle-image {
@@ -1935,7 +1937,7 @@ button {
 .front-cover-meta-line {
   color: #fff;
   font-family: "Arial Narrow", "Helvetica Neue Condensed", Arial, sans-serif;
-  font-size: 7.2pt;
+  font-size: calc(7.2pt + 2px);
   font-weight: 700;
   letter-spacing: 0.1px;
   line-height: 1.02;
@@ -2002,7 +2004,7 @@ button {
 }
 
 .front-cover-month {
-  color: #fff200;
+  color: #fff;
   flex: 1;
   font-family: Tahoma, Arial, sans-serif;
   /* STM spec: Publication Period — Tahoma, 12pt, Normal. */
@@ -2047,32 +2049,32 @@ button {
 
 .front-cover-footer-left .publisher-logo,
 .front-cover-footer-right .publisher-logo {
-  min-height: 16.5mm;
-  min-width: 28mm;
+  min-height: 19mm;
+  min-width: 31mm;
 }
 
 .front-cover-footer-left .front-cover-footer-spacer {
   display: block;
-  min-height: 16.5mm;
-  min-width: 28mm;
+  min-height: 19mm;
+  min-width: 31mm;
 }
 
 .front-cover-footer-left .publisher-logo.image-logo,
 .front-cover-footer-right .publisher-logo.image-logo {
   background: #fff;
-  min-height: 16.5mm;
-  min-width: 28mm;
+  min-height: 19mm;
+  min-width: 31mm;
 }
 
 .front-cover-footer-left .publisher-logo.image-logo img,
 .front-cover-footer-right .publisher-logo.image-logo img {
-  max-height: 16mm;
-  max-width: 28mm;
+  max-height: 18.5mm;
+  max-width: 31mm;
 }
 
 .front-cover-footer-left .publisher-logo.image-logo.stm-logo img,
 .front-cover-footer-right .publisher-logo.image-logo.stm-logo img {
-  max-height: 17.5mm;
+  max-height: 20mm;
 }
 
 .front-cover-footer-left .publisher-logo.image-logo.journalspub-logo img,
@@ -2081,7 +2083,7 @@ button {
 .front-cover-footer-right .publisher-logo.image-logo.journalspub-logo img,
 .front-cover-footer-right .publisher-logo.image-logo.law-logo img,
 .front-cover-footer-right .publisher-logo.image-logo.mba-logo img {
-  max-height: 15.5mm;
+  max-height: 18mm;
 }
 
 /* Both cover-footer logos sit in one equal box (the centered footer-item). We
@@ -2094,8 +2096,8 @@ button {
 .front-cover-journal-logo {
   background: #fff;
   display: block;
-  height: 17mm;
-  max-width: 28mm;
+  height: 19mm;
+  max-width: 31mm;
   width: auto;
 }
 
@@ -2721,12 +2723,17 @@ button {
 
 .management-profile img,
 .management-initials {
-  filter: grayscale(1);
+  filter: grayscale(1) contrast(1.1) brightness(1.03);
   height: calc(15mm * var(--page-scale));
   margin-bottom: calc(1.2mm * var(--page-scale));
   object-fit: cover;
   object-position: center 20%;
+  background: #fff;
   width: calc(15mm * var(--page-scale));
+}
+
+.management-profile img {
+  mix-blend-mode: multiply;
 }
 
 .management-profile.featured img,
@@ -3958,20 +3965,29 @@ button {
 
 /* Journal name + ISSN shown just above Focus and Scope (no page masthead). */
 .journal-info-title-block {
-  margin: calc(4mm * var(--page-scale)) 0 calc(3mm * var(--page-scale));
+  margin: calc(4mm * var(--page-scale)) 0 calc(3.5mm * var(--page-scale));
   text-align: center;
 }
 
 .journal-info-page h2.journal-info-name {
   font-size: calc(22pt * var(--page-scale));
   font-weight: 700;
-  margin: 0 0 calc(1.5mm * var(--page-scale));
+  margin: 0 0 calc(2.5mm * var(--page-scale));
   text-align: center;
 }
 
 .journal-info-issn {
   font-size: calc(9.5pt * var(--page-scale));
   font-weight: 400;
+  margin: 0 0 calc(1.2mm * var(--page-scale));
+  text-align: center !important;
+}
+
+.journal-info-publisher {
+  font-size: calc(10.25pt * var(--page-scale));
+  font-weight: 700;
+  line-height: 1.15;
+  margin: calc(1.6mm * var(--page-scale)) 0 0 !important;
   text-align: center !important;
 }
 

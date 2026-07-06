@@ -201,8 +201,9 @@ function normalizeScopePhrase(value: string): string {
 
 // Focus & Scope comes from the journal entry only — its own focusScope field.
 // No keyword substitution or built-in defaults: an empty record shows nothing.
-function journalFocusScope(focus: { focusScope?: string[] } | undefined) {
-  return (focus?.focusScope || []).map(normalizeScopePhrase).filter(Boolean);
+function journalFocusScope(focus: { focusScope?: string[]; keywords?: string[] } | undefined) {
+  const source = focus?.keywords?.length ? focus.keywords : focus?.focusScope;
+  return (source || []).map(normalizeScopePhrase).filter(Boolean);
 }
 
 function normalizeFocusScopeInput(value: string) {
@@ -441,7 +442,7 @@ function draftJournal(journal: Journal, draft: BinderDraft): Journal {
 function editorialText(members: EditorialMember[]) {
   return members
     .map((member) =>
-      [member.role, member.name, member.designation, member.affiliation, member.location].filter(Boolean).join(" | "),
+      [member.role, member.name, member.designation, member.department, member.affiliation, member.location].filter(Boolean).join(" | "),
     )
     .join("\n");
 }
@@ -450,7 +451,7 @@ function parseEditorialText(value: string): EditorialMember[] {
   return value
     .split("\n")
     .map((line, index) => {
-      const [role = "Editor", name = "", designation = "", affiliation = "", location = ""] = line
+      const [role = "Editor", name = "", designation = "", department = "", affiliation = "", location = ""] = line
         .split("|")
         .map((part) => part.trim());
 
@@ -458,7 +459,7 @@ function parseEditorialText(value: string): EditorialMember[] {
         role,
         name,
         designation,
-        department: "",
+        department,
         affiliation,
         location,
         email: "",
@@ -567,22 +568,6 @@ function LogoThumb({ src, label }: { src: string; label: string }) {
 function PageNumber({ value }: { value: number }) {
   return (
     <span className="page-number">{lowerRoman(value)}</span>
-  );
-}
-
-// Shared top section for the inner content pages (About, Manuscript, Editorial,
-// Contents) so the publisher logo + journal title read identically on each. An
-// optional per-page subtitle sits on the line below the title.
-function PageMasthead({ journal, subtitle }: { journal: Journal; subtitle?: string }) {
-  const identity = publisherIdentity(journal);
-  return (
-    <header className="page-masthead">
-      <PublisherLogo mode={identity.logoMode} side="publisher" src={proxiedImage(journal.publisherLogo)} />
-      <div className="page-masthead-text">
-        <RichText as="div" className="page-masthead-title" value={journal.name} />
-        {subtitle ? <div className="page-masthead-sub">{subtitle}</div> : null}
-      </div>
-    </header>
   );
 }
 
@@ -810,7 +795,7 @@ function JournalFrontCover({
         website={website.replace(/^https?:\/\//i, "")}
         title={coverTitle}
         titleClassName={frontCoverTitleClass(inlineToPlainText(coverTitle))}
-        monthRange={monthRange.replace(/\s*-\s*/, "—")}
+        monthRange={monthRange.replace(/\s*-\s*/g, "-")}
         coverImage={coverImage}
         layout={defaultFrontCoverLayout}
         interactive={interactive}
@@ -949,7 +934,7 @@ function CoverPage({ journal, draft }: { journal: Journal; draft: BinderDraft })
       <p className="cover-printer">Printed by : <ReqText value={printer} label="Printed by" /></p>
       <ReqText as="h1" value={title} label="Journal title" />
       <p className="issue-line">Volume <ReqText value={draft.issueVolume} label="Volume" /> | Issue <ReqText value={draft.issueNumber} label="Issue" /></p>
-      <p className="cover-meta"><ReqText value={draft.issueMonthRange.replace(/\s*-\s*/, "—")} label="Month range" /> | <ReqText value={draft.issueYear} label="Year" /></p>
+      <p className="cover-meta"><ReqText value={draft.issueMonthRange.replace(/\s*-\s*/g, "-")} label="Month range" /> | <ReqText value={draft.issueYear} label="Year" /></p>
       <div className="cover-footer">
         <div className="publisher-logo-row">
           <PublisherLogo mode={identity.logoMode} side="publisher" src={proxiedImage(journal.publisherLogo)} />
@@ -1236,8 +1221,9 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
   const objectiveItems = journal.objectives;
   const salientItems = journal.salientFeatures;
   const aboutMissing = !hasValue(aboutText);
+  const publisherLine = `Publisher of the Journal: ${publisherName}`;
   const pageScale = pageDensityScale(
-    [aboutText ?? "", ...scopeItems, ...aboutNotes].join(" ").length,
+    [aboutText ?? "", publisherLine, ...scopeItems, ...aboutNotes].join(" ").length,
     2350,
   );
 
@@ -1274,6 +1260,7 @@ function JournalDetailsPage({ journal, draft }: { journal: Journal; draft: Binde
               {[journal.eIssn ? `ISSN: ${journal.eIssn} (Online)` : null, journal.pIssn ? `ISSN: ${journal.pIssn} (Print)` : null].filter(Boolean).join(", ")}
             </p>
           ) : null}
+          <p className="journal-info-publisher">{publisherLine}</p>
         </div>
         <h2>Focus and Scope</h2>
         {scopeItems.length > 0 ? (
@@ -1406,7 +1393,7 @@ function ManuscriptEnginePage({ journal }: { journal: Journal }) {
   // Fixed closing notice; only the contact email is dynamic (publisher email).
   const legal = useContext(LegalContext)[journal.id];
   const publisherEmail = legal?.publisherEmail || journal.publisherEmail;
-  const noticePrefix = "Please don't hesitate to reach out to us. For any inquiries regarding APID and Manuscript submission, please contact us at ";
+  const noticePrefix = "Please don't hesitate to reach out to us. For any inquiries regarding APID and manuscript submission, please contact us at ";
   // The QR encodes the journal's manuscript-submission URL (falling back to the
   // journal website).
   const submissionUrl = journal.manuscriptUrl?.trim() || journal.website?.trim() || defaultManuscriptUrl;
@@ -1573,7 +1560,7 @@ function EditorialPage({ journal, draft }: { journal: Journal; draft: BinderDraf
   const measureRef = useRef<HTMLDivElement>(null);
   const [pages, setPages] = useState<EditorialChunk[][]>(() => [groups.map((g) => ({ ...g, continued: false }))]);
   const groupsKey = members
-    .map((m) => [m.role, m.name, m.designation, m.affiliation, m.location].join("|"))
+    .map((m) => [m.role, m.name, m.designation, m.department, m.affiliation, m.location].join("|"))
     .join("\n");
 
   useEffect(() => {
@@ -1773,14 +1760,14 @@ function paginateContentByHeight(container: HTMLElement, rows: ContentRow[]): Co
 // Content-page header: "Contents" on the left; journal name, volume/issue and
 // month/year stacked right-aligned (mirrors the cover meta).
 function ContentHeader({ journal, draft, title }: { journal: Journal; draft: BinderDraft; title: string }) {
-  const period = [draft.issueMonthRange.replace(/\s*-\s*/, "—"), draft.issueYear].filter((v) => v.trim()).join(" ");
+  const period = [draft.issueMonthRange.replace(/\s*-\s*/g, "-"), draft.issueYear].filter((v) => v.trim()).join(" ");
   return (
     <header className="content-masthead">
       <h1 className="content-title">{title}</h1>
       <div className="content-meta">
         <RichText as="div" className="content-journal-name" value={journal.name} />
         <div className="content-issue">Volume {draft.issueVolume} | Issue {draft.issueNumber}</div>
-        {period ? <div className="content-period">{period}</div> : null}
+        {period ? <div className="content-period">({period})</div> : null}
       </div>
     </header>
   );
@@ -1843,7 +1830,8 @@ function EditorialMemberLine({ member }: { member: EditorialMember }) {
   return (
     <div className="member-line">
       <RichText as="b" value={member.name} />
-      <RichText as="span" value={member.designation || member.department} />
+      <RichText as="span" value={member.designation || ""} />
+      {member.department ? <RichText as="small" value={member.department} /> : null}
       <RichText as="small" value={[member.affiliation, member.location].filter(Boolean).join(", ")} />
     </div>
   );
@@ -2713,6 +2701,7 @@ function SectionEditor({
               </div>
               <RichTextField ariaLabel="Board member name" value={member.name} placeholder="Name" onChange={(value) => updateEditorial(index, { name: value })} />
               <RichTextField ariaLabel="Board member designation" value={member.designation} placeholder="Designation" onChange={(value) => updateEditorial(index, { designation: value })} />
+              <RichTextField ariaLabel="Board member department" value={member.department} placeholder="Department" onChange={(value) => updateEditorial(index, { department: value })} />
               <RichTextField ariaLabel="Board member affiliation" value={member.affiliation} placeholder="Affiliation" onChange={(value) => updateEditorial(index, { affiliation: value })} />
               <RichTextField ariaLabel="Board member location" value={member.location} placeholder="Location" onChange={(value) => updateEditorial(index, { location: value })} />
             </article>
@@ -2721,7 +2710,7 @@ function SectionEditor({
             <textarea
               rows={8}
               value={editorialText(draft.editorialBoard)}
-              placeholder="Role | Name | Designation | Affiliation | Location"
+              placeholder="Role | Name | Designation | Department | Affiliation | Location"
               onChange={(event) => onChange({ ...draft, editorialBoard: parseEditorialText(event.target.value) })}
             />
           ) : null}
