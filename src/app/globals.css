@@ -2885,9 +2885,12 @@ button {
 }
 
 .contact-box-photo {
+  background: #fff;
+  filter: grayscale(1) contrast(1.1) brightness(1.03);
   height: calc(20mm * var(--page-scale));
   margin-bottom: calc(1.2mm * var(--page-scale));
   object-fit: cover;
+  mix-blend-mode: multiply;
   width: calc(20mm * var(--page-scale));
 }
 
