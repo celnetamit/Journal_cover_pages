@@ -1937,7 +1937,7 @@ button {
 .front-cover-meta-line {
   color: #fff;
   font-family: "Arial Narrow", "Helvetica Neue Condensed", Arial, sans-serif;
-  font-size: calc(7.2pt + 2px);
+  font-size: calc(7.2pt + 7px);
   font-weight: 700;
   letter-spacing: 0.1px;
   line-height: 1.02;
