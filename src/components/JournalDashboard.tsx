@@ -3356,6 +3356,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   const [exportJob, setExportJob] = useState<ExportJob | null>(null);
   const [exportError, setExportError] = useState<ExportError>(null);
   const [bookSnapshot, setBookSnapshot] = useState<BookSnapshot>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [batchIds, setBatchIds] = useState<string[]>([]);
   const [importStatus, setImportStatus] = useState("");
   const [comboOpen, setComboOpen] = useState(false);
@@ -3741,11 +3742,17 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   useEffect(() => {
     function onBeforePrint() {
       if (primaryJournal && primaryDraft) {
-        flushSync(() => setBookSnapshot([{ journal: primaryJournal, draft: primaryDraft }]));
+        flushSync(() => {
+          setIsPrinting(true);
+          setBookSnapshot([{ journal: primaryJournal, draft: primaryDraft }]);
+        });
       }
     }
     function onAfterPrint() {
-      if (!exportJob) setBookSnapshot(null);
+      flushSync(() => {
+        setIsPrinting(false);
+        if (!exportJob) setBookSnapshot(null);
+      });
     }
     window.addEventListener("beforeprint", onBeforePrint);
     window.addEventListener("afterprint", onAfterPrint);
@@ -3759,7 +3766,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     <LegalContext.Provider value={legalData}>
     <ManuscriptContext.Provider value={manuscriptEngine}>
     <SubscriptionTiersContext.Provider value={subscriptionTiers}>
-    <main className="app-shell">
+    <main className={`app-shell ${isPrinting ? "is-printing" : ""}`}>
       <aside className="dashboard-sidebar">
         <div className="dashboard-menu">
           <button className={dashboardMode === "templates" ? "active" : ""} onClick={() => setDashboardMode("templates")}>

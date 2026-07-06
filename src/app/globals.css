@@ -4470,6 +4470,11 @@ button {
     padding: 0;
   }
 
+  .app-shell.is-printing .page-annotations,
+  .app-shell.is-printing [data-comment-count]:not([data-comment-count="0"])::after {
+    display: none !important;
+  }
+
   /* The export source is parked off-screen on screen; bring it back for print. */
   .pdf-export-source {
     position: static;
