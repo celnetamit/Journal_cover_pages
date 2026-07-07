@@ -2118,6 +2118,11 @@ button {
   max-height: 18mm;
 }
 
+.front-cover-footer-right .publisher-logo.image-logo.dhruv-logo img {
+  max-height: 23mm;
+  max-width: 38mm;
+}
+
 /* Both cover-footer logos sit in one equal box (the centered footer-item). We
    fix the HEIGHT and let the WIDTH follow (width: auto) so every logo shares the
    same height baseline and keeps its intrinsic aspect ratio. We avoid a fixed

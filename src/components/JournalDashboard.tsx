@@ -603,6 +603,7 @@ function migratedManagementHeads(draft: BinderDraft): ManagementPerson[] {
 }
 
 function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicData?: DynamicBinderData) {
+  const identity = publisherIdentity(journal);
   const directorDesk = effectiveDirectorDesk(journal);
   const comments = Array.isArray(draft.comments)
     ? draft.comments
@@ -625,8 +626,12 @@ function normalizeDraftForJournal(journal: Journal, draft: BinderDraft, dynamicD
     icv: draft.icv ?? journal.icv.replace(/^ICV\s*:\s*/i, "") ?? "",
     coverImage: draft.coverImage && draft.coverImage !== journal.logo ? draft.coverImage : defaultCoverImage(journal),
     backCoverImage: draft.backCoverImage || (journal.coverBack ? proxiedImage(journal.coverBack) : defaultBackCoverImage()),
-    journalLogoImage: draft.journalLogoImage || proxiedImage(journal.publisherLogo),
-    footerRightLogoImage: draft.footerRightLogoImage || proxiedImage(journal.domainLogo),
+    journalLogoImage: identity.logoMode === "journalspub"
+      ? proxiedImage(logoAssets.journalspub.src)
+      : draft.journalLogoImage || proxiedImage(journal.publisherLogo),
+    footerRightLogoImage: identity.logoMode === "journalspub"
+      ? proxiedImage(logoAssets.dhruv.src)
+      : draft.footerRightLogoImage || proxiedImage(journal.domainLogo),
     frontCoverLayout: draft.frontCoverLayoutCustomized
       ? normalizeFrontCoverLayout(draft.frontCoverLayout)
       : defaultFrontCoverLayout,
@@ -870,7 +875,7 @@ function brandDefaults(journal: Journal) {
       publisherName: "STM Journals",
       companyName: "Consortium e-Learning Network Pvt. Ltd.",
       address: "A-118, 1st Floor, Sector-63, Noida, U.P. India, Pin - 201301",
-      email: "info@stmjournals.com",
+      email: "Info@stmjournals.com",
       phone: "(+91)-0120-4781-200",
       website: "www.stmjournals.com",
       logoMode: "stm",
@@ -882,7 +887,7 @@ function brandDefaults(journal: Journal) {
       publisherName: "Law Journals",
       companyName: "Consortium e-Learning Network Pvt. Ltd.",
       address: "A-118, 1st Floor, Sector-63, Noida, U.P. India, Pin - 201301",
-      email: "info@stmjournals.com",
+      email: "Info@stmjournals.com",
       phone: "+91 120-4781211",
       website: "www.lawjournals.stmjournals.com",
       logoMode: "law",
@@ -912,7 +917,7 @@ function publisherIdentity(journal: Journal) {
     ...base,
     publisherName: journal.publisher?.trim() || base.publisherName,
     companyName: journal.imprint?.trim() || base.companyName,
-    email: base.logoMode === "stm" ? "info@stmjournals.com" : email,
+    email: base.logoMode === "stm" ? "Info@stmjournals.com" : email,
     phone: journal.publisherPhone?.trim() || base.phone,
     website: journal.companyWebsite?.trim() || base.website,
     // Primary display address prefers the sales/office address.
@@ -925,6 +930,12 @@ function publisherIdentity(journal: Journal) {
 function PublisherLogo({ mode, side, src }: { mode: string; side: "publisher" | "company"; src?: string }) {
   // Prefer the logo uploaded in Setup (Publisher.logoUrl / Company.logoUrl);
   // fall back to the curated per-brand template image when none is set.
+  if (mode === "journalspub" && side === "publisher") {
+    return <ImageLogo asset={logoAssets.journalspub} className="journalspub-logo" />;
+  }
+  if (mode === "journalspub" && side === "company") {
+    return <ImageLogo asset={logoAssets.dhruv} className="dhruv-logo" />;
+  }
   if (src) {
     return (
       <div className="publisher-logo image-logo db-logo">
@@ -1011,8 +1022,11 @@ function excellenceLogoSource(draft: BinderDraft, journal: Journal) {
   return logo;
 }
 
-function FrontCoverPublisherMark({ draft }: { draft: BinderDraft }) {
-  const publisherLogo = draft.journalLogoImage?.trim();
+function FrontCoverPublisherMark({ journal, draft }: { journal: Journal; draft: BinderDraft }) {
+  const identity = publisherIdentity(journal);
+  const publisherLogo = identity.logoMode === "journalspub"
+    ? logoAssets.journalspub.src
+    : draft.journalLogoImage?.trim();
 
   if (publisherLogo) {
     return <CoverBitmap src={publisherLogo} alt="Publisher logo" className="front-cover-publisher-logo" />;
@@ -1075,7 +1089,7 @@ function JournalFrontCover({
         coverImage={coverImage}
         layout={defaultFrontCoverLayout}
         interactive={interactive}
-        publisherMark={<FrontCoverPublisherMark draft={draft} />}
+        publisherMark={<FrontCoverPublisherMark journal={journal} draft={draft} />}
         excellenceMark={<FrontCoverExcellenceMark journal={journal} draft={draft} />}
         onLayoutChange={onLayoutChange}
       />
@@ -1384,7 +1398,7 @@ function PaymentPage({
   const bankSwift = legal?.bankSwift;
   const sendToAddress = legal?.salesAddress || legal?.registeredAddress || journal.salesAddress || journal.address;
   const legalPhoneDisplay = legal?.phone || journal.publisherPhone;
-  const legalEmail = identity.logoMode === "stm" ? "info@stmjournals.com" : (legal?.publisherEmail || journal.publisherEmail);
+  const legalEmail = identity.email;
   // Frequency-based pricing: pick the tier matching the journal's issues-per-year.
   const issuesPerYear = Number(journal.issuesPerYear);
   const tier = Number.isFinite(issuesPerYear) ? tiers.find((t) => t.issuesPerYear === issuesPerYear) : undefined;
@@ -1548,6 +1562,16 @@ function PaymentPage({
   );
 }
 
+function normalizeAboutText(value: string | null | undefined, publisherName: string) {
+  const text = (value || "").trim();
+  if (!text) return "";
+  const normalized = text.replace(/is the Publisher of Journal\.?/gi, "is the publisher of journals.");
+  if (publisherName.trim().toLowerCase() === "stm journals") {
+    return normalized.replace(/info@smjournals\.com/gi, "Info@stmjournals.com");
+  }
+  return normalized;
+}
+
 function JournalDetailsPage({
   journal,
   draft,
@@ -1559,7 +1583,8 @@ function JournalDetailsPage({
 }) {
   const scopeItems = focusScopeItemsForPage(draft);
   const legal = useContext(LegalContext)[journal.id];
-  const publisherEmail = legal?.publisherEmail || journal.publisherEmail;
+  const identity = publisherIdentity(journal);
+  const publisherEmail = identity.email;
   const publisherName = legal?.publisherName || journal.publisher;
   const companyName = legal?.companyName || journal.imprint;
   const issueWord = issueCountWord(Number(journal.issuesPerYear)) || "—";
@@ -1583,7 +1608,7 @@ function JournalDetailsPage({
   // About / objectives / salient features all come from the Publisher record now;
   // only focus & scope is per-journal. Blank values are flagged.
   // About comes solely from the Publisher record (shared across its journals).
-  const aboutText = journal.publisherAbout?.trim();
+  const aboutText = normalizeAboutText(journal.publisherAbout?.trim(), publisherName);
   const objectiveItems = journal.objectives;
   const salientItems = journal.salientFeatures;
   const aboutMissing = !hasValue(aboutText);
