@@ -522,7 +522,7 @@ export const defaultManuscriptEngine: ManuscriptEngineSettings = {
 
 export const logoAssets = {
   dhruv: {
-    src: "/brand/dhruv-info-systems.jpg",
+    src: "/Dhruv-logo.jpg",
     alt: "Dhruv Info Systems Private Limited",
     width: 922,
     height: 323,
