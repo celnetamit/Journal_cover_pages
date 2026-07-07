@@ -1398,7 +1398,7 @@ function PaymentPage({
       }}
     >
       <p {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "content", targetLabel: "Subscription overview" })}>
-        {`${paymentPublisherName} (a strong initiative of ${companyName}) is the Publisher of Journal. Statements and opinions expressed in the journal reflect the views of the author(s) and are not the opinion of ${journal.name} unless so stated.`}
+        {`${paymentPublisherName} (a strong initiative of ${companyName}) is the publisher of journal. Statements and opinions expressed in the journal reflect the views of the author(s) and are not the opinion of ${journal.name} unless so stated.`}
       </p>
 
       <h1 {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "line", targetLabel: "Subscription heading" })}>
