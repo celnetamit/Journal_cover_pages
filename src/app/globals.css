@@ -3645,7 +3645,7 @@ button {
 
 .director-page h1 {
   color: #222;
-  font-size: calc(22pt * var(--page-scale));
+  font-size: calc(12.5pt * var(--page-scale));
   font-weight: 800;
   margin: calc(4.5mm * var(--page-scale)) 0 calc(5.5mm * var(--page-scale));
   text-align: center;

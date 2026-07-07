@@ -907,11 +907,12 @@ function publisherIdentity(journal: Journal) {
   const base = brandDefaults(journal);
   const registeredAddress = journal.address?.trim() || base.address;
   const salesAddress = journal.salesAddress?.trim() || base.address;
+  const email = journal.publisherEmail?.trim() || base.email;
   return {
     ...base,
     publisherName: journal.publisher?.trim() || base.publisherName,
     companyName: journal.imprint?.trim() || base.companyName,
-    email: journal.publisherEmail?.trim() || base.email,
+    email: base.logoMode === "stm" ? "info@stmjournals.com" : email,
     phone: journal.publisherPhone?.trim() || base.phone,
     website: journal.companyWebsite?.trim() || base.website,
     // Primary display address prefers the sales/office address.
@@ -1280,7 +1281,7 @@ function CoverPage({
 function generatePaymentText(journal: Journal, draft: BinderDraft, tier?: SubscriptionTier): string {
   const identity = publisherIdentity(journal);
   const year = draft.issueYear || defaultIssueYear;
-  const email = draft.publisherEmail || identity.email;
+  const email = draft.publisherEmail || (identity.logoMode === "stm" ? "info@stmjournals.com" : identity.email);
   const phone = draft.publisherPhone || identity.phone;
   const word = issueCountWord(Number(journal.issuesPerYear)) || "—";
   const inr = (v: number | null | undefined) => (v == null ? "—" : `₹${v.toLocaleString("en-IN")}`);
@@ -1299,7 +1300,7 @@ function generatePaymentText(journal: Journal, draft: BinderDraft, tier?: Subscr
       ]
     : ["(Set the journal's Issues per year and a matching pricing tier to auto-fill subscription prices.)"];
   return [
-    `${identity.publisherName} (an imprint of ${identity.companyName}) is the Publisher of the Journal. Statements and opinions expressed in the Journal reflect the views of the author(s) and are not the opinion of ${identity.publisherName} & Systems unless so stated.`,
+    `${identity.publisherName} (an imprint of ${identity.companyName}) is the Publisher of the Journal. Statements and opinions expressed in the Journal reflect the views of the author(s) and are not the opinion of ${identity.publisherName} unless so stated.`,
     "",
     `SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, ${year})`,
     "",
@@ -1383,7 +1384,7 @@ function PaymentPage({
   const bankSwift = legal?.bankSwift;
   const sendToAddress = legal?.salesAddress || legal?.registeredAddress || journal.salesAddress || journal.address;
   const legalPhoneDisplay = legal?.phone || journal.publisherPhone;
-  const legalEmail = legal?.publisherEmail || journal.publisherEmail;
+  const legalEmail = identity.logoMode === "stm" ? "info@stmjournals.com" : (legal?.publisherEmail || journal.publisherEmail);
   // Frequency-based pricing: pick the tier matching the journal's issues-per-year.
   const issuesPerYear = Number(journal.issuesPerYear);
   const tier = Number.isFinite(issuesPerYear) ? tiers.find((t) => t.issuesPerYear === issuesPerYear) : undefined;
@@ -1399,7 +1400,7 @@ function PaymentPage({
       }}
     >
       <p {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "content", targetLabel: "Subscription overview" })}>
-        {`${paymentPublisherName} (a strong initiative of ${companyName}) is the publisher of journal. Statements and opinions expressed in the journal reflect the views of the author(s) and are not the opinion of ${paymentPublisherName} & Systems unless so stated.`}
+        {`${paymentPublisherName} (a strong initiative of ${companyName}) is the publisher of journal. Statements and opinions expressed in the journal reflect the views of the author(s) and are not the opinion of ${paymentPublisherName} unless so stated.`}
       </p>
 
       <h1 {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "line", targetLabel: "Subscription heading" })}>
@@ -1566,13 +1567,13 @@ function JournalDetailsPage({
   const issuePhrase = issueWord === "—" ? "" : `${issueWord.toLowerCase()} times a year`;
   // About-page closing paragraphs — fixed template filled with dynamic values.
   const aboutIntroText = issuePhrase
-    ? `The ${journal.name} is published ${issuePhrase} by ${publisherName} (a strong initiative of ${companyName}), India. publisher of journal.`
-    : `The ${journal.name} is published by ${publisherName} (a strong initiative of ${companyName}), India. publisher of journal.`;
+    ? `The ${journal.name} is published ${issuePhrase} by ${publisherName} (a strong initiative of ${companyName}), India. publisher of journals.`
+    : `The ${journal.name} is published by ${publisherName} (a strong initiative of ${companyName}), India. publisher of journals.`;
   const aboutNotes = [
     <>
       The {journal.name} is published{" "}
       {issuePhrase ? <i>{issuePhrase}</i> : null}{" "}
-      by {publisherName} (a strong initiative of {companyName}), India. publisher of journal.
+      by {publisherName} (a strong initiative of {companyName}), India. publisher of journals.
     </>,
     "The views and opinions expressed in the articles are those of the respective author(s) and do not necessarily reflect the views or opinions of the Editor, Editorial Board, or Publisher.",
     "All rights reserved. No part of this publication may be reproduced, stored in a retrieval system, or transmitted in any form or by any means, whether electronic, mechanical, photocopying, recording, or otherwise, without prior written permission of the Publisher.",
