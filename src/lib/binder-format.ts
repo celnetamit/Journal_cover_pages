@@ -30,8 +30,12 @@ export function monthRangePresets(issuesPerYear: number | string | null | undefi
   return Array.from({ length: n }, (_, i) => {
     const start = i * span;
     const end = start + span - 1;
-    return span === 1 ? MONTHS[start] : `${MONTHS[start]} - ${MONTHS[end]}`;
+    return span === 1 ? MONTHS[start] : `${MONTHS[start]} – ${MONTHS[end]}`;
   });
+}
+
+export function normalizeMonthRange(value: string) {
+  return value.trim().replace(/\s*[-–]\s*/g, "–");
 }
 
 export function initials(name: string) {

@@ -34,6 +34,7 @@ import {
   initials,
   lowerRoman,
   monthRangePresets,
+  normalizeMonthRange,
   titleCaseName,
 } from "@/lib/binder-format";
 import {
@@ -127,7 +128,7 @@ type Props = {
 
 const defaultIssueVolume = "13";
 const defaultIssueNumber = "1";
-const defaultIssueMonthRange = "January-April";
+const defaultIssueMonthRange = "January–April";
 const defaultIssueYear = "2026";
 const totalPages = 9;
 const defaultCoverPrinter = "Laxman Printo Graphics, Noida";
@@ -1050,7 +1051,7 @@ function JournalFrontCover({
 }) {
   const volume = draft.issueVolume || defaultIssueVolume;
   const issue = draft.issueNumber || defaultIssueNumber;
-  const monthRange = draft.issueMonthRange || defaultIssueMonthRange;
+  const monthRange = normalizeMonthRange(draft.issueMonthRange || defaultIssueMonthRange);
   const year = draft.issueYear || defaultIssueYear;
   // No hardcoded brand fallback: blank abbreviation is flagged on the cover.
   const abbreviation = draft.journalAbbreviation || journal.abbreviation || journal.shortName || "";
@@ -1246,7 +1247,7 @@ function CoverPage({
         Volume <ReqText value={draft.issueVolume} label="Volume" /> | Issue <ReqText value={draft.issueNumber} label="Issue" />
       </p>
       <p {...commentTargetAttrs(draft.comments, { page: 2, targetKind: "line", targetLabel: "Month and year line" })} className="cover-meta">
-        <ReqText value={draft.issueMonthRange.replace(/\s*-\s*/g, "-")} label="Month range" /> | <ReqText value={draft.issueYear} label="Year" />
+        <ReqText value={normalizeMonthRange(draft.issueMonthRange)} label="Month range" /> | <ReqText value={draft.issueYear} label="Year" />
       </p>
       <div className="cover-footer">
         <div className="publisher-logo-row">
@@ -1298,7 +1299,7 @@ function generatePaymentText(journal: Journal, draft: BinderDraft, tier?: Subscr
       ]
     : ["(Set the journal's Issues per year and a matching pricing tier to auto-fill subscription prices.)"];
   return [
-    `${identity.publisherName} (an imprint of ${identity.companyName}) is the Publisher of the Journal. Statements and opinions expressed in the Journal reflect the views of the author(s) and are not the opinion of ${identity.publisherName} unless so stated.`,
+    `${identity.publisherName} (an imprint of ${identity.companyName}) is the Publisher of the Journal. Statements and opinions expressed in the Journal reflect the views of the author(s) and are not the opinion of ${identity.publisherName} & Systems unless so stated.`,
     "",
     `SUBSCRIPTION INFORMATION AND ORDER (JANUARY TO DECEMBER, ${year})`,
     "",
@@ -1398,7 +1399,7 @@ function PaymentPage({
       }}
     >
       <p {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "content", targetLabel: "Subscription overview" })}>
-        {`${paymentPublisherName} (a strong initiative of ${companyName}) is the publisher of journal. Statements and opinions expressed in the journal reflect the views of the author(s) and are not the opinion of ${journal.name} unless so stated.`}
+        {`${paymentPublisherName} (a strong initiative of ${companyName}) is the publisher of journal. Statements and opinions expressed in the journal reflect the views of the author(s) and are not the opinion of ${paymentPublisherName} & Systems unless so stated.`}
       </p>
 
       <h1 {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "line", targetLabel: "Subscription heading" })}>
@@ -2248,7 +2249,7 @@ function paginateContentByHeight(container: HTMLElement, rows: ContentRow[]): Co
 // Content-page header: "Contents" on the left; journal name, volume/issue and
 // month/year stacked right-aligned (mirrors the cover meta).
 function ContentHeader({ journal, draft, title }: { journal: Journal; draft: BinderDraft; title: string }) {
-  const period = [draft.issueMonthRange.replace(/\s*-\s*/g, "-"), draft.issueYear].filter((v) => v.trim()).join(" ");
+  const period = [normalizeMonthRange(draft.issueMonthRange), draft.issueYear].filter((v) => v.trim()).join(" ");
   return (
     <header className="content-masthead">
       <h1 className="content-title">{title}</h1>

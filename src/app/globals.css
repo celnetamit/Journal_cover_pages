@@ -3645,7 +3645,7 @@ button {
 
 .director-page h1 {
   color: #222;
-  font-size: calc(24pt * var(--page-scale));
+  font-size: calc(22pt * var(--page-scale));
   font-weight: 800;
   margin: calc(4.5mm * var(--page-scale)) 0 calc(5.5mm * var(--page-scale));
   text-align: center;
@@ -3961,6 +3961,10 @@ button {
   line-height: calc(1.14 * var(--page-scale));
   margin: 0 0 calc(1.8mm * var(--page-scale));
   text-align: justify;
+}
+
+.journal-info-page .journal-info-notes p {
+  text-transform: none;
 }
 
 .journal-info-page > section {
