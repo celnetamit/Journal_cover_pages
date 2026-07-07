@@ -1406,7 +1406,7 @@ function PaymentPage({
       </h1>
       <div className="subscription-columns">
         <div {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "area", targetLabel: "National subscription column" })} className="subscription-column">
-          <p><b>National Subscription</b> (₹, India)</p>
+          <p><b>National Subscription</b></p>
           {tier ? (
             <ul className="checkbox-list">
               <li><b>Print</b>: <Amount value={tier.printInr} currency="inr" label="Print price" /> per Journal ({issueWord} Print Issues), Single Issue <Amount value={tier.singleIssueInr} currency="inr" label="Single-issue price" />.</li>
@@ -1416,7 +1416,7 @@ function PaymentPage({
           ) : <MissingFlag label="Subscription pricing — set the journal's Issues per year and a matching pricing tier" block />}
         </div>
         <div {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "area", targetLabel: "International subscription column" })} className="subscription-column">
-          <p><b>International Subscription</b> ($, outside India)</p>
+          <p><b>International Subscription</b></p>
           {tier ? (
             <ul className="checkbox-list">
               <li><b>Print</b>: Only <Amount value={tier.printUsd} currency="usd" label="Print price" /> ({issueWord} Print Issues)</li>
@@ -1565,13 +1565,13 @@ function JournalDetailsPage({
   const issuePhrase = issueWord === "—" ? "" : `${issueWord.toLowerCase()} times a year`;
   // About-page closing paragraphs — fixed template filled with dynamic values.
   const aboutIntroText = issuePhrase
-    ? `The ${journal.name} is published ${issuePhrase} by ${publisherName} (a strong initiative of ${companyName}), India.`
-    : `The ${journal.name} is published by ${publisherName} (a strong initiative of ${companyName}), India.`;
+    ? `The ${journal.name} is published ${issuePhrase} by ${publisherName} (a strong initiative of ${companyName}), India. publisher of journal.`
+    : `The ${journal.name} is published by ${publisherName} (a strong initiative of ${companyName}), India. publisher of journal.`;
   const aboutNotes = [
     <>
       The {journal.name} is published{" "}
       {issuePhrase ? <i>{issuePhrase}</i> : null}{" "}
-      by {publisherName} (a strong initiative of {companyName}), India.
+      by {publisherName} (a strong initiative of {companyName}), India. publisher of journal.
     </>,
     "The views and opinions expressed in the articles are those of the respective author(s) and do not necessarily reflect the views or opinions of the Editor, Editorial Board, or Publisher.",
     "All rights reserved. No part of this publication may be reproduced, stored in a retrieval system, or transmitted in any form or by any means, whether electronic, mechanical, photocopying, recording, or otherwise, without prior written permission of the Publisher.",
