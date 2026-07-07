@@ -1124,6 +1124,7 @@ function CoverSpreadPage({
       <div {...commentTargetAttrs(draft.comments, { page: 1, targetKind: "image", targetLabel: "Front cover artwork" })}>
         <JournalFrontCover journal={journal} draft={draft} interactive={interactive} onLayoutChange={onLayoutChange} />
       </div>
+      <PageAnnotations page={1} comments={draft.comments} />
       {/* TEMP dimension guide (on-screen only; remove later). */}
       <CoverDimensionGuides spineMm={spineMm} pageW={pageW} pageH={pageH} padH={padH} padV={padV} />
     </section>
@@ -1267,7 +1268,7 @@ function CoverPage({
           Website: <ReqText value={website} label="Website" /> | CIN No.: <ReqText value={cin} label="CIN" />
         </span>
       </div>
-      <PageAnnotations page={1} comments={draft.comments} />
+      <PageAnnotations page={2} comments={draft.comments} />
       <PageNumber value={1} />
     </section>
   );
