@@ -1719,6 +1719,7 @@ button {
      back-cover image's height:100% resolves — align-self:stretch alone leaves the
      height "indefinite" for percentage children in some browsers (image collapses). */
   align-self: stretch;
+  box-sizing: border-box;
   height: 100%;
   width: 100%;
   /* Share the space left over after the spine equally, so a wider spine shrinks
@@ -1727,6 +1728,14 @@ button {
   min-width: 0;
   display: block;
   position: relative;
+}
+
+.cover-spread-page .digital-library-cover {
+  padding-right: 4mm;
+}
+
+.cover-spread-page .journal-front-cover {
+  padding-left: 4mm;
 }
 
 .cover-spread-page > [data-comment-target-kind="image"] {
@@ -1851,7 +1860,6 @@ button {
   position: relative;
   z-index: 1;
   box-sizing: border-box;
-  padding-left: 4mm;
 }
 
 .front-cover-middle-image {
