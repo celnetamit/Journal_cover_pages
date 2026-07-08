@@ -2282,7 +2282,7 @@ function ContentHeader({ journal, draft, title }: { journal: Journal; draft: Bin
       <div className="content-meta">
         <RichText as="div" className="content-journal-name" value={journal.name} />
         <div className="content-issue">Volume {draft.issueVolume} | Issue {draft.issueNumber}</div>
-        {period ? <div className="content-period">({period})</div> : null}
+        {period ? <div className="content-period">{period}</div> : null}
       </div>
     </header>
   );
