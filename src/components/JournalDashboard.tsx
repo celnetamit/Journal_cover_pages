@@ -1225,8 +1225,8 @@ function CoverPage({
   // Per-issue override → Company.printedBy (single point of change) → app default.
   const printer = draft.coverPrinter || journal.printedBy || defaultCoverPrinter;
   const title = draft.journalTitle?.trim() ? draft.journalTitle : journal.name;
-  const publisherName = legal?.publisherName || journal.publisher;
-  const companyName = legal?.companyName || journal.imprint;
+  const publisherName = (legal?.publisherName || journal.publisher || "").trim();
+  const companyName = (legal?.companyName || journal.imprint || "").trim();
   const address = draft.publisherAddress || legal?.salesAddress || legal?.registeredAddress || journal.salesAddress || journal.address;
   const phone = draft.publisherPhone || legal?.publisherPhone || journal.publisherPhone;
   const mobile = draft.publisherMobile || legal?.publisherMobile || journal.publisherMobile;
@@ -1590,10 +1590,7 @@ function JournalDetailsPage({
   const publisherName = legal?.publisherName || journal.publisher;
   const companyName = legal?.companyName || journal.imprint;
   const issueWord = issueCountWord(Number(journal.issuesPerYear)) || "—";
-  const closingWebsite =
-    identity.logoMode === "stm"
-      ? "www.journals.stmjournals.com"
-      : journal.website || legal?.website || journal.companyWebsite;
+  const closingWebsite = journal.website || legal?.website || journal.companyWebsite;
   const issuePhrase = issueWord === "—" ? "" : `${issueWord.toLowerCase()} times a year`;
   // About-page closing paragraphs — fixed template filled with dynamic values.
   const aboutIntroText = issuePhrase
