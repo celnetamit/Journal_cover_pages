@@ -1414,7 +1414,7 @@ function PaymentPage({
       }}
     >
       <p {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "content", targetLabel: "Subscription overview" })}>
-        {`${paymentPublisherName} (a strong initiative of ${companyName}) is the publisher of journal. Statements and opinions expressed in the journal reflect the views of the author(s) and are not the opinion of ${paymentPublisherName} unless so stated.`}
+        {`${paymentPublisherName} (a strong initiative of ${companyName}) is the publisher of journals. Statements and opinions expressed in the journal reflect the views of the author(s) and are not the opinion of ${paymentPublisherName} unless so stated.`}
       </p>
 
       <h1 {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "line", targetLabel: "Subscription heading" })}>
@@ -1590,7 +1590,10 @@ function JournalDetailsPage({
   const publisherName = legal?.publisherName || journal.publisher;
   const companyName = legal?.companyName || journal.imprint;
   const issueWord = issueCountWord(Number(journal.issuesPerYear)) || "—";
-  const closingWebsite = journal.website || legal?.website || journal.companyWebsite;
+  const closingWebsite =
+    identity.logoMode === "stm"
+      ? "www.journals.stmjournals.com"
+      : journal.website || legal?.website || journal.companyWebsite;
   const issuePhrase = issueWord === "—" ? "" : `${issueWord.toLowerCase()} times a year`;
   // About-page closing paragraphs — fixed template filled with dynamic values.
   const aboutIntroText = issuePhrase

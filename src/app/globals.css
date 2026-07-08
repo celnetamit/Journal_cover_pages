@@ -3395,7 +3395,7 @@ button {
 }
 
 .publisher-logo.image-logo.journalspub-logo {
-  min-width: 48mm;
+  min-width: 40mm;
 }
 
 .publisher-logo.image-logo.stm-logo {
@@ -3512,6 +3512,13 @@ button {
 .stm-logo span,
 .dhruv-logo span {
   font-size: 16pt;
+}
+
+.page-masthead .publisher-logo.image-logo.journalspub-logo img,
+.publisher-logo-row > .publisher-logo.image-logo.journalspub-logo img,
+.front-cover-footer-left .publisher-logo.image-logo.journalspub-logo img,
+.front-cover-footer-right .publisher-logo.image-logo.journalspub-logo img {
+  max-height: 14mm;
 }
 
 .dhruv-logo strong {
