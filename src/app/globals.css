@@ -2654,8 +2654,10 @@ button {
 
 .management-page h1 {
   color: #222;
-  font-size: calc(19pt * var(--page-scale));
-  font-weight: 800;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: calc(15.5pt * var(--page-scale));
+  font-weight: 700;
+  line-height: 1.18;
   margin: calc(5.5mm * var(--page-scale)) 0 calc(2.8mm * var(--page-scale));
   text-align: center;
 }
@@ -3612,7 +3614,7 @@ button {
 
 .content-page .content-issue,
 .content-page .content-period {
-  font-size: calc(9.5pt * var(--page-scale));
+  font-size: calc(9.5pt * var(--page-scale) + 4px);
   line-height: 1.25;
 }
 
@@ -3658,8 +3660,10 @@ button {
 
 .director-page h1 {
   color: #222;
-  font-size: calc(12.5pt * var(--page-scale));
-  font-weight: 800;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: calc(15.5pt * var(--page-scale));
+  font-weight: 700;
+  line-height: 1.18;
   margin: calc(4.5mm * var(--page-scale)) 0 calc(5.5mm * var(--page-scale));
   text-align: center;
 }

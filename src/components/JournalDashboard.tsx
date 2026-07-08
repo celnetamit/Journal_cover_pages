@@ -1330,7 +1330,7 @@ function generatePaymentText(journal: Journal, draft: BinderDraft, tier?: Subscr
     "",
     "ONLINE ACCESS POLICY — For Authors",
     `${identity.publisherName} offers Optional Open Access publication at nominal cost:`,
-    "India: ₹1500 includes single hard copy of Author's Journal.",
+    "India: ₹650 includes single hard copy of Author's Journal.",
     "SAARC and African Countries: $100 includes single hard copy of Author's Journal.",
     "Other Countries: $200 includes single hard copy of Author's Journal.",
     "",
@@ -1446,7 +1446,7 @@ function PaymentPage({
       <div {...commentTargetAttrs(draft.comments, { page: 3, targetKind: "area", targetLabel: "Author copy block" })} className="author-copy-block">
         <p><b>For Author&apos;s Copy</b></p>
         <ul className="checkbox-list">
-          <li>India: ₹1,500 includes single hard copy of Author&apos;s Journal.</li>
+          <li>India: ₹650 includes single hard copy of Author&apos;s Journal.</li>
           <li>SAARC and African Countries: $100 includes single hard copy of Author&apos;s Journal.</li>
           <li>Other Countries: $200 includes single hard copy of Author&apos;s Journal.</li>
         </ul>
@@ -1565,7 +1565,9 @@ function PaymentPage({
 function normalizeAboutText(value: string | null | undefined, publisherName: string) {
   const text = (value || "").trim();
   if (!text) return "";
-  const normalized = text.replace(/is the Publisher of Journal\.?/gi, "is the publisher of journals.");
+  const normalized = text
+    .replace(/\s+,/g, ",")
+    .replace(/is the Publisher of Journal\.?/gi, "is the publisher of journals.");
   if (publisherName.trim().toLowerCase() === "stm journals") {
     return normalized.replace(/info@smjournals\.com/gi, "Info@stmjournals.com");
   }
@@ -1655,7 +1657,7 @@ function JournalDetailsPage({
           <div {...commentTargetAttrs(draft.comments, { page: 4, targetKind: "content", targetLabel: "Journal title block" })}>
             <RichText as="h2" className="journal-info-name" value={journal.name} />
           </div>
-          {(journal.eIssn || journal.pIssn) ? (
+          {(journal.eIssn && journal.pIssn) ? (
             <p className="journal-info-issn">
               {[journal.eIssn ? `ISSN: ${journal.eIssn} (Online)` : null, journal.pIssn ? `ISSN: ${journal.pIssn} (Print)` : null].filter(Boolean).join(", ")}
             </p>
