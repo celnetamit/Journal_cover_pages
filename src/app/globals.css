@@ -3426,10 +3426,10 @@ button {
 .publisher-logo-row > .publisher-logo.image-logo {
   height: 28mm;
   max-height: 28mm;
-  max-width: 50mm;
+  max-width: 100%;
   min-height: 28mm;
-  min-width: 50mm;
-  width: 50mm;
+  min-width: 0;
+  width: auto;
 }
 
 .publisher-logo-row > .publisher-logo.image-logo img,
@@ -3438,7 +3438,7 @@ button {
   max-height: 100%;
   max-width: 100%;
   object-fit: contain;
-  width: 100%;
+  width: auto;
 }
 
 .publisher-logo strong,
