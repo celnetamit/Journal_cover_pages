@@ -3636,7 +3636,7 @@ button {
   line-height: 1.2;
   margin-bottom: 0;
   white-space: nowrap;
-  text-align: center;
+  text-align: end;
 }
 
 .content-page .content-issue,
