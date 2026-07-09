@@ -2835,7 +2835,7 @@ button {
   font-weight: 700;
   letter-spacing: 0.4px;
   margin: calc(1.5mm * var(--page-scale)) 0 calc(4.2mm * var(--page-scale));
-  padding: calc(1.15mm * var(--page-scale)) 0;
+  padding: calc(0.85mm * var(--page-scale)) 0 calc(1.45mm * var(--page-scale));
   line-height: 1;
   text-align: center;
 }
