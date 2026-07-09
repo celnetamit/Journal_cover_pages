@@ -2827,25 +2827,17 @@ button {
   max-width: 100%;
 }
 
+/* "Members" section header rendered as a pre-baked image (public/members-band.png)
+   instead of CSS text. A fixed raster rasterizes byte-identically in the live view
+   and the html2canvas PDF export, sidestepping html2canvas's inconsistent vertical
+   centering of text inside a colored bar (which left "Members" clipped low in the
+   PDF). Displayed full-width; height follows the image's ~25:1 aspect ratio, which
+   matches the previous band height. */
 .management-band {
-  background: #6b7280;
-  color: #fff;
-  /* Center the single "Members" line with a tall line-height instead of grid/flex
-     alignment + line-height:1. In the html2canvas PDF export, a tight line-height
-     leaves no leading, so html2canvas's slightly-low text baseline pushed "Members"
-     to the band's bottom edge (clipped) even though the live browser centered it.
-     A line-height equal to the band height gives symmetric leading that both the
-     browser and html2canvas center within — verified identical in live + PDF. The
-     6.2mm line-height reproduces the previous band height exactly (was line-height:1
-     + 0.85mm/1.45mm padding), so surrounding spacing is unchanged. */
   display: block;
-  font-size: calc(11pt * var(--page-scale));
-  font-weight: 700;
-  letter-spacing: 0.4px;
+  width: 100%;
+  height: auto;
   margin: calc(1.5mm * var(--page-scale)) 0 calc(4.2mm * var(--page-scale));
-  padding: 0;
-  line-height: calc(6.2mm * var(--page-scale));
-  text-align: center;
 }
 
 .management-photo-grid {

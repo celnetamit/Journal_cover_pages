@@ -1733,7 +1733,10 @@ function TeamPage({
           ))}
         </div>
       ) : <MissingFlag label="Management head(s)" block />}
-      <div className="management-band">Members</div>
+      {/* Fixed "Members" section header as a pre-baked image so it rasterizes
+          byte-identically in the html2canvas PDF (no CSS text-centering quirks). */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="management-band" src="/members-band.png" alt="Members" />
       {draft.managementMembers.length ? (
         <div {...commentTargetAttrs(draft.comments, { page: 5, targetKind: "area", targetLabel: "Management members grid" })} className="management-photo-grid">
           {draft.managementMembers.slice(0, 16).map((member, index) => (
