@@ -1562,13 +1562,13 @@ function PaymentPage({
   );
 }
 
-function normalizeAboutText(value: string | null | undefined, publisherName: string) {
+function normalizeAboutText(value: string | null | undefined) {
   const text = (value || "").trim();
   if (!text) return "";
   const normalized = text
     .replace(/\s+,/g, ",")
     .replace(/is the Publisher of Journal\.?/gi, "is the publisher of journals.");
-  if (publisherName.trim().toLowerCase() === "stm journals") {
+  if (text.toLowerCase().includes("stm journals")) {
     return normalized.replace(/info@smjournals\.com/gi, "Info@stmjournals.com");
   }
   return normalized;
@@ -1610,7 +1610,7 @@ function JournalDetailsPage({
   // About / objectives / salient features all come from the Publisher record now;
   // only focus & scope is per-journal. Blank values are flagged.
   // About comes solely from the Publisher record (shared across its journals).
-  const aboutText = normalizeAboutText(journal.publisherAbout?.trim(), publisherName);
+  const aboutText = normalizeAboutText(journal.publisherAbout?.trim());
   const objectiveItems = journal.objectives;
   const salientItems = journal.salientFeatures;
   const aboutMissing = !hasValue(aboutText);
@@ -1633,7 +1633,7 @@ function JournalDetailsPage({
         <MissingFlag label="About" block />
       ) : (
         <p {...commentTargetAttrs(draft.comments, { page: 4, targetKind: "content", targetLabel: "About text" })}>
-          <ReqText as="b" value={publisherName} label="Publisher name" /> <RichText value={aboutText} />
+          <RichText value={aboutText} />
         </p>
       )}
       <section>

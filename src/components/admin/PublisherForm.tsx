@@ -60,6 +60,7 @@ export default function PublisherForm({ action, values, companies, profiles, sub
         label="About (About-page top paragraph)"
         defaultValue={values?.about}
         rows={4}
+        hint="Write the full paragraph here, including the publisher name if you want it shown in the line."
       />
       <Area
         name="disciplines"
