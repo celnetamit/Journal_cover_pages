@@ -2669,6 +2669,7 @@ button {
   font-weight: 700;
   margin: calc(5mm * var(--page-scale)) 0 calc(3mm * var(--page-scale));
   text-align: center;
+  text-wrap: balance;
 }
 
 /* Publisher name heading above the publisher-journals list (below the journal
@@ -3287,6 +3288,11 @@ button {
   margin: 29mm auto 6mm;
   max-width: 146mm;
   text-align: center;
+  /* Balance multi-line journal names the same way on every page (title, About,
+     Management, Editorial) so the name breaks consistently instead of leaving an
+     orphan word. Balance is computed by the browser before html2canvas snapshots,
+     so the exported PDF matches the live layout. */
+  text-wrap: balance;
 }
 
 .issue-line {
@@ -3853,6 +3859,7 @@ button {
   line-height: 1.18;
   margin: 0 auto calc(3mm * var(--page-scale));
   max-width: 170mm;
+  text-wrap: balance;
 }
 
 .editorial-page h2.editorial-board-title {
@@ -4064,6 +4071,7 @@ button {
   font-weight: 700;
   margin: 0 0 calc(2.5mm * var(--page-scale));
   text-align: center;
+  text-wrap: balance;
 }
 
 .journal-info-issn {
