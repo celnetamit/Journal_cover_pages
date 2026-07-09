@@ -2885,7 +2885,7 @@ button {
 }
 
 .management-contact-boxes {
-  background: #e5e5e5;
+  background: transparent;
   border: 1px solid #222;
   display: grid;
   font-size: calc(6.4pt * var(--page-scale));
