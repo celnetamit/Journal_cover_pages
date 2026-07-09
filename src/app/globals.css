@@ -2829,11 +2829,15 @@ button {
 .management-band {
   background: #6b7280;
   color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: calc(11pt * var(--page-scale));
   font-weight: 700;
   letter-spacing: 0.4px;
   margin: calc(1.5mm * var(--page-scale)) 0 calc(4.2mm * var(--page-scale));
-  padding: calc(1.7mm * var(--page-scale)) 0;
+  padding: calc(1.35mm * var(--page-scale)) 0;
+  line-height: 1;
   text-align: center;
 }
 
@@ -3632,6 +3636,7 @@ button {
   font-weight: 700;
   line-height: 1.2;
   margin-bottom: calc(1.5mm * var(--page-scale));
+  white-space: nowrap;
 }
 
 .content-page .content-issue,
