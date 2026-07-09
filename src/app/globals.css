@@ -2860,7 +2860,7 @@ button {
      (a hair narrower so sub-pixel rounding never wraps the 4th to a new row). */
   flex: 0 0 calc((100% - 18.4mm * var(--page-scale)) / 4);
   flex-direction: row-reverse;
-  gap: calc(3.5mm * var(--page-scale));
+  gap: calc(0.2mm * var(--page-scale));
   min-height: 0;
   /* Hold the 1/4 flex-basis instead of growing to the text's min-content width
      (default min-width:auto), so every row fills a full 4 and the text wraps. */
