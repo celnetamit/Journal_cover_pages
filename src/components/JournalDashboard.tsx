@@ -1589,8 +1589,11 @@ function JournalDetailsPage({
   const publisherEmail = identity.email;
   const publisherName = legal?.publisherName || journal.publisher;
   const companyName = legal?.companyName || journal.imprint;
+  const isStmPublisher = publisherName.trim().toLowerCase().includes("stm journals");
   const issueWord = issueCountWord(Number(journal.issuesPerYear)) || "—";
-  const closingWebsite = journal.website || legal?.website || journal.companyWebsite;
+  const closingWebsite = isStmPublisher
+    ? "www.journals.stmjournals.com"
+    : journal.website || legal?.website || journal.companyWebsite;
   const issuePhrase = issueWord === "—" ? "" : `${issueWord.toLowerCase()} times a year`;
   // About-page closing paragraphs — fixed template filled with dynamic values.
   const aboutIntroText = issuePhrase
