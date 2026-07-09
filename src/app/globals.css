@@ -3609,7 +3609,7 @@ button {
   font-size: calc(15pt * var(--page-scale));
   font-weight: 800;
   margin: 0;
-  margin-top: calc(1.5mm * var(--page-scale));
+  margin-top: calc(4.5mm * var(--page-scale));
   text-align: left;
 }
 
