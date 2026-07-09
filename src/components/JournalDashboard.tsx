@@ -1586,14 +1586,14 @@ function JournalDetailsPage({
   const scopeItems = focusScopeItemsForPage(draft);
   const legal = useContext(LegalContext)[journal.id];
   const identity = publisherIdentity(journal);
-  const publisherEmail = identity.email;
+  const publisherEmail = legal?.publisherEmail || identity.email;
   const publisherName = legal?.publisherName || journal.publisher;
   const companyName = legal?.companyName || journal.imprint;
   const isStmPublisher = publisherName.trim().toLowerCase().includes("stm journals");
   const issueWord = issueCountWord(Number(journal.issuesPerYear)) || "—";
   const closingWebsite = isStmPublisher
-    ? "www.journals.stmjournals.com"
-    : journal.website || legal?.website || journal.companyWebsite;
+    ? legal?.publisherWebsite || "www.journals.stmjournals.com"
+    : legal?.publisherWebsite || journal.website || journal.companyWebsite || identity.website;
   const issuePhrase = issueWord === "—" ? "" : `${issueWord.toLowerCase()} times a year`;
   // About-page closing paragraphs — fixed template filled with dynamic values.
   const aboutIntroText = issuePhrase
@@ -1660,9 +1660,11 @@ function JournalDetailsPage({
           <div {...commentTargetAttrs(draft.comments, { page: 4, targetKind: "content", targetLabel: "Journal title block" })}>
             <RichText as="h2" className="journal-info-name" value={journal.name} />
           </div>
-          {(journal.eIssn && journal.pIssn) ? (
+          {journal.eIssn || journal.pIssn ? (
             <p className="journal-info-issn">
-              {[journal.eIssn ? `ISSN: ${journal.eIssn} (Online)` : null, journal.pIssn ? `ISSN: ${journal.pIssn} (Print)` : null].filter(Boolean).join(", ")}
+              {journal.eIssn && journal.pIssn
+                ? `ISSN: ${journal.eIssn} (Online), ISSN: ${journal.pIssn} (Print)`
+                : `ISSN: ${journal.eIssn || journal.pIssn}`}
             </p>
           ) : null}
         </div>
@@ -2283,12 +2285,14 @@ function ContentHeader({ journal, draft, title }: { journal: Journal; draft: Bin
   const period = [normalizeMonthRange(draft.issueMonthRange), draft.issueYear].filter((v) => v.trim()).join(" ");
   return (
     <header className="content-masthead">
-      <h1 className="content-title">{title}</h1>
-      <div className="content-meta">
+      <div className="content-topline">
         <RichText as="div" className="content-journal-name" value={journal.name} />
-        <div className="content-issue">Volume {draft.issueVolume} | Issue {draft.issueNumber}</div>
-        {period ? <div className="content-period">{period}</div> : null}
+        <div className="content-meta">
+          <div className="content-issue">Volume {draft.issueVolume} | Issue {draft.issueNumber}</div>
+          {period ? <div className="content-period">{period}</div> : null}
+        </div>
       </div>
+      <h1 className="content-title page9-title">{title}</h1>
     </header>
   );
 }

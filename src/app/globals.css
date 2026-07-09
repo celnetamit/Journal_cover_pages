@@ -3596,25 +3596,34 @@ button {
   text-align: center;
 }
 
-/* Content-page header row: "Contents" (left) + journal name/issue/period (right). */
+/* Content-page header: journal name + issue/period on the first row, then the
+   "Contents" heading on its own line below. */
 .content-page .content-masthead {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: calc(4mm * var(--page-scale));
+  margin-bottom: calc(6mm * var(--page-scale));
+}
+
+.content-page .content-topline {
   align-items: flex-end;
   display: flex;
   justify-content: space-between;
   gap: calc(8mm * var(--page-scale));
-  margin-bottom: calc(6mm * var(--page-scale));
 }
 
 .content-page h1.content-title {
   font-size: calc(15pt * var(--page-scale));
   font-weight: 800;
   margin: 0;
-  margin-top: calc(8mm * var(--page-scale));
+  margin-top: calc(2mm * var(--page-scale));
   text-align: left;
 }
 
 .content-page .content-meta {
   text-align: right;
+  white-space: nowrap;
 }
 
 .content-page .content-journal-name {
