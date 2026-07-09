@@ -2829,14 +2829,13 @@ button {
 .management-band {
   background: #6b7280;
   color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
   font-size: calc(11pt * var(--page-scale));
   font-weight: 700;
   letter-spacing: 0.4px;
   margin: calc(1.5mm * var(--page-scale)) 0 calc(4.2mm * var(--page-scale));
-  padding: calc(1.35mm * var(--page-scale)) 0;
+  padding: calc(1.15mm * var(--page-scale)) 0;
   line-height: 1;
   text-align: center;
 }
