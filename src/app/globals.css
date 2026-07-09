@@ -3521,6 +3521,11 @@ button {
   max-height: 14mm;
 }
 
+/* Title page: give JournalsPub a little more presence beside the company logo. */
+.publisher-logo-row > .publisher-logo.image-logo.journalspub-logo img {
+  max-height: 17mm;
+}
+
 .dhruv-logo strong {
   font-style: italic;
 }
@@ -3604,6 +3609,7 @@ button {
   font-size: calc(15pt * var(--page-scale));
   font-weight: 800;
   margin: 0;
+  margin-top: calc(1.5mm * var(--page-scale));
   text-align: left;
 }
 
