@@ -2,6 +2,7 @@
 
 import { Fragment, useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { inlineToPlainText } from "@/lib/rich-text";
 import {
   createUser,
   deleteUser,
@@ -262,7 +263,7 @@ export default function UserManager({
                                 checked={selected.has(j.id)}
                                 onChange={() => toggleJournal(j.id)}
                               />
-                              <span>{j.name}</span>
+                              <span>{inlineToPlainText(j.name)}</span>
                             </label>
                           ))}
                         </div>

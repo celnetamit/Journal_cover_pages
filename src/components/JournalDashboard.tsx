@@ -49,6 +49,7 @@ import {
   defaultCoverSafePaddingHMm,
   defaultCoverSafePaddingVMm,
   defaultManuscriptUrl,
+  formatIssnLine,
   SPINE_PRESETS,
   type ManagementPerson,
   type ContentRow,
@@ -1081,6 +1082,7 @@ function JournalFrontCover({
         sjif={draft.sjif || journal.impactFactor || ""}
         icv={cleanIcv(draft.icv || journal.icv)}
         eIssn={draft.eIssn || journal.eIssn || ""}
+        pIssn={journal.pIssn || ""}
         issueLine={`Volume ${volume}  No. ${issue}  ${year}`}
         website={website.replace(/^https?:\/\//i, "")}
         title={coverTitle}
@@ -1222,6 +1224,7 @@ function CoverPage({
   // Record-only resolution: per-issue draft → Company/Publisher (DB) → journal
   // record. NO hardcoded brand fallback — blank values are flagged on the page.
   const eIssn = draft.eIssn || journal.eIssn; // optional — blank renders empty
+  const issnLine = formatIssnLine(eIssn, journal.pIssn); // null when both blank
   // Per-issue override → Company.printedBy (single point of change) → app default.
   const printer = draft.coverPrinter || journal.printedBy || defaultCoverPrinter;
   const title = draft.journalTitle?.trim() ? draft.journalTitle : journal.name;
@@ -1246,10 +1249,10 @@ function CoverPage({
       }}
     >
       <div className="page-rule" />
-      {/* e-ISSN is optional — the whole line is hidden when unset. */}
-      {eIssn.trim() ? (
+      {/* ISSN is optional. Online + Print when both set; hidden when both blank. */}
+      {issnLine ? (
         <p {...commentTargetAttrs(draft.comments, { page: 2, targetKind: "line", targetLabel: "ISSN line" })} className="cover-issn">
-          ISSN: {eIssn}
+          {issnLine}
         </p>
       ) : null}
       <p {...commentTargetAttrs(draft.comments, { page: 2, targetKind: "line", targetLabel: "Printed by line" })} className="cover-printer">
@@ -1596,19 +1599,25 @@ function JournalDetailsPage({
     : legal?.publisherWebsite || journal.website || journal.companyWebsite || identity.website;
   const issuePhrase = issueWord === "—" ? "" : `${issueWord.toLowerCase()} times a year`;
   // About-page closing paragraphs — fixed template filled with dynamic values.
+  // Names are stored as rich text (HTML-encoded, e.g. "&amp;"); decode to plain
+  // text before dropping them into these plain-text paragraphs, otherwise the
+  // entity renders literally.
+  const journalNameText = inlineToPlainText(journal.name);
+  const publisherNameText = inlineToPlainText(publisherName);
+  const companyNameText = inlineToPlainText(companyName);
   const aboutIntroText = issuePhrase
-    ? `The ${journal.name} is published ${issuePhrase} by ${publisherName} (a strong initiative of ${companyName}), India. publisher of journals.`
-    : `The ${journal.name} is published by ${publisherName} (a strong initiative of ${companyName}), India. publisher of journals.`;
+    ? `The ${journalNameText} is published ${issuePhrase} by ${publisherNameText} (a strong initiative of ${companyNameText}), India. publisher of journals.`
+    : `The ${journalNameText} is published by ${publisherNameText} (a strong initiative of ${companyNameText}), India. publisher of journals.`;
   const aboutNotes = [
     <>
-      The {journal.name} is published{" "}
+      The {journalNameText} is published{" "}
       {issuePhrase ? <i>{issuePhrase}</i> : null}{" "}
-      by {publisherName} (a strong initiative of {companyName}), India. publisher of journals.
+      by {publisherNameText} (a strong initiative of {companyNameText}), India. publisher of journals.
     </>,
     "The views and opinions expressed in the articles are those of the respective author(s) and do not necessarily reflect the views or opinions of the Editor, Editorial Board, or Publisher.",
     "All rights reserved. No part of this publication may be reproduced, stored in a retrieval system, or transmitted in any form or by any means, whether electronic, mechanical, photocopying, recording, or otherwise, without prior written permission of the Publisher.",
     "To cite any material published in this journal, either in English or in translation, please provide the complete bibliographic reference to the original work.",
-    `For permissions, reprints, subscriptions, advertising inquiries, or reuse of published content, contact ${publisherName} at ${publisherEmail} or visit ${closingWebsite}.`,
+    `For permissions, reprints, subscriptions, advertising inquiries, or reuse of published content, contact ${publisherNameText} at ${publisherEmail} or visit ${closingWebsite}.`,
   ];
   // About / objectives / salient features all come from the Publisher record now;
   // only focus & scope is per-journal. Blank values are flagged.
@@ -1660,12 +1669,8 @@ function JournalDetailsPage({
           <div {...commentTargetAttrs(draft.comments, { page: 4, targetKind: "content", targetLabel: "Journal title block" })}>
             <RichText as="h2" className="journal-info-name" value={journal.name} />
           </div>
-          {journal.eIssn || journal.pIssn ? (
-            <p className="journal-info-issn">
-              {journal.eIssn && journal.pIssn
-                ? `ISSN: ${journal.eIssn} (Online), ISSN: ${journal.pIssn} (Print)`
-                : `ISSN: ${journal.eIssn || journal.pIssn}`}
-            </p>
+          {formatIssnLine(journal.eIssn, journal.pIssn) ? (
+            <p className="journal-info-issn">{formatIssnLine(journal.eIssn, journal.pIssn)}</p>
           ) : null}
         </div>
         <h2 {...commentTargetAttrs(draft.comments, { page: 4, targetKind: "line", targetLabel: "Focus and scope heading" })}>Focus and Scope</h2>
@@ -3570,7 +3575,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     if (!primaryJournal || !canEdit) return;
     const ok = await persistDraft(primaryJournal.id);
     if (ok) {
-      setSaveStatus(`Saved details for ${primaryJournal.abbreviation || primaryJournal.name}`);
+      setSaveStatus(`Saved details for ${primaryJournal.abbreviation || inlineToPlainText(primaryJournal.name)}`);
       window.setTimeout(() => setSaveStatus(""), 2500);
     } else {
       window.setTimeout(() => setSaveStatus(""), 6000);
@@ -3869,8 +3874,8 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
         </div>
         <div className="active-journal-card">
           <span>Active Journal</span>
-          <b>{primaryJournal ? titleCaseName(primaryJournal.name) : "No journal selected"}</b>
-          <small>ISSN: {primaryDraft?.eIssn || primaryJournal?.eIssn || "Not set"}</small>
+          <b>{primaryJournal ? titleCaseName(inlineToPlainText(primaryJournal.name)) : "No journal selected"}</b>
+          <small>{formatIssnLine(primaryDraft?.eIssn || primaryJournal?.eIssn, primaryJournal?.pIssn) ?? "ISSN: Not set"}</small>
           <small className={!canEdit ? "save-state" : dirty ? "save-state is-dirty" : "save-state is-saved"}>
             {!canEdit ? "🔒 Read-only" : dirty ? "● Unsaved changes" : "✓ All changes saved"}
           </small>
@@ -3930,7 +3935,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                     setComboOpen(false);
                   }
                 }}
-                placeholder={primaryJournal ? titleCaseName(primaryJournal.name) : "Search journal by name or abbreviation"}
+                placeholder={primaryJournal ? titleCaseName(inlineToPlainText(primaryJournal.name)) : "Search journal by name or abbreviation"}
                 aria-label="Search and select journal"
                 role="combobox"
                 aria-controls="journal-combo-list"
@@ -3950,7 +3955,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                         setComboOpen(false);
                       }}
                     >
-                      {journal.name} <small>({journal.abbreviation})</small>
+                      {inlineToPlainText(journal.name)} <small>({journal.abbreviation})</small>
                     </li>
                   ))}
                   {filteredJournals.length === 0 ? <li className="empty">No matches</li> : null}
@@ -4093,7 +4098,7 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                             )
                           }
                         />
-                        <span>{journal.name} ({journal.abbreviation})</span>
+                        <span>{inlineToPlainText(journal.name)} ({journal.abbreviation})</span>
                       </label>
                     ))}
                   </div>

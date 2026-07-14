@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { FrontCoverLayout } from "@/lib/binder-content";
+import { formatIssnLine, type FrontCoverLayout } from "@/lib/binder-content";
 import { ReqText } from "@/components/RichText";
 
 type Props = {
@@ -9,6 +9,7 @@ type Props = {
   sjif: string;
   icv: string;
   eIssn: string;
+  pIssn: string;
   issueLine: string;
   website: string;
   title: string;
@@ -32,6 +33,7 @@ export default function FrontCoverCanvas({
   sjif,
   icv,
   eIssn,
+  pIssn,
   issueLine,
   website,
   title,
@@ -52,8 +54,9 @@ export default function FrontCoverCanvas({
             {icv.trim() ? <div className="front-cover-meta-line">ICV: {icv}</div> : null}
           </div>
           <div className="front-cover-top-right">
-            {/* e-ISSN is optional — the whole line is hidden when unset. */}
-            {eIssn.trim() ? <div className="front-cover-issn">ISSN: {eIssn}</div> : null}
+            {/* ISSN is optional. Online + Print when both set; the whole line is
+                hidden when both are blank. */}
+            {formatIssnLine(eIssn, pIssn) ? <div className="front-cover-issn">{formatIssnLine(eIssn, pIssn)}</div> : null}
             <div className="front-cover-issue-line">{issueLine}</div>
             <div className="front-cover-website-line">{website}</div>
           </div>

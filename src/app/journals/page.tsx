@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requireSession, isAdmin, canEdit } from "@/lib/auth/session";
 import { assignedJournalIds } from "@/lib/journal-access";
 import { prisma } from "@/lib/prisma";
+import { inlineToPlainText } from "@/lib/rich-text";
 import { deleteJournal } from "@/app/actions/journals";
 import { importCsv } from "@/app/actions/import-export";
 import EntityTable from "@/components/admin/EntityTable";
@@ -48,7 +49,7 @@ export default async function JournalsPage() {
         id: j.id,
         cells: [
           <div key="name">
-            <div className="font-medium text-slate-900">{j.name}</div>
+            <div className="font-medium text-slate-900">{inlineToPlainText(j.name)}</div>
             <div className="text-slate-500">{j.abbreviation}</div>
           </div>,
           j.domain?.name ?? "—",

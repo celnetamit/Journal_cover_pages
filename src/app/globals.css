@@ -1992,7 +1992,8 @@ button {
   line-height: 1.1;
   padding: 0;
   text-align: right;
-  white-space: nowrap;
+  /* Wraps to two right-aligned lines when both Online + Print ISSN are shown. */
+  white-space: normal;
 }
 
 .front-cover-title {

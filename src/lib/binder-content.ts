@@ -56,6 +56,18 @@ export type BinderDraft = {
 // when a journal leaves "Manuscript submission URL" blank.
 export const defaultManuscriptUrl = "https://manuscript-engine.journalslibrary.com/";
 
+// Shared ISSN formatting used on every page that shows ISSN (front cover, title
+// page, About page). Online + Print when both are set, a single unlabelled value
+// when only one is set, and nothing (null) when both are blank — the whole line
+// is then hidden by the caller.
+export function formatIssnLine(eIssn?: string | null, pIssn?: string | null): string | null {
+  const online = (eIssn ?? "").trim();
+  const print = (pIssn ?? "").trim();
+  if (online && print) return `ISSN: ${online} (Online), ISSN: ${print} (Print)`;
+  if (online || print) return `ISSN: ${online || print}`;
+  return null;
+}
+
 // Default printed spine thickness (mm) and the common page-count presets. The
 // spine sits between the back and front cover panels on the cover spread.
 export const defaultSpineMm = 12;
