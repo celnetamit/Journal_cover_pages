@@ -12,7 +12,7 @@ export default async function AppHeader() {
   const label = session.name || session.email;
 
   return (
-    <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2 text-sm">
+    <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2 text-sm print:hidden">
       <Link href="/" className="-my-1" aria-label="Journal Builder home">
         <Logo size={26} />
       </Link>
@@ -22,6 +22,11 @@ export default async function AppHeader() {
         {canEditBinders(session.role) && (
           <Link href="/journals" className="text-slate-600 hover:text-slate-900">
             Journals
+          </Link>
+        )}
+        {canEditBinders(session.role) && (
+          <Link href="/audit" className="text-slate-600 hover:text-slate-900">
+            QA Audit
           </Link>
         )}
         {canEdit(session.role) && (

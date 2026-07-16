@@ -4608,3 +4608,32 @@ button {
     page: cover-page;
   }
 }
+
+/* Binder QA / Audit — isolate the report modal for printing. When the modal's
+   Print button sets `audit-printing` on <body>, everything except the portalled
+   report is hidden, overriding the binder print flow (which mounts #pdf-book).
+   The modal is portalled to <body>, so it is a direct child of <body>. */
+@media print {
+  body.audit-printing > *:not(.audit-print-portal) {
+    display: none !important;
+  }
+
+  body.audit-printing .audit-print-portal {
+    position: static !important;
+    display: block !important;
+    inset: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    padding: 0 !important;
+    z-index: auto !important;
+  }
+
+  body.audit-printing .audit-print-root {
+    box-shadow: none !important;
+    max-width: none !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 10mm !important;
+    border-radius: 0 !important;
+  }
+}

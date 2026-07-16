@@ -28,6 +28,7 @@ import { RichText, ReqText, MissingFlag, hasValue } from "@/components/RichText"
 import { inlineToPlainText } from "@/lib/rich-text";
 import type { SubscriptionTier } from "@/lib/subscription-tiers";
 import { exportBookToPdf, type ExportMode } from "@/lib/pdf-export";
+import BinderAuditPanel from "@/components/audit/BinderAuditPanel";
 import {
   cleanIcv,
   frontCoverTitleClass,
@@ -3420,6 +3421,7 @@ function SectionEditor({
               onExport={onExport}
             />
           </div>
+          <BinderAuditPanel journal={journal} draft={draft} />
         </>
       ) : null}
     </section>
@@ -4072,6 +4074,8 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                     onExport={runExport}
                   />
                 </div>
+
+                <BinderAuditPanel journal={primaryJournal ?? null} draft={primaryDraft} />
 
                 <div className="batch-export">
                   <div className="editor-row-head">
