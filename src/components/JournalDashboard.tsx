@@ -12,6 +12,7 @@ import {
   Eye,
   Lock,
   Printer,
+  ShieldCheck,
   SlidersHorizontal,
   SquarePen,
 } from "lucide-react";
@@ -27,7 +28,7 @@ import { RichTextField } from "@/components/RichTextField";
 import { RichText, ReqText, MissingFlag, hasValue } from "@/components/RichText";
 import { inlineToPlainText } from "@/lib/rich-text";
 import type { SubscriptionTier } from "@/lib/subscription-tiers";
-import { exportBookToPdf, type ExportMode } from "@/lib/pdf-export";
+import { exportBookToPdf, exportFrontMatterToQa, exportCoverToQa, type ExportMode } from "@/lib/pdf-export";
 import BinderAuditPanel from "@/components/audit/BinderAuditPanel";
 import {
   cleanIcv,
@@ -795,7 +796,17 @@ function pdfFileName(journal: Journal | undefined, draft: BinderDraft | null, mo
   return `${exportBaseSlug(journal, draft)}-${mode === "cover" ? "cover" : "internal-pages"}-${commentSuffix}.pdf`;
 }
 
-type ExportJob = { mode: ExportMode; filename: string; includeComments: boolean };
+// qaBinderId: instead of downloading, the rendered pages are uploaded to that
+// binder's QA workspace (front matter at exact A4, or the cover at its trim —
+// both without crop marks). qaJournalId rides along for the success link.
+type ExportJob = {
+  mode: ExportMode;
+  filename: string;
+  includeComments: boolean;
+  qaBinderId?: string;
+  qaJournalId?: string;
+  qaKind?: "FRONT_MATTER" | "COVER";
+};
 type ExportError = { mode: ExportMode; includeComments: boolean; message: string } | null;
 type BookEntry = { journal: Journal; draft: BinderDraft };
 type BookSnapshot = { entries: BookEntry[]; includeComments: boolean } | null;
@@ -834,7 +845,8 @@ function DownloadButton({
 }
 
 function exportBusyState(job: ExportJob | null, mode: ExportMode, includeComments: boolean) {
-  return job?.mode === mode && job.includeComments === includeComments;
+  // QA sends reuse the export machinery but must not light up download buttons.
+  return job?.mode === mode && job.includeComments === includeComments && !job.qaBinderId;
 }
 
 function LogoThumb({ src, label }: { src: string; label: string }) {
@@ -3453,6 +3465,9 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
   const [batchIds, setBatchIds] = useState<string[]>([]);
   const [importStatus, setImportStatus] = useState("");
   const [comboOpen, setComboOpen] = useState(false);
+  // Set after a successful "send to Binder QA" upload / a failed one.
+  const [qaSent, setQaSent] = useState<{ journalId: string; binderId: string; pageCount: number; kind: "FRONT_MATTER" | "COVER" } | null>(null);
+  const [qaSendError, setQaSendError] = useState<string | null>(null);
   const dirty = dirtyIds.size > 0;
   const primaryJournal = journals.find((journal) => journal.id === selectedId) || journals[0];
   const selectedJournals = primaryJournal ? [primaryJournal] : [];
@@ -3776,6 +3791,26 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
     setExportJob({ mode, filename: pdfFileName(primaryJournal, primaryDraft, mode, includeComments), includeComments });
   }
 
+  // Render the internal pages (or the cover spread) and push them straight to
+  // the Binder QA workspace (requires a saved issue with no unsaved edits, so
+  // the rendered PDF matches the stored draft the QA engine compares against).
+  function runSendToQa(kind: "FRONT_MATTER" | "COVER") {
+    if (exportJob || !primaryJournal || !primaryDraft || dirty) return;
+    const binderId = activeBinderId[primaryJournal.id];
+    if (!binderId) return;
+    setQaSendError(null);
+    setQaSent(null);
+    setBookSnapshot({ entries: [{ journal: primaryJournal, draft: primaryDraft }], includeComments: false });
+    setExportJob({
+      mode: kind === "COVER" ? "cover" : "internal",
+      filename: kind === "COVER" ? "cover-spread.pdf" : "front-matter.pdf",
+      includeComments: false,
+      qaBinderId: binderId,
+      qaJournalId: primaryJournal.id,
+      qaKind: kind,
+    });
+  }
+
   // W2 — combine the selected journals into one PDF (covers or internal pages).
   function runBatchExport(mode: ExportMode, includeComments: boolean) {
     if (exportJob) return;
@@ -3809,16 +3844,31 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
           requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
         );
         if (cancelled) return;
-        await exportBookToPdf(job.mode, job.filename);
+        if (job.qaBinderId) {
+          const pageCount =
+            job.qaKind === "COVER"
+              ? await exportCoverToQa(job.qaBinderId)
+              : await exportFrontMatterToQa(job.qaBinderId);
+          if (!cancelled) {
+            setQaSent({ journalId: job.qaJournalId ?? "", binderId: job.qaBinderId, pageCount, kind: job.qaKind ?? "FRONT_MATTER" });
+          }
+        } else {
+          await exportBookToPdf(job.mode, job.filename);
+        }
       } catch (cause) {
         console.error("PDF export failed", cause);
         if (!cancelled) {
-          setExportError({
-            mode: job.mode,
-            includeComments: job.includeComments,
-            message:
-              "PDF export failed. A cover image may be blocking export (cross-origin), or the browser ran low on memory. Try re-uploading the image or using a smaller one.",
-          });
+          if (job.qaBinderId) {
+            // QA sends surface their own error — never under the download buttons.
+            setQaSendError(`Sending to Binder QA failed. ${cause instanceof Error ? cause.message : "Try again."}`);
+          } else {
+            setExportError({
+              mode: job.mode,
+              includeComments: job.includeComments,
+              message:
+                "PDF export failed. A cover image may be blocking export (cross-origin), or the browser ran low on memory. Try re-uploading the image or using a smaller one.",
+            });
+          }
         }
       } finally {
         if (!cancelled) {
@@ -4073,6 +4123,60 @@ export default function JournalDashboard({ journals, defaultJournalId, dynamicDa
                     error={exportError?.mode === "internal" && exportError.includeComments === true ? exportError.message : ""}
                     onExport={runExport}
                   />
+                  <div className="download-button">
+                    <button
+                      className="secondary-action"
+                      disabled={
+                        exportJob !== null ||
+                        dirty ||
+                        !primaryJournal ||
+                        !activeBinderId[primaryJournal.id]
+                      }
+                      onClick={() => runSendToQa("FRONT_MATTER")}
+                      title={
+                        primaryJournal && !activeBinderId[primaryJournal.id]
+                          ? "Save the issue first — QA files are stored against a saved issue."
+                          : dirty
+                            ? "Waiting for unsaved changes to save — the QA copy must match the stored draft."
+                            : "Render the internal pages (exact A4, no crop marks) and store them as this issue's front matter in Binder QA."
+                      }
+                    >
+                      <ShieldCheck size={16} />
+                      {exportJob?.qaKind === "FRONT_MATTER" ? "Sending to Binder QA…" : "Send front matter to Binder QA"}
+                    </button>
+                    <button
+                      className="secondary-action"
+                      disabled={
+                        exportJob !== null ||
+                        dirty ||
+                        !primaryJournal ||
+                        !activeBinderId[primaryJournal.id]
+                      }
+                      onClick={() => runSendToQa("COVER")}
+                      title={
+                        primaryJournal && !activeBinderId[primaryJournal.id]
+                          ? "Save the issue first — QA files are stored against a saved issue."
+                          : dirty
+                            ? "Waiting for unsaved changes to save — the QA copy must match the stored draft."
+                            : "Render the cover spread at its trim size (no crop marks) and store it for the QA cover checks."
+                      }
+                    >
+                      <ShieldCheck size={16} />
+                      {exportJob?.qaKind === "COVER" ? "Sending cover…" : "Send cover to Binder QA"}
+                    </button>
+                    {qaSendError ? (
+                      <span className="download-error" role="alert">{qaSendError}</span>
+                    ) : null}
+                    {qaSent ? (
+                      <span className="field-hint">
+                        ✓ {qaSent.kind === "COVER" ? "Cover" : "Front matter"} ({qaSent.pageCount} page{qaSent.pageCount === 1 ? "" : "s"}) sent —{" "}
+                        <a href={`/qa/${qaSent.journalId}?issue=${qaSent.binderId}`} style={{ textDecoration: "underline" }}>
+                          open Binder QA
+                        </a>{" "}
+                        to add manuscripts &amp; assemble.
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
 
                 <BinderAuditPanel journal={primaryJournal ?? null} draft={primaryDraft} />

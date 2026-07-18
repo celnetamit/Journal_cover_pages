@@ -90,8 +90,9 @@ export function isValidUrl(raw: string): boolean {
 }
 
 // Junk / placeholder / unresolved-editorial markers (Module 12 / 14). Each has a
-// human label so the report can say what it detected.
-const JUNK_PATTERNS: Array<{ label: string; re: RegExp }> = [
+// human label so the report can say what it detected. Exported so the PDF-level
+// audit (binder-pdf-audit.ts) scans the assembled binder with the same list.
+export const JUNK_PATTERNS: Array<{ label: string; re: RegExp }> = [
   { label: "repeated x placeholder (xxxx)", re: /x{4,}/i },
   { label: "unresolved ??? placeholder", re: /\?{3,}/ },
   { label: "lorem ipsum filler", re: /\blorem ipsum\b/i },
@@ -638,7 +639,8 @@ function imageItem(label: string, value: string): AuditItem {
 // ---------------------------------------------------------------------------
 
 // Worst status wins for a module's summary row: fail > warn > (pass) > manual > na.
-function summarize(mod: AuditModule): AuditStatus {
+// Exported for the PDF-level audit, which builds reports of the same shape.
+export function summarize(mod: AuditModule): AuditStatus {
   const statuses = mod.items.map((i) => i.status);
   if (statuses.includes("fail")) return "fail";
   if (statuses.includes("warn")) return "warn";

@@ -96,23 +96,45 @@ export async function getBinderById(binderId: string): Promise<StoredDraft | nul
   };
 }
 
+// Sync Article rows to the draft's contents WITHOUT deleting surviving rows:
+// manuscript PDFs (BinderFile) hang off Article ids with onDelete: Cascade, so
+// a delete-and-recreate here would silently wipe every uploaded manuscript on
+// each dashboard save. Rows are matched by position (TOC order): existing rows
+// are updated in place, extras created, surplus deleted (only surplus rows
+// lose their manuscript, which is correct — the TOC row itself is gone).
 async function writeArticles(
   tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
   binderId: string,
   draft: BinderDraft,
 ) {
-  await tx.article.deleteMany({ where: { binderId } });
   const rows = (draft.contentRows ?? []).filter((r) => r.title?.trim());
-  if (rows.length) {
+  const existing = await tx.article.findMany({
+    where: { binderId },
+    orderBy: { order: "asc" },
+    select: { id: true },
+  });
+
+  const shared = Math.min(existing.length, rows.length);
+  for (let i = 0; i < shared; i += 1) {
+    const r = rows[i];
+    await tx.article.update({
+      where: { id: existing[i].id },
+      data: { title: r.title, authors: r.author || null, startPage: r.page || null, order: i },
+    });
+  }
+  if (rows.length > existing.length) {
     await tx.article.createMany({
-      data: rows.map((r, index) => ({
+      data: rows.slice(existing.length).map((r, offset) => ({
         binderId,
         title: r.title,
         authors: r.author || null,
         startPage: r.page || null,
-        order: index,
+        order: existing.length + offset,
       })),
     });
+  }
+  if (existing.length > rows.length) {
+    await tx.article.deleteMany({ where: { id: { in: existing.slice(rows.length).map((a) => a.id) } } });
   }
 }
 

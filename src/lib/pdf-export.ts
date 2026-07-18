@@ -107,3 +107,65 @@ export async function exportBookToPdf(mode: ExportMode, filename: string) {
 
   pdf.save(filename);
 }
+
+// Rasterizes the mounted pages of one export group at *exact trim size* (no
+// slug, no crop marks) and uploads the PDF to the binder's QA workspace.
+// Internal pages → FRONT_MATTER (pure A4 — they get merged into the binder);
+// cover → COVER (its own trim, kept separate). Returns the page count.
+async function exportGroupToQa(
+  binderId: string,
+  mode: ExportMode,
+  kind: "FRONT_MATTER" | "COVER",
+  filename: string,
+): Promise<number> {
+  const source = document.getElementById("pdf-book");
+  if (!source) throw new Error("Export container not found.");
+  const pages = Array.from(source.querySelectorAll<HTMLElement>(`.pdf-page[data-export-group="${mode}"]`));
+  if (pages.length === 0) throw new Error("No pages were found to export.");
+  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+    import("html2canvas"),
+    import("jspdf"),
+  ]);
+
+  const { trimW, trimH } = geometry(mode, pages[0]);
+  const orientation = trimW > trimH ? "landscape" : "portrait";
+  const pdf = new jsPDF({ orientation, unit: "mm", format: [trimW, trimH] });
+  for (let index = 0; index < pages.length; index += 1) {
+    const { width, height } = pages[index].getBoundingClientRect();
+    const canvas = await html2canvas(pages[index], {
+      // Internal pages match the download export's 3.25 capture scale (~312
+      // effective dpi) so the assembled binder clears the ≥300 dpi QA check
+      // with margin; the cover matches its download counterpart.
+      scale: mode === "cover" ? 2.25 : 3.25,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      width,
+      height,
+      windowWidth: Math.ceil(width),
+      windowHeight: Math.ceil(height),
+    });
+    // High-quality JPEG keeps the upload well under the route's 50 MB cap.
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    if (index > 0) pdf.addPage([trimW, trimH], orientation);
+    pdf.addImage(imgData, "JPEG", 0, 0, trimW, trimH, undefined, "FAST");
+  }
+
+  const blob = pdf.output("blob");
+  const form = new FormData();
+  form.set("file", new File([blob], filename, { type: "application/pdf" }));
+  form.set("kind", kind);
+  const res = await fetch(`/api/binders/${binderId}/files`, { method: "POST", body: form });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error ?? `Upload failed (${res.status})`);
+  }
+  return pages.length;
+}
+
+export function exportFrontMatterToQa(binderId: string): Promise<number> {
+  return exportGroupToQa(binderId, "internal", "FRONT_MATTER", "front-matter.pdf");
+}
+
+export function exportCoverToQa(binderId: string): Promise<number> {
+  return exportGroupToQa(binderId, "cover", "COVER", "cover-spread.pdf");
+}

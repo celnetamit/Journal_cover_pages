@@ -31,6 +31,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // pdfjs-dist must be required from node_modules at runtime — bundling it
+  // breaks its internal (fake-)worker module resolution in the server build.
+  serverExternalPackages: ["pdfjs-dist"],
   async headers() {
     return [
       {

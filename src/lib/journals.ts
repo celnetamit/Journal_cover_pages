@@ -187,4 +187,11 @@ export const getJournals = cache(async (): Promise<Journal[]> => {
   return rows.map(toLegacyJournal);
 });
 
+// Single-journal variant for paths that only need one journal (e.g. a QA run):
+// avoids loading and flattening the entire catalog. Memoized per render pass.
+export const getJournalById = cache(async (id: string): Promise<Journal | null> => {
+  const row = await prisma.journal.findUnique({ where: { id }, include: journalInclude });
+  return row ? toLegacyJournal(row) : null;
+});
+
 export const targetJournalName = "Journal of Advanced Database Management & Systems";

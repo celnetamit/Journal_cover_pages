@@ -29,6 +29,11 @@ export default async function AppHeader() {
             QA Audit
           </Link>
         )}
+        {canEditBinders(session.role) && (
+          <Link href="/qa" className="text-slate-600 hover:text-slate-900">
+            Binder QA
+          </Link>
+        )}
         {canEdit(session.role) && (
           <Link href="/admin" className="text-slate-600 hover:text-slate-900">
             Setup

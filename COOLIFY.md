@@ -30,6 +30,7 @@ separate volume/object storage is required.
 | `ADMIN_PASSWORD` | first boot | Seeded admin password. Change it after first login (Users page → Reset password). |
 | `ADMIN_NAME` | optional | Display name for the seeded admin. |
 | `RUN_SEED` | first boot | Set `true` for the **first** deploy to seed the admin + the journal catalog from the bundled CSVs. Set `false` (or remove) afterwards. |
+| `ANTHROPIC_API_KEY` | optional | Enables the Binder QA AI review (`/qa`). When unset, QA runs include only the rule-based PDF checks and the visual checks are marked for manual review. |
 
 ## 3. Deploy
 

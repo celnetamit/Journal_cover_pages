@@ -321,6 +321,40 @@ can be typed as a URL or uploaded directly.
 ### E. Manage users — **Users** (`/admin/users`, admin only)
 Create accounts, set roles (admin/editor/viewer), enable/disable, reset passwords.
 
+### F. Binder assembly & AI QA — **Binder QA** (`/qa`)
+
+The pre-review quality gate. For a journal's latest saved issue:
+
+1. **Front matter & cover** — click *Send front matter to Binder QA* / *Send
+   cover to Binder QA* in the dashboard's export panel (rendered at exact trim,
+   no crop marks), or upload externally produced PDFs on the `/qa/[journalId]`
+   page. The cover spread is reviewed but never merged into the A4 binder. Any
+   saved issue can be selected via the workspace's issue picker.
+2. **Manuscripts** — upload one PDF per Table-of-Contents article.
+3. **Assemble** — merges front matter + manuscripts (in TOC order) into the
+   final binder PDF (`pdf-lib`), recording where each article landed and
+   auto-padding a blank verso when the count would be odd.
+4. **Run AI QA** — two layers produce one report (same shape as the draft
+   audit, rendered by the same `AuditReportView`):
+   - *Deterministic* (`src/lib/binder-pdf-audit.ts`, `pdfjs-dist`): page
+     size/orientation, even page count, fonts & sizes, margins, junk/placeholder
+     text, DOI/ISSN patterns, printed page-number continuity, TOC↔article
+     cross-verification. Rasterized (image-only) pages defer their text checks
+     to the AI layer.
+   - *AI review* (`src/lib/binder-ai-audit.ts`, Claude `claude-opus-4-8` via
+     `@anthropic-ai/sdk`): logos, cover design/alignment, people-page photo
+     grids, layout consistency, grammar, Vancouver reference style — returned
+     as structured output. Skipped gracefully when `ANTHROPIC_API_KEY` is unset.
+5. **Forward to internal review** — allowed only when the latest QA run against
+   the *current* assembled PDF has zero Fails. Admins may override with a
+   reason; overrides and submissions are recorded in the activity log
+   (`/admin/logs`). The team's worklist lives at `/qa/review`.
+
+Data lives in `BinderFile` (PDF bytes: front matter / manuscripts / assembled)
+and `BinderQaRun` (report JSON + verdict); the workflow state is
+`Binder.reviewStatus` (`DRAFT` → `IN_INTERNAL_REVIEW`). Re-assembling replaces
+the assembled file, which automatically invalidates earlier pass verdicts.
+
 ---
 
 ## 9. Deploy

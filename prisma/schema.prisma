@@ -55,6 +55,26 @@ enum JournalFrequency {
   OTHER
 }
 
+// Binder QA module: kind of PDF stored against a binder.
+enum BinderFileKind {
+  FRONT_MATTER // exported/uploaded initial-pages PDF
+  MANUSCRIPT // one article's manuscript PDF (tied to an Article row)
+  ASSEMBLED // front matter + manuscripts merged into the final binder
+  COVER // cover spread PDF (kept separate — reviewed, never merged into the A4 binder)
+}
+
+// Where a binder sits in the QA → internal review workflow.
+enum BinderReviewStatus {
+  DRAFT
+  IN_INTERNAL_REVIEW
+}
+
+enum QaRunStatus {
+  RUNNING
+  COMPLETE
+  ERROR
+}
+
 // ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
@@ -75,6 +95,9 @@ model User {
   // from Journal.manager, which is a display Profile — this is an access grant.
   managedJournals Journal[]  @relation("JournalManagerUsers")
   auditLogs       AuditLog[]
+  binderFiles      BinderFile[]
+  qaRuns           BinderQaRun[]
+  submittedBinders Binder[]      @relation("BinderSubmitter")
 }
 
 // Append-only record of catalog changes (currently journal create/update/delete),
@@ -406,9 +429,18 @@ model Binder {
   updatedAt   DateTime @updatedAt
   updatedById String?
 
-  journal   Journal   @relation(fields: [journalId], references: [id], onDelete: Cascade)
-  updatedBy User?     @relation(fields: [updatedById], references: [id], onDelete: SetNull)
-  articles  Article[]
+  // QA → internal-review workflow. A binder is forwarded to the internal team
+  // only after its latest QA run passed (or an admin override, which is logged).
+  reviewStatus  BinderReviewStatus @default(DRAFT)
+  submittedAt   DateTime?
+  submittedById String?
+
+  journal     Journal   @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  updatedBy   User?     @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  submittedBy User?     @relation("BinderSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
+  articles    Article[]
+  files       BinderFile[]
+  qaRuns      BinderQaRun[]
 
   @@unique([journalId, volume, issue, year])
   @@index([journalId])
@@ -422,7 +454,8 @@ model Article {
   startPage String?
   order     Int     @default(0)
 
-  binder Binder @relation(fields: [binderId], references: [id], onDelete: Cascade)
+  binder     Binder      @relation(fields: [binderId], references: [id], onDelete: Cascade)
+  manuscript BinderFile? // uploaded manuscript PDF for this TOC row
 
   @@index([binderId])
 }
@@ -442,4 +475,55 @@ model Asset {
 
   uploadedById String?
   uploadedBy   User?   @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+}
+
+// ---------------------------------------------------------------------------
+// Binder QA module (PDF storage + AI quality-assurance runs)
+// ---------------------------------------------------------------------------
+
+// A PDF stored against a binder: the front-matter export, one manuscript per
+// TOC article, or the assembled final binder. Bytes live in Postgres like Asset.
+model BinderFile {
+  id        String         @id @default(cuid())
+  binderId  String
+  kind      BinderFileKind
+  articleId String?        @unique // MANUSCRIPT only — one PDF per TOC row
+  filename  String?
+  data      Bytes
+  byteSize  Int
+  pageCount Int?
+  // ASSEMBLED only: { frontMatterPages, articles: [{ articleId, title, startPage, endPage }] }
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  uploadedById String?
+  binder       Binder   @relation(fields: [binderId], references: [id], onDelete: Cascade)
+  article      Article? @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  qaRuns       BinderQaRun[]
+
+  @@index([binderId])
+}
+
+// One AI QA run over an assembled binder. `report` holds the full AuditReport
+// JSON (same shape the draft audit renders); `passed` gates internal review.
+model BinderQaRun {
+  id         String      @id @default(cuid())
+  binderId   String
+  status     QaRunStatus @default(RUNNING)
+  report     Json?
+  counts     Json?
+  passed     Boolean     @default(false)
+  model      String? // AI model used, null when AI layer was skipped
+  error      String?
+  createdAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  assembledFileId String?
+  createdById     String?
+  binder          Binder      @relation(fields: [binderId], references: [id], onDelete: Cascade)
+  assembledFile   BinderFile? @relation(fields: [assembledFileId], references: [id], onDelete: SetNull)
+  createdBy       User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([binderId, createdAt])
 }
